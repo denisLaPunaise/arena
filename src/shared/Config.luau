@@ -314,6 +314,553 @@ Config.skillTree = {
 				},
 			},
 		},
+		-- LES DOUZE AUTRES CLASSES
+		--
+		-- Meme patron partout : identite (on creuse le pouvoir), distance (on
+		-- echange le pouvoir contre de l'allonge et des degats), resilience (on
+		-- echange des degats contre de la survie). Le sacrifice du palier 1 est
+		-- toujours une vraie perte, jamais un alibi.
+
+		tracker = {
+			{
+				id = "hunt",
+				name = "Limier",
+				kind = "identity",
+				summary = "Traces plus anciennes et plus lointaines",
+				sacrifice = "Moins de PV",
+				onUnlock = { maxHealth = -10 },
+				perTier = { trackAgeSeconds = 1.2, trackRadiusStuds = 8 },
+				tier6 = {
+					label = "Les traces indiquent aussi les PV de leur auteur",
+					effect = "trackShowsHealth",
+					implemented = true,
+				},
+			},
+			{
+				id = "snare",
+				name = "Collet",
+				kind = "range",
+				summary = "Allonge et dégâts en hausse",
+				sacrifice = "Ne lit plus les traces que de près",
+				onUnlock = { trackRadiusStuds = -45 },
+				perTier = { attackRangeStuds = 1.5, attackDamage = 1.4 },
+				tier6 = {
+					label = "Un coup porté révèle sa cible dix secondes",
+					effect = "hitReveals",
+					implemented = true,
+				},
+			},
+			{
+				id = "scout",
+				name = "Éclaireur",
+				kind = "resilience",
+				summary = "Vitesse et régénération",
+				sacrifice = "Dégâts réduits d'un tiers",
+				onUnlockScale = { attackDamage = 0.7 },
+				perTier = { walkSpeed = 1.2, regenPerSecond = 0.8 },
+				tier6 = {
+					label = "Ne déclenche plus les mines",
+					effect = "ignoresMines",
+					implemented = true,
+				},
+			},
+		},
+
+		artificer = {
+			{
+				id = "demolition",
+				name = "Démolition",
+				kind = "identity",
+				summary = "Mines plus meurtrières",
+				sacrifice = "Une mine de moins en stock",
+				onUnlock = { mineCount = -1 },
+				perTier = { mineDamage = 5, mineRadiusStuds = 0.6 },
+				tier6 = {
+					label = "Ses mines épargnent ses alliés",
+					effect = "minesSpareAllies",
+					implemented = true,
+				},
+			},
+			{
+				id = "arsenal",
+				name = "Arsenal",
+				kind = "range",
+				summary = "Beaucoup plus de mines, posées plus vite",
+				sacrifice = "Mines bien plus faibles",
+				onUnlockScale = { mineDamage = 0.6 },
+				perTier = { mineCount = 1, abilityCooldownSeconds = -0.3 },
+				tier6 = {
+					label = "Le stock se réarme une fois par manche",
+					effect = "minesRearm",
+					implemented = true,
+				},
+			},
+			{
+				id = "bunker",
+				name = "Bunker",
+				kind = "resilience",
+				summary = "PV et résistance",
+				sacrifice = "Nettement plus lent",
+				onUnlock = { walkSpeed = -3 },
+				perTier = { maxHealth = 12, damageTakenRatio = -0.03 },
+				tier6 = {
+					label = "Ses propres mines le projettent sans le blesser",
+					effect = "minesLaunchSelf",
+					implemented = true,
+				},
+			},
+		},
+
+		spectre = {
+			{
+				id = "wraith",
+				name = "Revenant",
+				kind = "identity",
+				summary = "Traversée plus longue et plus fréquente",
+				sacrifice = "Moins de PV",
+				onUnlock = { maxHealth = -15 },
+				perTier = { phaseSeconds = 0.5, abilityCooldownSeconds = -1 },
+				tier6 = {
+					label = "Sortir de traversée souffle les ennemis autour",
+					effect = "phaseExitBurst",
+					implemented = true,
+				},
+			},
+			{
+				id = "blink",
+				name = "Éclipse",
+				kind = "range",
+				summary = "Vitesse et allonge",
+				sacrifice = "Traversée réduite de moitié",
+				onUnlockScale = { phaseSeconds = 0.5 },
+				perTier = { walkSpeed = 1.3, attackRangeStuds = 0.8 },
+				tier6 = {
+					label = "Toucher un ennemi recharge la traversée",
+					effect = "phaseRefundOnHit",
+					implemented = true,
+				},
+			},
+			{
+				id = "veil",
+				name = "Voile",
+				kind = "resilience",
+				summary = "Encaisse nettement mieux",
+				sacrifice = "Plus lent",
+				onUnlock = { walkSpeed = -2.5 },
+				perTier = { damageTakenRatio = -0.045, maxHealth = 8 },
+				tier6 = {
+					label = "Invisible pendant toute la traversée",
+					effect = "phaseInvisible",
+					implemented = true,
+				},
+			},
+		},
+
+		link = {
+			{
+				id = "communion",
+				name = "Communion",
+				kind = "identity",
+				summary = "Lien plus long, et il récupère mieux",
+				sacrifice = "Moins de PV",
+				onUnlock = { maxHealth = -15 },
+				perTier = { bondRangeStuds = 10, regenPerSecond = 0.6 },
+				tier6 = {
+					label = "Les soins reçus par l'allié le soignent aussi",
+					effect = "bondSharesHealing",
+					implemented = true,
+				},
+			},
+			{
+				id = "tether",
+				name = "Attache",
+				kind = "range",
+				summary = "Il se bat vraiment",
+				sacrifice = "Lien beaucoup plus court",
+				onUnlock = { bondRangeStuds = -25 },
+				perTier = { attackDamage = 1.6, attackRangeStuds = 0.6 },
+				tier6 = {
+					label = "L'allié lié frappe plus fort",
+					effect = "bondBoostsAlly",
+					implemented = true,
+				},
+			},
+			{
+				id = "anchor",
+				name = "Ancre",
+				kind = "resilience",
+				summary = "Reprend moins de dégâts de l'allié, et encaisse mieux",
+				sacrifice = "Nettement plus lent",
+				onUnlockScale = { walkSpeed = 0.8 },
+				perTier = { bondShareRatio = -0.06, damageTakenRatio = -0.03 },
+				tier6 = {
+					label = "Le lien protège aussi l'allié des dégâts de zone",
+					effect = "bondCoversZone",
+					implemented = true,
+				},
+			},
+		},
+
+		duelist = {
+			{
+				id = "honour",
+				name = "Honneur",
+				kind = "identity",
+				summary = "Bonus de duel bien plus fort",
+				sacrifice = "Pénalité encore plus lourde face au nombre",
+				onUnlock = { duelPenaltyRatio = -0.1 },
+				perTier = { duelBonusRatio = 0.07 },
+				tier6 = {
+					label = "En duel, ses coups ignorent la résistance adverse",
+					effect = "duelPierces",
+					implemented = true,
+				},
+			},
+			{
+				id = "riposte",
+				name = "Riposte",
+				kind = "range",
+				summary = "Allonge et cadence",
+				sacrifice = "Bonus de duel réduit de moitié",
+				onUnlockScale = { duelBonusRatio = 0.5 },
+				perTier = { attackRangeStuds = 0.9, attackCooldownSeconds = -0.04 },
+				tier6 = {
+					label = "Chaque coup encaissé accélère le suivant",
+					effect = "riposteSpeeds",
+					implemented = true,
+				},
+			},
+			{
+				id = "guard",
+				name = "Garde",
+				kind = "resilience",
+				summary = "La pénalité face au nombre s'efface",
+				sacrifice = "Plus aucun bonus de duel",
+				onUnlockSet = { duelBonusRatio = 0 },
+				perTier = { duelPenaltyRatio = 0.05, maxHealth = 9 },
+				tier6 = {
+					label = "Plus aucune pénalité, quel que soit le nombre",
+					effect = "guardNoPenalty",
+					implemented = true,
+				},
+			},
+		},
+
+		smith = {
+			{
+				id = "bastion",
+				name = "Bastion",
+				kind = "identity",
+				summary = "Murs plus larges et plus durables",
+				sacrifice = "Plus lent",
+				onUnlock = { walkSpeed = -2 },
+				perTier = { wallWidthStuds = 1.6, wallSeconds = 1.5 },
+				tier6 = {
+					label = "Ses murs laissent passer son équipe",
+					effect = "wallSparesAllies",
+					implemented = true,
+				},
+			},
+			{
+				id = "forge",
+				name = "Forge",
+				kind = "range",
+				summary = "Il frappe comme il bâtit",
+				sacrifice = "Murs bien plus petits",
+				onUnlockScale = { wallWidthStuds = 0.6, wallHeightStuds = 0.7 },
+				perTier = { attackDamage = 2, attackRangeStuds = 0.5 },
+				tier6 = {
+					label = "Le mur brûle qui le touche",
+					effect = "wallBurns",
+					implemented = true,
+				},
+			},
+			{
+				id = "rampart",
+				name = "Rempart",
+				kind = "resilience",
+				summary = "PV et résistance",
+				sacrifice = "Recharge bien plus longue",
+				onUnlock = { abilityCooldownSeconds = 4 },
+				perTier = { maxHealth = 14, damageTakenRatio = -0.035 },
+				tier6 = {
+					label = "Un mur se dresse seul quand il tombe à terre",
+					effect = "wallOnDown",
+					implemented = true,
+				},
+			},
+		},
+
+		pyromaniac = {
+			{
+				id = "inferno",
+				name = "Enfer",
+				kind = "identity",
+				summary = "Brasier plus large et plus vorace",
+				sacrifice = "Moins de PV",
+				onUnlock = { maxHealth = -12 },
+				perTier = { fireDamagePerSecond = 2, fireRadiusStuds = 0.8 },
+				tier6 = {
+					label = "Les flammes s'accrochent à qui en sort",
+					effect = "fireClings",
+					implemented = true,
+				},
+			},
+			{
+				id = "ember",
+				name = "Braise",
+				kind = "range",
+				summary = "Allonge et dégâts",
+				sacrifice = "Brasier deux fois plus bref",
+				onUnlockScale = { fireSeconds = 0.5 },
+				perTier = { attackRangeStuds = 0.9, attackDamage = 1.5 },
+				tier6 = {
+					label = "Un coup porté enflamme la cible",
+					effect = "hitIgnites",
+					implemented = true,
+				},
+			},
+			{
+				id = "ash",
+				name = "Cendre",
+				kind = "resilience",
+				summary = "Encaisse mieux, et ses flammes le soignent",
+				sacrifice = "Brasier bien moins dense",
+				onUnlockScale = { fireDamagePerSecond = 0.65 },
+				perTier = { damageTakenRatio = -0.04, maxHealth = 10 },
+				tier6 = {
+					label = "Marcher dans ses propres flammes le soigne",
+					effect = "fireHealsSelf",
+					implemented = true,
+				},
+			},
+		},
+
+		decoy = {
+			{
+				id = "mirage",
+				name = "Mirage",
+				kind = "identity",
+				summary = "Clone plus durable, posé plus souvent",
+				sacrifice = "Encore plus vulnérable pendant qu'il le tient",
+				onUnlock = { cloneExposureRatio = 0.15 },
+				perTier = { cloneSeconds = 1, abilityCooldownSeconds = -1 },
+				tier6 = {
+					label = "Deux clones au lieu d'un",
+					effect = "twinClones",
+					implemented = true,
+				},
+			},
+			{
+				id = "feint",
+				name = "Feinte",
+				kind = "range",
+				summary = "Il frappe pendant que l'autre regarde ailleurs",
+				sacrifice = "Clone deux fois plus bref",
+				onUnlockScale = { cloneSeconds = 0.5 },
+				perTier = { attackDamage = 1.6, walkSpeed = 0.8 },
+				tier6 = {
+					label = "Le clone explose en disparaissant",
+					effect = "cloneBursts",
+					implemented = true,
+				},
+			},
+			{
+				id = "shade",
+				name = "Ombre",
+				kind = "resilience",
+				summary = "Plus aucune vulnérabilité pendant le leurre",
+				sacrifice = "Recharge bien plus longue",
+				onUnlock = { abilityCooldownSeconds = 6 },
+				onUnlockSet = { cloneExposureRatio = 0 },
+				perTier = { maxHealth = 10, damageTakenRatio = -0.03 },
+				tier6 = {
+					label = "Il devient invisible tant que le clone vit",
+					effect = "cloneCloaks",
+					implemented = true,
+				},
+			},
+		},
+
+		seismic = {
+			{
+				id = "quake",
+				name = "Séisme",
+				kind = "identity",
+				summary = "Onde plus large et plus longue",
+				sacrifice = "Plus lent",
+				onUnlock = { walkSpeed = -2 },
+				perTier = { slamRadiusStuds = 4, slamSeconds = 0.5 },
+				tier6 = {
+					label = "L'onde blesse ceux qu'elle atteint",
+					effect = "slamDamages",
+					implemented = true,
+				},
+			},
+			{
+				id = "fault",
+				name = "Faille",
+				kind = "range",
+				summary = "Allonge et dégâts",
+				sacrifice = "Onde réduite de moitié",
+				onUnlockScale = { slamRadiusStuds = 0.5 },
+				perTier = { attackDamage = 2, attackRangeStuds = 0.7 },
+				tier6 = {
+					label = "Son prochain coup déclenche une onde",
+					effect = "slamOnHit",
+					implemented = true,
+				},
+			},
+			{
+				id = "bedrock",
+				name = "Socle",
+				kind = "resilience",
+				summary = "PV et résistance",
+				sacrifice = "Ralentissement deux fois plus faible",
+				onUnlockScale = { slamSlowRatio = 0.5 },
+				perTier = { maxHealth = 13, damageTakenRatio = -0.035 },
+				tier6 = {
+					label = "Plus rien ne le repousse",
+					effect = "bedrockNoKnockback",
+					implemented = true,
+				},
+			},
+		},
+
+		parasite = {
+			{
+				id = "infest",
+				name = "Infestation",
+				kind = "identity",
+				summary = "Vol de soins accru, marque plus longue",
+				sacrifice = "Moins de PV",
+				onUnlock = { maxHealth = -12 },
+				perTier = { markHealStealRatio = 0.08, markSeconds = 2 },
+				tier6 = {
+					label = "La marque saute sur un autre ennemi quand sa cible tombe",
+					effect = "markJumps",
+					implemented = true,
+				},
+			},
+			{
+				id = "host",
+				name = "Hôte",
+				kind = "range",
+				summary = "Marque de bien plus loin, et frappe mieux",
+				sacrifice = "Marque deux fois plus brève",
+				onUnlockScale = { markSeconds = 0.5 },
+				perTier = { markRangeStuds = 8, attackDamage = 1.4 },
+				tier6 = {
+					label = "Frapper sa cible marquée le soigne",
+					effect = "markLifesteal",
+					implemented = true,
+				},
+			},
+			{
+				id = "symbiosis",
+				name = "Symbiose",
+				kind = "resilience",
+				summary = "Il se régénère vraiment",
+				sacrifice = "Ne vole plus aucun soin",
+				onUnlockSet = { markHealStealRatio = 0 },
+				perTier = { regenPerSecond = 0.9, maxHealth = 9 },
+				tier6 = {
+					label = "Voit tous les ennemis blessés, marqués ou non",
+					effect = "seesWounded",
+					implemented = true,
+				},
+			},
+		},
+
+		chameleon = {
+			{
+				id = "ambush",
+				name = "Embuscade",
+				kind = "identity",
+				summary = "Disparaît plus vite, frappe plus fort",
+				sacrifice = "Moins de PV",
+				onUnlock = { maxHealth = -10 },
+				perTier = { cloakDelaySeconds = -0.15, attackDamage = 1.2 },
+				tier6 = {
+					label = "Le premier coup après un camouflage compte double",
+					effect = "ambushDouble",
+					implemented = true,
+				},
+			},
+			{
+				id = "stalk",
+				name = "Traque",
+				kind = "range",
+				summary = "Bouge sans se révéler",
+				sacrifice = "Dégâts réduits d'un tiers",
+				onUnlockScale = { attackDamage = 0.7 },
+				perTier = { cloakSpeedThreshold = 1.4, walkSpeed = 0.8 },
+				tier6 = {
+					label = "Reste invisible tant qu'il marche lentement",
+					effect = "stalkWalks",
+					implemented = true,
+				},
+			},
+			{
+				id = "husk",
+				name = "Carapace",
+				kind = "resilience",
+				summary = "PV et résistance",
+				sacrifice = "Bien plus long à disparaître",
+				onUnlock = { cloakDelaySeconds = 1 },
+				perTier = { maxHealth = 11, damageTakenRatio = -0.035 },
+				tier6 = {
+					label = "Être touché le recamoufle aussitôt",
+					effect = "huskRecloaks",
+					implemented = true,
+				},
+			},
+		},
+
+		medic = {
+			{
+				id = "triage",
+				name = "Triage",
+				kind = "identity",
+				summary = "Relève bien plus vite, et en meilleur état",
+				sacrifice = "Dégâts réduits d'un tiers",
+				onUnlockScale = { attackDamage = 0.7 },
+				perTier = { reviveSpeedRatio = 0.3, reviveHealthBonusRatio = 0.06 },
+				tier6 = {
+					label = "Relève sans avoir à s'approcher",
+					effect = "remoteRevive",
+					implemented = true,
+				},
+			},
+			{
+				id = "field",
+				name = "Terrain",
+				kind = "range",
+				summary = "Il se bat au lieu d'attendre",
+				sacrifice = "Relève à la vitesse de tout le monde",
+				onUnlockSet = { reviveSpeedRatio = 1 },
+				perTier = { attackDamage = 1.5, attackRangeStuds = 0.7 },
+				tier6 = {
+					label = "Ses alliés proches se régénèrent",
+					effect = "fieldRegen",
+					implemented = true,
+				},
+			},
+			{
+				id = "ward",
+				name = "Garde-malade",
+				kind = "resilience",
+				summary = "PV et résistance",
+				sacrifice = "Nettement plus lent",
+				onUnlock = { walkSpeed = -2.5 },
+				perTier = { maxHealth = 12, damageTakenRatio = -0.035 },
+				tier6 = {
+					label = "Un relèvement qu'il a commencé ne peut plus être interrompu",
+					effect = "steadyHands",
+					implemented = true,
+				},
+			},
+		},
 	},
 
 	-- Les points en reserve, une fois l'arbre termine, vont aux ameliorations
@@ -638,13 +1185,23 @@ Config.tier6 = {
 -- 170 PV du Colosse. Le repoussement est l'outil du Colosse pour casser le vol
 -- de vie, la vitesse est l'outil du Vampire pour revenir au contact.
 Config.classStats = {
-	-- Trois statistiques valent zero pour tout le monde au depart : seules des
-	-- branches d'arbre les font monter. Elles sont declarees ici quand meme,
-	-- pour qu'un modificateur parte toujours d'un nombre et jamais d'un nil.
+	-- Quatre statistiques valent zero pour tout le monde au depart : seules des
+	-- branches d'arbre les font monter. Elles sont declarees partout quand
+	-- meme, pour qu'un modificateur parte toujours d'un nombre et jamais d'un
+	-- nil.
 	--   spreadRatio        part des degats repercutee aux ennemis proches
 	--   spreadRadiusStuds  rayon de cette repercussion
 	--   knockbackDamage    degats portes par la poussee elle-meme
 	--   damageTakenRatio   ajustement des degats recus, negatif = reduction
+	--
+	-- `ability` nomme le pouvoir de la classe. Il renvoie a Config.abilities,
+	-- qui dit s'il est code ou seulement decrit. Les chiffres du pouvoir sont
+	-- ici, et pas dans le registre, pour une raison precise : ce sont des
+	-- statistiques comme les autres, donc une branche d'arbre peut les pousser
+	-- et l'interface sait deja les afficher.
+	--
+	-- A REGLER : tout ce bloc. Ce sont des points de depart raisonnes, et la
+	-- seule facon de les valider c'est de jouer.
 	vampire = {
 		maxHealth = 100,
 		walkSpeed = 20,
@@ -661,6 +1218,7 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		ability = "lifesteal",
 	},
 	colossus = {
 		maxHealth = 170,
@@ -678,6 +1236,284 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		ability = "knockback",
+	},
+
+	-- Les douze suivantes ont toutes un pouvoir qui ne tient pas dans une
+	-- statistique. Elles portent donc `ability`, et les chiffres de ce pouvoir
+	-- avec elles.
+
+	tracker = {
+		maxHealth = 95,
+		walkSpeed = 21,
+		-- Sa faiblesse : il frappe faible. Il trouve, il ne tue pas.
+		attackDamage = 8,
+		attackCooldownSeconds = 0.55,
+		attackRangeStuds = 8,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 1.5,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "footprints",
+		-- Jusqu'ou il lit les traces, et jusqu'a quel age. Le rayon est large
+		-- expres : une information qui n'arrive qu'au contact arrive trop tard.
+		trackRadiusStuds = 90,
+		trackAgeSeconds = 6,
+	},
+
+	artificer = {
+		maxHealth = 95,
+		walkSpeed = 17,
+		-- Sa faiblesse : nul en combat direct. Son terrain, c'est avant.
+		attackDamage = 7,
+		attackCooldownSeconds = 0.8,
+		attackRangeStuds = 6,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "mines",
+		abilityCooldownSeconds = 3,
+		-- Sa faiblesse, l'autre moitie : le stock est limite et ne se recharge
+		-- qu'entre deux manches.
+		mineCount = 3,
+		mineDamage = 26,
+		mineRadiusStuds = 9,
+	},
+
+	spectre = {
+		maxHealth = 90,
+		walkSpeed = 19,
+		attackDamage = 14,
+		attackCooldownSeconds = 0.7,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "phase",
+		abilityCooldownSeconds = 14,
+		-- Court expres : traverser un mur doit servir a arriver quelque part,
+		-- pas a attendre la fin d'un echange a l'abri.
+		phaseSeconds = 3,
+	},
+
+	link = {
+		maxHealth = 130,
+		walkSpeed = 16,
+		attackDamage = 11,
+		attackCooldownSeconds = 0.8,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 3,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "bond",
+		abilityCooldownSeconds = 6,
+		-- Sa faiblesse : la moitie des degats de l'allie lui reviennent. C'est
+		-- le prix du partage, et c'est ce qui l'empeche de lier n'importe qui.
+		bondShareRatio = 0.5,
+		bondRangeStuds = 60,
+	},
+
+	duelist = {
+		maxHealth = 105,
+		walkSpeed = 19,
+		attackDamage = 13,
+		attackCooldownSeconds = 0.65,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "isolation",
+		-- Son pouvoir et sa faiblesse sont le meme chiffre vu des deux cotes :
+		-- seul contre un, il frappe plus fort ; des qu'un deuxieme ennemi est
+		-- la, il frappe plus faible.
+		duelBonusRatio = 0.35,
+		duelPenaltyRatio = -0.25,
+		duelRadiusStuds = 22,
+	},
+
+	smith = {
+		maxHealth = 140,
+		-- Sa faiblesse : lent a batir, et lent tout court.
+		walkSpeed = 14,
+		attackDamage = 15,
+		attackCooldownSeconds = 1,
+		attackRangeStuds = 8,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "wall",
+		abilityCooldownSeconds = 10,
+		-- Le mur bloque tout le monde, son equipe comprise : c'est la faiblesse
+		-- annoncee, et elle n'est pas decorative.
+		wallSeconds = 12,
+		wallWidthStuds = 14,
+		wallHeightStuds = 9,
+	},
+
+	pyromaniac = {
+		maxHealth = 100,
+		walkSpeed = 18,
+		attackDamage = 10,
+		attackCooldownSeconds = 0.7,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "fire",
+		abilityCooldownSeconds = 9,
+		-- Sa faiblesse : ses flammes ne font pas la difference entre lui et les
+		-- autres. Poser du feu sous ses pieds, c'est bruler avec.
+		fireDamagePerSecond = 9,
+		fireSeconds = 7,
+		fireRadiusStuds = 11,
+	},
+
+	decoy = {
+		maxHealth = 95,
+		walkSpeed = 19,
+		attackDamage = 11,
+		attackCooldownSeconds = 0.7,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "clone",
+		abilityCooldownSeconds = 16,
+		-- Sa faiblesse : pendant que le clone vit, lui ne bouge plus et encaisse
+		-- plus. Le leurre coute cher a celui qui le pose.
+		cloneSeconds = 6,
+		cloneExposureRatio = 0.35,
+	},
+
+	seismic = {
+		maxHealth = 125,
+		walkSpeed = 15,
+		attackDamage = 16,
+		attackCooldownSeconds = 0.95,
+		attackRangeStuds = 8,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "slam",
+		abilityCooldownSeconds = 11,
+		-- Sa faiblesse : rien de tout ca n'atteint quelqu'un qui ne touche pas
+		-- le sol. Sauter au bon moment annule la frappe entiere.
+		slamRadiusStuds = 34,
+		slamSlowRatio = -0.4,
+		slamSeconds = 4,
+	},
+
+	parasite = {
+		maxHealth = 100,
+		walkSpeed = 20,
+		attackDamage = 11,
+		attackCooldownSeconds = 0.65,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		-- Sa faiblesse, en partie : il vit sur les autres, pas sur lui-meme.
+		regenPerSecond = 1,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "mark",
+		abilityCooldownSeconds = 12,
+		-- L'autre moitie de sa faiblesse : la marque se voit, et celui qui la
+		-- porte le sait. Il sait donc aussi qu'il est suivi.
+		markSeconds = 20,
+		markHealStealRatio = 0.5,
+		markRangeStuds = 40,
+	},
+
+	chameleon = {
+		maxHealth = 90,
+		walkSpeed = 20,
+		-- Son coup est le plus fort du jeu hors Colosse : il n'en place qu'un.
+		attackDamage = 18,
+		attackCooldownSeconds = 0.9,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "cloak",
+		-- Sa faiblesse : le moindre deplacement le revele. Le delai est ce qui
+		-- l'empeche de clignoter en se repositionnant d'un pas.
+		cloakDelaySeconds = 1.2,
+		cloakSpeedThreshold = 2,
+	},
+
+	medic = {
+		maxHealth = 110,
+		walkSpeed = 18,
+		-- Sa faiblesse en combat : il frappe peu. Sa valeur est ailleurs.
+		attackDamage = 9,
+		attackCooldownSeconds = 0.7,
+		attackRangeStuds = 7,
+		lifestealRatio = 0,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		regenPerSecond = 3,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
+		ability = "mend",
+		-- Il releve deux fois plus vite que n'importe qui, et rend plus de PV.
+		-- Le relevement reste long, visible et interruptible : la faiblesse est
+		-- dans le fait de devoir rester la, pas dans la duree.
+		reviveSpeedRatio = 2,
+		reviveHealthBonusRatio = 0.25,
 	},
 }
 
@@ -689,6 +1525,163 @@ Config.classStats = {
 -- manque un, pour que la personne qui construit la map sache seule si elle est
 -- conforme. Rojo possede ServerScriptService et ReplicatedStorage, Team Create
 -- possede Workspace : ces noms sont la seule frontiere entre les deux.
+--------------------------------------------------------------------------------
+-- LES POUVOIRS DE CLASSE
+--------------------------------------------------------------------------------
+--
+-- POURQUOI CE REGISTRE EXISTE. Le 25 octobre 2026, trois branches d'arbre sur
+-- six poussaient un chiffre que le combat ne lisait pas : elles ne faisaient
+-- rien, pendant que leur sacrifice s'appliquait. Tous les tests passaient. Un
+-- pouvoir de classe peut tomber dans le meme trou, en pire, parce qu'une classe
+-- entiere devient creuse.
+--
+-- La parade est la meme que pour les paliers 6 : un pouvoir est DECLARE ici, et
+-- `implemented` dit s'il est reellement code. Rien ne l'interroge directement ;
+-- tout passe par AbilityService, qui refuse ce qui n'est pas code au lieu de ne
+-- rien faire en silence. Le serveur verifie au demarrage que chaque pouvoir
+-- marque `implemented` a bien un gestionnaire, et s'arrete net sinon.
+--
+-- `kind` dit comment le pouvoir se declenche :
+--   "stats"   entierement porte par les statistiques de la classe, rien a
+--             executer (le vol de vie du Vampire, la poussee du Colosse)
+--   "passive" le serveur l'applique tout seul, sans que le joueur agisse
+--   "active"  le joueur appuie sur la touche, et il y a une recharge
+--
+-- Les chiffres reglables d'un pouvoir ne sont PAS ici : ils sont dans
+-- Config.classStats, avec la classe. Ce qui reste ici, c'est ce qui ne se regle
+-- pas par classe.
+Config.abilities = {
+	-- Une seule touche pour tous les pouvoirs actifs. Une touche par classe
+	-- serait a reapprendre a chaque tirage, et la classe est tiree au sort.
+	inputKey = "E",
+
+	registry = {
+		lifesteal = {
+			name = "Vol de vie",
+			kind = "stats",
+			implemented = true,
+			summary = "Se soigne d'une part des dégâts infligés",
+		},
+		knockback = {
+			name = "Poussée",
+			kind = "stats",
+			implemented = true,
+			summary = "Repousse les adversaires touchés",
+		},
+		footprints = {
+			name = "Traces",
+			kind = "passive",
+			implemented = true,
+			summary = "Voit les traces de pas récentes des adversaires",
+		},
+		mines = {
+			name = "Mines",
+			kind = "active",
+			implemented = true,
+			summary = "Pose une mine au sol, stock limité",
+		},
+		phase = {
+			name = "Passe-muraille",
+			kind = "active",
+			implemented = true,
+			summary = "Traverse les murs quelques secondes, sans pouvoir frapper",
+		},
+		bond = {
+			name = "Lien",
+			kind = "active",
+			implemented = true,
+			summary = "Partage ses PV avec l'allié le plus proche",
+		},
+		isolation = {
+			name = "Isolement",
+			kind = "passive",
+			implemented = true,
+			summary = "Frappe plus fort seul contre un, plus faible à plusieurs",
+		},
+		wall = {
+			name = "Mur",
+			kind = "active",
+			implemented = true,
+			summary = "Dresse un mur temporaire qui gêne aussi son équipe",
+		},
+		fire = {
+			name = "Brasier",
+			kind = "active",
+			implemented = true,
+			summary = "Laisse une zone de feu qui le brûle aussi",
+		},
+		clone = {
+			name = "Leurre",
+			kind = "active",
+			implemented = true,
+			summary = "Pose un clone qui attire les coups, et s'immobilise",
+		},
+		slam = {
+			name = "Onde de choc",
+			kind = "active",
+			implemented = true,
+			summary = "Révèle et ralentit les ennemis au sol",
+		},
+		mark = {
+			name = "Marque",
+			kind = "active",
+			implemented = true,
+			summary = "Marque un ennemi, le voit à travers les murs, vole ses soins",
+		},
+		cloak = {
+			name = "Camouflage",
+			kind = "passive",
+			implemented = true,
+			summary = "Invisible tant qu'il ne bouge pas",
+		},
+		mend = {
+			name = "Soins",
+			kind = "passive",
+			implemented = true,
+			summary = "Relève un allié bien plus vite, et en meilleur état",
+		},
+	},
+
+	-- Les reglages qui ne sont pas des statistiques de classe : ils valent pour
+	-- le pouvoir en lui-meme, quelle que soit la classe qui le porte.
+	tuning = {
+		-- TRACES. Une trace est posee a intervalle fixe sous chaque adversaire
+		-- debout, et seul le Traqueur les recoit. L'intervalle est ce qui decide
+		-- si une piste se lit comme un chemin ou comme un nuage de points.
+		footprintIntervalSeconds = 0.45,
+		footprintMinMoveStuds = 2,
+
+		-- MINES. Elles s'arment apres un delai : poser une mine sous les pieds
+		-- d'un ennemi deja la serait une attaque instantanee, pas un piege.
+		mineArmSeconds = 1.2,
+		mineLifeSeconds = 60,
+		mineTriggerRadiusStuds = 7,
+		mineKnockbackStuds = 40,
+		mineKnockbackUpStuds = 25,
+
+		-- PASSE-MURAILLE. Pendant la traversee il ne peut ni frapper ni etre
+		-- soigne : c'est la faiblesse annoncee, et elle est appliquee ici.
+		phaseTransparency = 0.6,
+
+		-- LIEN. Les degats partages sont plafonnes pour que lier quelqu'un ne
+		-- revienne jamais a mourir a sa place en une seule fois.
+		bondMaxShareFraction = 0.35,
+
+		-- MUR et BRASIER vivent dans le meme dossier temporaire que les blocs de
+		-- la Catapulte, et disparaissent avec la manche.
+		wallThicknessStuds = 1.6,
+		fireTickSeconds = 0.5,
+
+		-- LEURRE. Le clone encaisse les coups comme une cible : il a des PV, et
+		-- les adversaires le preferent a son porteur tant qu'il est plus proche.
+		cloneHealth = 60,
+
+		-- MARQUE. Le marque est prevenu, et sa marque se voit de loin.
+		markColor = { 190, 90, 220 },
+		revealColor = { 255, 170, 70 },
+	},
+}
+
 Config.mapContract = {
 	spawnsFolderTeamA = "SpawnsA",
 	spawnsFolderTeamB = "SpawnsB",

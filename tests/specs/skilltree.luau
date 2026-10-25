@@ -300,9 +300,19 @@ return function(t: harness.Harness)
 		end
 	end
 
-	t.section("Les branches des deux classes du prototype sont bien formees")
+	t.section("Les branches des quatorze classes sont bien formees")
 
-	for _, classId in { "vampire", "colossus" } do
+	-- Toutes les classes, pas seulement celles du prototype : une classe tiree
+	-- au sort dont l'arbre est incomplet donne un joueur qui ne peut pas
+	-- depenser ses points, et ca ne se voit qu'en jeu.
+	local classIds: { string } = {}
+	for classId in Config.classStats do
+		table.insert(classIds, classId)
+	end
+	table.sort(classIds)
+	t.equal("quatorze classes ont un arbre", #classIds, 14)
+
+	for _, classId in classIds do
 		local branches = SkillTree.branchesFor(Config, classId)
 		t.equal(string.format("%s a trois branches", classId), #branches, 3)
 
@@ -326,5 +336,22 @@ return function(t: harness.Harness)
 			string.format("%s couvre les trois questions", classId),
 			kinds.identity == 1 and kinds.range == 1 and kinds.resilience == 1
 		)
+	end
+
+	t.section("Aucun palier 6 ne promet deux fois la meme chose")
+
+	-- Deux branches qui nomment le meme effet, c'est presque toujours une
+	-- copie oubliee : la seconde ferait ce que la premiere fait deja, et le
+	-- joueur paierait deux points pour un effet qu'il a peut-etre deja.
+	local seenEffects: { [string]: string } = {}
+	for classId, branches in tree.branches do
+		for _, branch in branches do
+			local effect = branch.tier6.effect
+			t.check(
+				string.format("%s / %s : effet de palier 6 unique", classId, branch.id),
+				seenEffects[effect] == nil
+			)
+			seenEffects[effect] = classId .. "/" .. branch.id
+		end
 	end
 end

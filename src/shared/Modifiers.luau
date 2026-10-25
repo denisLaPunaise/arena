@@ -41,6 +41,40 @@ local FLOORS = {
 	spreadRadiusStuds = 0,
 	-- damageTakenRatio n'a pas de plancher ici : il est negatif par nature, et
 	-- ses bornes sont dans Config.combat, la ou les degats sont calcules.
+
+	-- Les chiffres des pouvoirs de classe. Ils vivent dans les statistiques,
+	-- comme les autres, pour qu'une branche puisse les pousser et que
+	-- l'interface sache les afficher sans rien savoir des pouvoirs.
+	abilityCooldownSeconds = 0.5,
+	trackRadiusStuds = 5,
+	trackAgeSeconds = 0.5,
+	mineCount = 1,
+	mineDamage = 1,
+	mineRadiusStuds = 1,
+	phaseSeconds = 0.5,
+	bondShareRatio = 0,
+	bondRangeStuds = 5,
+	duelBonusRatio = 0,
+	duelRadiusStuds = 2,
+	wallSeconds = 1,
+	wallWidthStuds = 2,
+	wallHeightStuds = 2,
+	fireDamagePerSecond = 0,
+	fireSeconds = 1,
+	fireRadiusStuds = 1,
+	cloneSeconds = 1,
+	cloneExposureRatio = 0,
+	slamRadiusStuds = 2,
+	slamSeconds = 0.5,
+	markSeconds = 2,
+	markHealStealRatio = 0,
+	markRangeStuds = 5,
+	cloakDelaySeconds = 0,
+	cloakSpeedThreshold = 0,
+	reviveSpeedRatio = 0.25,
+	reviveHealthBonusRatio = 0,
+	-- duelPenaltyRatio et slamSlowRatio sont negatifs par nature, comme
+	-- damageTakenRatio : un plancher a zero les annulerait.
 }
 
 -- Le nom lisible de chaque statistique, et comment l'ecrire. Ces libelles sont
@@ -65,6 +99,39 @@ local LABELS: { [string]: { text: string, unit: string?, better: number } } = {
 	damageTakenRatio = { text = "Dégâts reçus", unit = "ratio", better = -1 },
 	spreadRatio = { text = "Propagation", unit = "ratio", better = 1 },
 	spreadRadiusStuds = { text = "Rayon de propagation", unit = "studs", better = 1 },
+
+	-- Les pouvoirs de classe. Un joueur ne doit jamais lire `mineCount` dans
+	-- l'interface : il lit « Mines en stock ».
+	abilityCooldownSeconds = { text = "Recharge du pouvoir", unit = "seconds", better = -1 },
+	trackRadiusStuds = { text = "Portée des traces", unit = "studs", better = 1 },
+	trackAgeSeconds = { text = "Âge des traces lues", unit = "seconds", better = 1 },
+	mineCount = { text = "Mines en stock", better = 1 },
+	mineDamage = { text = "Dégâts de mine", better = 1 },
+	mineRadiusStuds = { text = "Rayon de mine", unit = "studs", better = 1 },
+	phaseSeconds = { text = "Durée de traversée", unit = "seconds", better = 1 },
+	bondShareRatio = { text = "Dégâts repris de l'allié", unit = "ratio", better = -1 },
+	bondRangeStuds = { text = "Portée du lien", unit = "studs", better = 1 },
+	duelBonusRatio = { text = "Bonus en duel", unit = "ratio", better = 1 },
+	duelPenaltyRatio = { text = "Pénalité face au nombre", unit = "ratio", better = 1 },
+	duelRadiusStuds = { text = "Rayon de duel", unit = "studs", better = 1 },
+	wallSeconds = { text = "Durée du mur", unit = "seconds", better = 1 },
+	wallWidthStuds = { text = "Largeur du mur", unit = "studs", better = 1 },
+	wallHeightStuds = { text = "Hauteur du mur", unit = "studs", better = 1 },
+	fireDamagePerSecond = { text = "Dégâts du brasier", better = 1 },
+	fireSeconds = { text = "Durée du brasier", unit = "seconds", better = 1 },
+	fireRadiusStuds = { text = "Rayon du brasier", unit = "studs", better = 1 },
+	cloneSeconds = { text = "Durée du clone", unit = "seconds", better = 1 },
+	cloneExposureRatio = { text = "Vulnérabilité pendant le leurre", unit = "ratio", better = -1 },
+	slamRadiusStuds = { text = "Rayon de l'onde", unit = "studs", better = 1 },
+	slamSlowRatio = { text = "Ralentissement infligé", unit = "ratio", better = -1 },
+	slamSeconds = { text = "Durée du ralentissement", unit = "seconds", better = 1 },
+	markSeconds = { text = "Durée de la marque", unit = "seconds", better = 1 },
+	markHealStealRatio = { text = "Soins volés au marqué", unit = "ratio", better = 1 },
+	markRangeStuds = { text = "Portée de la marque", unit = "studs", better = 1 },
+	cloakDelaySeconds = { text = "Délai avant camouflage", unit = "seconds", better = -1 },
+	cloakSpeedThreshold = { text = "Vitesse tolérée camouflé", unit = "studs", better = 1 },
+	reviveSpeedRatio = { text = "Vitesse de relèvement", better = 1 },
+	reviveHealthBonusRatio = { text = "PV rendus en plus", unit = "ratio", better = 1 },
 }
 
 function Modifiers.label(key: string): string

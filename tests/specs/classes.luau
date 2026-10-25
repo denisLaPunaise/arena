@@ -8,6 +8,7 @@
 ]]
 
 local Classes = require("../../src/shared/Classes")
+local Config = require("../../src/shared/Config")
 
 local harness = require("../harness")
 
@@ -83,4 +84,93 @@ return function(t: harness.Harness)
 		end
 	end
 	t.equal("trois classes exactement portent le drapeau", flagged, 3)
+
+	t.section("Chaque classe est reellement jouable")
+
+	-- CE QUI EST FIGE ICI. Une classe sans statistiques, ou dont le pouvoir
+	-- n'existe que dans sa description, se tire au sort comme les autres et
+	-- donne un joueur sans rien. C'est le meme piege que les branches creuses
+	-- du 25 octobre 2026, a l'echelle d'une classe entiere.
+	local registry = Config.abilities.registry
+
+	for _, class in Classes.all do
+		local stats = Config.classStats[class.id]
+		t.check(string.format("%s a des statistiques", class.name), stats ~= nil)
+
+		if stats == nil then
+			continue
+		end
+
+		-- Les huit chiffres sans lesquels le combat ne sait pas quoi faire.
+		for _, key in
+			{
+				"maxHealth",
+				"walkSpeed",
+				"attackDamage",
+				"attackCooldownSeconds",
+				"attackRangeStuds",
+				"lifestealRatio",
+				"knockbackStuds",
+				"regenPerSecond",
+			}
+		do
+			t.check(
+				string.format("%s : %s est renseigne", class.name, key),
+				typeof(stats[key]) == "number"
+			)
+		end
+
+		t.check(
+			string.format("%s declare un pouvoir", class.name),
+			typeof(stats.ability) == "string"
+		)
+
+		local ability = registry[stats.ability]
+		t.check(
+			string.format("%s : le pouvoir %s est au registre", class.name, tostring(stats.ability)),
+			ability ~= nil
+		)
+
+		if ability == nil then
+			continue
+		end
+
+		t.check(
+			string.format("%s : le pouvoir est decrit", class.name),
+			(ability.name or "") ~= "" and (ability.summary or "") ~= ""
+		)
+		t.check(
+			string.format("%s : le pouvoir dit comment il se declenche", class.name),
+			ability.kind == "stats" or ability.kind == "passive" or ability.kind == "active"
+		)
+
+		-- Un pouvoir qui s'active a besoin d'une recharge, sinon il part a
+		-- chaque image et la faiblesse de la classe ne pese plus rien.
+		if ability.kind == "active" then
+			t.check(
+				string.format("%s : le pouvoir actif a une recharge", class.name),
+				typeof(stats.abilityCooldownSeconds) == "number"
+					and stats.abilityCooldownSeconds > 0
+			)
+		end
+	end
+
+	t.section("Le registre des pouvoirs ne contient rien d'orphelin")
+
+	-- Un pouvoir au registre que plus aucune classe ne porte est du code mort
+	-- qui donne l'illusion d'une fonctionnalite.
+	local carried: { [string]: boolean } = {}
+	for _, class in Classes.all do
+		local stats = Config.classStats[class.id]
+		if stats ~= nil and typeof(stats.ability) == "string" then
+			carried[stats.ability] = true
+		end
+	end
+
+	for abilityId in registry do
+		t.check(
+			string.format("le pouvoir %s est porte par une classe", abilityId),
+			carried[abilityId] == true
+		)
+	end
 end

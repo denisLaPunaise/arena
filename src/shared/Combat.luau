@@ -49,6 +49,46 @@ export type Stats = {
 	damageTakenRatio: number,
 	spreadRatio: number,
 	spreadRadiusStuds: number,
+
+	-- LES CHIFFRES DES POUVOIRS DE CLASSE.
+	--
+	-- Facultatifs, parce qu'une classe ne porte que les siens : le Traqueur n'a
+	-- pas de mines et l'Artificier ne lit pas de traces. Les declarer ici plutot
+	-- que dans un coin a part a une raison precise — ce sont des statistiques
+	-- comme les autres, donc une branche d'arbre peut les pousser, l'interface
+	-- sait deja les afficher, et le verificateur de types attrape les fautes de
+	-- frappe. Leurs valeurs sont dans Config.classStats, avec la classe.
+	ability: string?,
+	abilityCooldownSeconds: number?,
+	trackRadiusStuds: number?,
+	trackAgeSeconds: number?,
+	mineCount: number?,
+	mineDamage: number?,
+	mineRadiusStuds: number?,
+	phaseSeconds: number?,
+	bondShareRatio: number?,
+	bondRangeStuds: number?,
+	duelBonusRatio: number?,
+	duelPenaltyRatio: number?,
+	duelRadiusStuds: number?,
+	wallSeconds: number?,
+	wallWidthStuds: number?,
+	wallHeightStuds: number?,
+	fireDamagePerSecond: number?,
+	fireSeconds: number?,
+	fireRadiusStuds: number?,
+	cloneSeconds: number?,
+	cloneExposureRatio: number?,
+	slamRadiusStuds: number?,
+	slamSlowRatio: number?,
+	slamSeconds: number?,
+	markSeconds: number?,
+	markHealStealRatio: number?,
+	markRangeStuds: number?,
+	cloakDelaySeconds: number?,
+	cloakSpeedThreshold: number?,
+	reviveSpeedRatio: number?,
+	reviveHealthBonusRatio: number?,
 }
 
 export type HitInput = {
