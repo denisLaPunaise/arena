@@ -43,6 +43,45 @@ local active = false
 -- Appele quand un joueur change d'etat, pour que MatchService l'annonce.
 local onChanged: ((Player, Downed.Status) -> ())? = nil
 
+-- LES CROCHETS DE RELEVEMENT.
+--
+-- L'Infirmier releve plus vite, de plus loin, en meilleur etat, et sans pouvoir
+-- etre interrompu au palier 6. Rien de tout ca n'est ecrit ici : AbilityService
+-- pose ces quatre fonctions au demarrage, et ce fichier ne sait pas quelle
+-- classe les remplit.
+--
+-- Le sens du branchement compte. AbilityService a besoin de savoir qui est
+-- debout, donc il requiert ce module ; si ce module le requerait en retour,
+-- Roblox refuserait de charger les deux. Les crochets sont la reponse a ce
+-- probleme, pas une elegance gratuite.
+export type ReviveHooks = {
+	speedFor: ((Player) -> number)?,
+	rangeFor: ((Player) -> number)?,
+	healthRatioFor: ((Player) -> number)?,
+	uninterruptible: ((Player) -> boolean)?,
+}
+
+local reviveHooks: ReviveHooks = {}
+
+function DownedService.setReviveHooks(hooks: ReviveHooks)
+	reviveHooks = hooks
+end
+
+local function reviveSpeedOf(player: Player): number
+	local hook = reviveHooks.speedFor
+	return if hook then hook(player) else 1
+end
+
+local function reviveRangeOf(player: Player): number
+	local hook = reviveHooks.rangeFor
+	return if hook then hook(player) else Config.downed.reviveRangeStuds
+end
+
+local function reviveHealthRatioOf(player: Player): number
+	local hook = reviveHooks.healthRatioFor
+	return if hook then hook(player) else Config.downed.reviveHealthRatio
+end
+
 local function humanoidOf(player: Player): Humanoid?
 	local character = player.Character
 	if character == nil then
@@ -304,6 +343,14 @@ function DownedService.interruptRevivesBy(player: Player)
 		return
 	end
 
+	-- Palier 6 « Garde-malade » : un relevement commence va au bout. Sans cette
+	-- sortie, l'effet ne ferait rien du tout, puisque le moindre degat recu par
+	-- l'Infirmier remettrait la barre a zero.
+	local steady = reviveHooks.uninterruptible
+	if steady ~= nil and steady(player) then
+		return
+	end
+
 	for _, other in order do
 		local fighter = fighters[other]
 		if fighter and fighter.status == "downed" and fighter.team == reviver.team then
@@ -359,9 +406,7 @@ local function reviverFor(player: Player, fighter: Downed.Fighter): Player?
 			continue
 		end
 
-		if
-			(otherRoot.Position - downedRoot.Position).Magnitude <= Config.downed.reviveRangeStuds
-		then
+		if (otherRoot.Position - downedRoot.Position).Magnitude <= reviveRangeOf(other) then
 			return other
 		end
 	end
@@ -393,10 +438,14 @@ local function onHeartbeat(deltaSeconds: number)
 			continue
 		end
 
-		if reviverFor(player, fighter) ~= nil then
-			if Downed.addReviveProgress(Config, fighter, deltaSeconds) then
+		local reviver = reviverFor(player, fighter)
+		if reviver ~= nil then
+			-- La barre avance a la vitesse de CELUI QUI RELEVE, pas a une
+			-- vitesse unique : c'est tout le pouvoir de l'Infirmier.
+			local progress = deltaSeconds * reviveSpeedOf(reviver)
+			if Downed.addReviveProgress(Config, fighter, progress) then
 				clearMarker(player)
-				applyStanding(player, entry, Downed.reviveHealth(Config, entry.stats.maxHealth))
+				applyStanding(player, entry, entry.stats.maxHealth * reviveHealthRatioOf(reviver))
 				announce(player, "standing")
 				continue
 			end

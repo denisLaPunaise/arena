@@ -47,6 +47,7 @@ local SPREAD = Color3.fromRGB(190, 150, 240)
 local ZONE = Color3.fromRGB(240, 150, 80)
 local SWING = Color3.fromRGB(230, 236, 255)
 local DASH = Color3.fromRGB(180, 120, 240)
+local TRACK = Color3.fromRGB(120, 210, 255)
 
 local folder: Folder? = nil
 
@@ -185,6 +186,51 @@ local function flash(position: Vector3, color: Color3)
 	fadeOut(part, settings.flashSeconds, Vector3.one * settings.flashStuds)
 end
 
+-- Une trace de pas. Elle n'arrive qu'au Traqueur : le serveur ne l'envoie qu'a
+-- lui. Elle s'efface sur toute sa duree de vie plutot que de disparaitre d'un
+-- coup, parce que c'est la difference de transparence entre deux traces qui dit
+-- dans quel sens quelqu'un courait.
+local function footprint(position: Vector3, seconds: number, health: number?)
+	local part = makePart(Vector3.new(1.4, 0.08, 2.2), CFrame.new(position), TRACK)
+	part.Transparency = 0.3
+	fadeOut(part, seconds)
+
+	if health ~= nil then
+		-- Palier 6 du Limier : la trace dit aussi dans quel etat etait son
+		-- auteur. Plus petit qu'un nombre de degats, et sans montee : c'est une
+		-- information a lire, pas un evenement a remarquer.
+		local anchor = Instance.new("Part")
+		anchor.Size = Vector3.one
+		anchor.CFrame = CFrame.new(position + Vector3.new(0, 1.6, 0))
+		anchor.Transparency = 1
+		anchor.Anchored = true
+		anchor.CanCollide = false
+		anchor.CanQuery = false
+		anchor.CanTouch = false
+		anchor.Parent = parent()
+
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.fromOffset(90, 34)
+		billboard.AlwaysOnTop = true
+		billboard.Parent = anchor
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.GothamMedium
+		label.TextSize = 18
+		label.TextColor3 = TRACK
+		label.TextStrokeTransparency = 0.4
+		label.Text = string.format("%d PV", math.max(math.floor(health + 0.5), 0))
+		label.Parent = billboard
+
+		local info = TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(label, info, { TextTransparency = 1, TextStrokeTransparency = 1 })
+			:Play()
+		Debris:AddItem(anchor, seconds + 0.1)
+	end
+end
+
 local function dash(position: Vector3, direction: Vector3)
 	local settings = Config.effects
 	local flat = Vector3.new(direction.X, 0, direction.Z)
@@ -222,7 +268,9 @@ local function onEffect(payload: any)
 	-- s'affiche en rouge (je le prends) ou en clair (je le donne).
 	local mine = payload.target == player
 
-	if kind == "swing" then
+	if kind == "footprint" then
+		footprint(payload.position, payload.seconds or 4, payload.amount)
+	elseif kind == "swing" then
 		swing(payload.position, payload.direction, payload.hit == true)
 	elseif kind == "dash" then
 		dash(payload.position, payload.direction)

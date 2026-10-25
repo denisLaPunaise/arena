@@ -376,8 +376,8 @@ Config.skillTree = {
 				onUnlock = { mineCount = -1 },
 				perTier = { mineDamage = 5, mineRadiusStuds = 0.6 },
 				tier6 = {
-					label = "Ses mines épargnent ses alliés",
-					effect = "minesSpareAllies",
+					label = "Ses mines s'arment instantanément",
+					effect = "minesArmInstantly",
 					implemented = true,
 				},
 			},

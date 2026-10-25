@@ -23,6 +23,7 @@ local suites = {
 	{ name = "Zone qui se referme", run = require("./specs/zone") },
 	{ name = "Agonie et relevement", run = require("./specs/downed") },
 	{ name = "Arbre de competences", run = require("./specs/skilltree") },
+	{ name = "Pouvoirs de classe", run = require("./specs/abilities") },
 }
 
 local t = harness.create()

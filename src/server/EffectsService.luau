@@ -28,7 +28,16 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
 local effectsRemote = Remotes:WaitForChild("Effects") :: UnreliableRemoteEvent
 
-export type Kind = "swing" | "hit" | "heal" | "spread" | "zone" | "down" | "revive" | "dash"
+export type Kind =
+	"swing"
+	| "hit"
+	| "heal"
+	| "spread"
+	| "zone"
+	| "down"
+	| "revive"
+	| "dash"
+	| "footprint"
 
 -- Un evenement d'affichage. `amount` n'est rempli que quand il y a un nombre a
 -- montrer, et `target` quand l'effet se joue sur un personnage precis.
@@ -74,6 +83,26 @@ end
 
 function EffectsService.revive(position: Vector3, target: Player?)
 	send("revive", position, nil, target)
+end
+
+-- Une trace de pas, envoyee a UN SEUL client. C'est la difference entre une
+-- information et un signalement : si le Traqueur voyait les traces en meme
+-- temps que tout le monde, son pouvoir reviendrait a prevenir sa proie.
+--
+-- Le remote est le non fiable, comme le reste du decor : une trace perdue n'est
+-- rien, et il en part plusieurs par seconde et par adversaire.
+function EffectsService.footprint(
+	viewer: Player,
+	position: Vector3,
+	seconds: number,
+	health: number?
+)
+	effectsRemote:FireClient(viewer, {
+		kind = "footprint" :: Kind,
+		position = position,
+		seconds = seconds,
+		amount = health,
+	})
 end
 
 function EffectsService.dash(from: Vector3, direction: Vector3)

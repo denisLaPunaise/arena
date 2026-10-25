@@ -44,6 +44,7 @@ local Remotes = Arena:WaitForChild("Remotes")
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
+local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
@@ -468,6 +469,10 @@ local function onStatusChanged(player: Player, status: string)
 		end
 	end
 
+	if status ~= "standing" then
+		AbilityService.onDowned(player)
+	end
+
 	if status == "downed" then
 		tell(player, "À TERRE", "Un coéquipier peut te relever", zoneLineFor(entry), "downed")
 	elseif status == "out" then
@@ -503,6 +508,14 @@ end
 function MatchService.start()
 	local resolved, isTestMap = MapService.resolve(Config)
 	map = resolved
+
+	-- Le Spectre traverse les couverts, et seuls le contrat de nommage et cette
+	-- ligne savent lesquels le sont : les maps ne sont pas dans Git, donc rien
+	-- d'autre ne peut les designer.
+	local cover = resolved:FindFirstChild(Config.mapContract.coverFolder)
+	if cover ~= nil then
+		AbilityService.markCover(cover)
+	end
 
 	DownedService.onStatusChanged(onStatusChanged)
 

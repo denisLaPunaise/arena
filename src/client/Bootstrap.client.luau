@@ -28,6 +28,9 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
 local attackRemote = Remotes:WaitForChild("Attack") :: RemoteEvent
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
+local abilityRemote = Remotes:WaitForChild("Ability") :: RemoteEvent
+
+local Config = require(Arena:WaitForChild("Config"))
 
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
@@ -111,8 +114,20 @@ tree.TextXAlignment = Enum.TextXAlignment.Left
 tree.TextColor3 = Color3.fromRGB(246, 200, 96)
 tree.Parent = gui
 
+-- La ligne du pouvoir de classe, sous celle de l'arbre. Elle dit trois choses
+-- et pas une de plus : comment il s'appelle, s'il est pret, et ce qu'il reste
+-- en stock quand la notion existe. Un pouvoir qu'on doit deviner ne se joue
+-- pas.
+local ability = makeLabel("Ability", UDim2.fromScale(0.6, 0.05), UDim2.fromScale(0.32, 0.17), 17)
+ability.TextXAlignment = Enum.TextXAlignment.Left
+ability.Parent = gui
+
+local READY_COLOR = Color3.fromRGB(150, 220, 255)
+local CHARGING_COLOR = Color3.fromRGB(150, 160, 175)
+local MARKED_COLOR = Color3.fromRGB(200, 120, 240)
+
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
-hint.Text = "Clic ou tap pour frapper  ·  T pour l'arbre"
+hint.Text = "Clic ou tap pour frapper  ·  E pour le pouvoir  ·  T pour l'arbre"
 hint.TextTransparency = 0.35
 hint.Parent = gui
 
@@ -182,6 +197,108 @@ end)
 
 RunService.RenderStepped:Connect(onRenderStep)
 
+--------------------------------------------------------------------------------
+-- LE POUVOIR DE CLASSE
+--------------------------------------------------------------------------------
+
+-- Les joueurs reveles par un pouvoir, et jusqu'a quand. Le contour est cree
+-- COTE CLIENT : un Highlight pose par le serveur serait vu de tout le monde, et
+-- le Traqueur previendrait sa proie au lieu de la suivre.
+local highlights: { [Player]: Highlight } = {}
+
+local function reveal(target: Player, seconds: number, color: Color3)
+	local character = target.Character
+	if character == nil then
+		return
+	end
+
+	local existing = highlights[target]
+	if existing == nil or existing.Parent == nil then
+		existing = Instance.new("Highlight")
+		existing.FillTransparency = 0.6
+		existing.OutlineTransparency = 0
+		existing.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		existing.Parent = character
+		highlights[target] = existing
+	end
+
+	existing.Adornee = character
+	existing.FillColor = color
+	existing.OutlineColor = color
+	existing.Enabled = true
+
+	local token = os.clock()
+	existing:SetAttribute("Until", token + seconds)
+
+	task.delay(seconds, function()
+		local current = highlights[target]
+		if current == nil or current.Parent == nil then
+			return
+		end
+		if (current:GetAttribute("Until") :: number?) ~= token + seconds then
+			return
+		end
+		current:Destroy()
+		highlights[target] = nil
+	end)
+end
+
+local markedUntil = 0
+
+abilityRemote.OnClientEvent:Connect(function(payload: any)
+	if typeof(payload) ~= "table" then
+		return
+	end
+
+	if payload.kind == "reveal" then
+		if typeof(payload.target) == "Instance" and payload.target:IsA("Player") then
+			local colors = Config.abilities.tuning.revealColor
+			reveal(
+				payload.target,
+				payload.seconds or 3,
+				Color3.fromRGB(colors[1], colors[2], colors[3])
+			)
+		end
+	elseif payload.kind == "marked" then
+		-- Le marque est prevenu : c'est la faiblesse du Parasite, pas une
+		-- politesse. Sans cet avertissement, la classe n'aurait pas de contre.
+		markedUntil = os.clock() + (payload.seconds or 0)
+	elseif payload.kind == "hud" then
+		if payload.ability == nil then
+			ability.Text = ""
+			return
+		end
+
+		local left = payload.left or 0
+		if not payload.active then
+			ability.Text = string.format("%s  ·  passif", payload.ability)
+			ability.TextColor3 = READY_COLOR
+		elseif left > 0.05 then
+			ability.Text = string.format("%s  ·  %.1fs", payload.ability, left)
+			ability.TextColor3 = CHARGING_COLOR
+		else
+			ability.Text = string.format("%s  ·  E", payload.ability)
+			ability.TextColor3 = READY_COLOR
+		end
+
+		if payload.stock ~= nil then
+			ability.Text ..= string.format("  ·  %d en stock", payload.stock)
+		end
+	end
+end)
+
+-- L'avertissement du marque vit dans la boucle d'affichage, parce qu'il doit
+-- clignoter : une ligne fixe de plus se noierait dans les autres.
+RunService.RenderStepped:Connect(function()
+	if os.clock() >= markedUntil then
+		return
+	end
+	if math.fmod(os.clock(), 1) < 0.5 then
+		status.Text = "MARQUÉ — il te voit à travers les murs"
+		status.TextColor3 = MARKED_COLOR
+	end
+end)
+
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 	if processed then
 		return
@@ -190,6 +307,8 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		attackRemote:FireServer()
+	elseif input.KeyCode == Enum.KeyCode.E then
+		abilityRemote:FireServer()
 	end
 end)
 

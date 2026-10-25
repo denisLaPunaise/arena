@@ -49,6 +49,7 @@ local attackRemote = Remotes:WaitForChild("Attack") :: RemoteEvent
 local Debris = game:GetService("Debris")
 local Workspace = game:GetService("Workspace")
 
+local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
@@ -211,6 +212,10 @@ local function applyKnockback(attacker: Entry, target: Entry)
 	if attacker.stats.knockbackStuds <= 0 then
 		return
 	end
+	-- Le Socle du Sismique ne bouge plus d'un pouce.
+	if AbilityService.resistsKnockback(target.player) then
+		return
+	end
 
 	local attackerRoot = rootOf(attacker.player)
 	local targetRoot = rootOf(target.player)
@@ -233,6 +238,39 @@ end
 -- calculent le vol de vie et la propagation, jamais sur les degats demandes.
 --
 -- Les degats arrivent ici deja reduits. Voir l'en-tete du fichier.
+-- Les statistiques de la cible TELLES QUE LE COUP LES VOIT. Deux pouvoirs s'y
+-- invitent : le Leurre encaisse davantage tant que son clone vit, et le
+-- Duelliste de palier 6 traverse la resistance adverse.
+--
+-- On lit une copie, jamais l'original : ecrire dans entry.stats laisserait la
+-- modification en place pour tous les coups suivants, et l'effet se cumulerait
+-- jusqu'a la fin de la manche.
+local function defenderReading(target: Entry, attacker: Entry?): Combat.Stats
+	local extra = AbilityService.extraDamageTakenRatio(target.player)
+	local pierced = attacker ~= nil and AbilityService.piercesResistance(attacker)
+
+	if extra == 0 and not pierced then
+		return target.stats
+	end
+
+	local reading = table.clone(target.stats)
+	if pierced then
+		reading.damageTakenRatio = 0
+	else
+		reading.damageTakenRatio = (reading.damageTakenRatio or 0) + extra
+	end
+	return reading
+end
+
+local function damageTakenBy(target: Entry, amount: number, attacker: Entry?): number
+	return Combat.damageTaken(Config, defenderReading(target, attacker), amount)
+end
+
+-- Garde-fou du Lien : partager des degats inflige des degats, qui pourraient
+-- repartir dans un partage. Deux Liens qui se designent mutuellement se
+-- renverraient le coup sans fin.
+local sharingDamage = false
+
 local function dealDamage(target: Entry, amount: number): number
 	if amount <= 0 then
 		return 0
@@ -249,10 +287,22 @@ local function dealDamage(target: Entry, amount: number): number
 		return 0
 	end
 
+	-- Le Lien prend une part des degats a la place de son allie, avant que les
+	-- PV ne bougent.
+	if not sharingDamage then
+		sharingDamage = true
+		amount = AbilityService.shareDamage(target, amount)
+		sharingDamage = false
+		if amount <= 0 then
+			return 0
+		end
+	end
+
 	-- Le moindre degat recu annule le relevement que la cible etait en train
 	-- de faire : on ne releve pas quelqu'un au milieu d'un echange de coups.
 	DownedService.interruptRevivesBy(target.player)
 	lastCombatAt[target.player] = os.clock()
+	AbilityService.onDamaged(target, amount)
 
 	local passed = math.min(amount, humanoid.Health)
 	local remaining = humanoid.Health - passed
@@ -280,11 +330,22 @@ local function healTo(player: Player, amount: number)
 	if amount <= 0 then
 		return
 	end
+	-- Le Spectre ne peut pas etre soigne pendant qu'il traverse : c'est la
+	-- faiblesse annoncee de son pouvoir, et c'est ici qu'elle s'applique.
+	if not AbilityService.canBeHealed(player) then
+		return
+	end
 	local humanoid = humanoidOf(player)
 	if humanoid == nil then
 		return
 	end
+
+	local before = humanoid.Health
 	humanoid.Health = math.min(humanoid.Health + amount, humanoid.MaxHealth)
+
+	-- Le Parasite vit sur les soins des autres : il prend sa part de ce qui a
+	-- reellement ete rendu, pas de ce qui etait demande.
+	AbilityService.onHealed(player, humanoid.Health - before)
 end
 
 --------------------------------------------------------------------------------
@@ -315,7 +376,7 @@ local function spreadFrom(entry: Entry, target: Entry, damageDealt: number)
 		if index > Config.combat.spreadMaxTargets then
 			break
 		end
-		local passed = dealDamage(other, Combat.damageTaken(Config, other.stats, share))
+		local passed = dealDamage(other, damageTakenBy(other, share, entry))
 		local point = effectPoint(other)
 		if passed > 0 and point ~= nil then
 			EffectsService.spread(point, passed, other.player)
@@ -344,8 +405,7 @@ local function pierceFrom(entry: Entry, target: Entry, rawDamage: number)
 			break
 		end
 		local falloff = math.max(1 - (settings.falloffPerTarget * index), 0)
-		local passed =
-			dealDamage(other, Combat.damageTaken(Config, other.stats, rawDamage * falloff))
+		local passed = dealDamage(other, damageTakenBy(other, rawDamage * falloff, entry))
 		local point = effectPoint(other)
 		if passed > 0 and point ~= nil then
 			EffectsService.hit(point, passed, other.player)
@@ -465,6 +525,13 @@ local function onAttack(player: Player)
 		return
 	end
 
+	-- Le Spectre ne frappe pas pendant qu'il traverse les murs. On sort avant
+	-- de consommer la recharge : le pouvoir interdit le coup, il ne le gaspille
+	-- pas.
+	if not AbilityService.canAttack(player) then
+		return
+	end
+
 	local now = os.clock()
 	if not Combat.canAttack(entry.stats, now, lastAttackAt[player]) then
 		return
@@ -495,6 +562,10 @@ local function onAttack(player: Player)
 		EffectsService.swing(attackerRoot.Position + Vector3.new(0, 1.5, 0), reach, target ~= nil)
 	end
 
+	-- Frapper revele le Cameleon : son camouflage tient tant qu'il ne fait
+	-- rien, pas tant qu'il ne touche personne.
+	AbilityService.noteAttack(player)
+
 	if target == nil then
 		-- Un coup dans le vide, c'est l'occasion du bond : le Fauve du palier 6
 		-- n'a pas de touche a lui, attaquer un adversaire trop loin suffit.
@@ -520,12 +591,25 @@ local function onAttack(player: Player)
 	local result = Combat.resolveHit({
 		attackerStats = entry.stats,
 		attackerHealth = attackerHumanoid.Health,
-		defenderStats = target.stats,
+		defenderStats = defenderReading(target, entry),
 		defenderHealth = targetHumanoid.Health,
 		config = Config,
 	})
 
-	local passed = dealDamage(target, result.damage)
+	-- Ce que les pouvoirs du frappeur font au coup : l'isolement du Duelliste,
+	-- l'embuscade du Cameleon, le renfort du Lien.
+	local damage = result.damage * AbilityService.outgoingMultiplier(entry)
+
+	-- Le clone du Leurre s'interpose quand il est plus pres que son porteur.
+	-- C'est ce que « attire l'attention » veut dire ici : personne ne choisit sa
+	-- cible a la main, donc le leurre doit se mettre physiquement devant.
+	if
+		attackerRoot ~= nil and AbilityService.absorbAttack(attackerRoot.Position, target, damage)
+	then
+		return
+	end
+
+	local passed = dealDamage(target, damage)
 
 	local point = effectPoint(target)
 	if passed > 0 and point ~= nil then
@@ -541,6 +625,8 @@ local function onAttack(player: Player)
 	if healed >= 1 and attackerRoot ~= nil then
 		EffectsService.heal(attackerRoot.Position + Vector3.new(0, 1.5, 0), healed, player)
 	end
+
+	AbilityService.onHit(entry, target, passed)
 
 	applyKnockback(entry, target)
 	spreadFrom(entry, target, passed)
@@ -588,7 +674,12 @@ local function applyZoneDamage(deltaSeconds: number)
 			continue
 		end
 
-		local passed = dealDamage(entry, Combat.damageTaken(Config, entry.stats, amount))
+		-- Palier 6 « Ancre » : le Lien couvre son allie meme contre la zone.
+		if AbilityService.coversZone(player) then
+			continue
+		end
+
+		local passed = dealDamage(entry, damageTakenBy(entry, amount, nil))
 
 		if passed > 0 then
 			zoneOwed[player] = (zoneOwed[player] or 0) + passed
@@ -641,6 +732,7 @@ local function onHeartbeat(deltaSeconds: number)
 
 	applyZoneDamage(deltaSeconds)
 	applyRegen(deltaSeconds)
+	AbilityService.step(deltaSeconds)
 end
 
 function CombatService.init()
@@ -664,6 +756,16 @@ function CombatService.init()
 		zoneToldAt[player] = nil
 	end)
 
+	-- LE PUITS DE DEGATS. AbilityService ne requiert pas ce module (ce serait un
+	-- cycle), donc c'est ce module qui lui donne de quoi blesser et soigner. Une
+	-- mine et un brasier passent ainsi exactement par le meme chemin qu'un coup :
+	-- meme reduction, meme plafond aux PV restants, meme passage par l'agonie.
+	AbilityService.setDamageSink(function(entry: Entry, amount: number): number
+		return dealDamage(entry, damageTakenBy(entry, amount, nil))
+	end)
+	AbilityService.setHealSink(healTo)
+	AbilityService.init()
+
 	attackRemote.OnServerEvent:Connect(onAttack)
 	RunService.Heartbeat:Connect(onHeartbeat)
 end
@@ -678,6 +780,7 @@ function CombatService.setRoster(entries: { Entry })
 	for _, entry in entries do
 		roster[entry.player] = entry
 	end
+	AbilityService.setRoster(entries)
 end
 
 -- Les blocs de la Catapulte ne survivent pas a la manche. Appele entre deux
@@ -688,10 +791,15 @@ function CombatService.clearTemporary()
 	if folder ~= nil and folder.Parent ~= nil then
 		folder:ClearAllChildren()
 	end
+	AbilityService.endRound()
 end
 
 function CombatService.setActive(value: boolean)
 	active = value
+	AbilityService.setActive(value)
+	if value then
+		AbilityService.beginRound()
+	end
 end
 
 -- Pose les PV et la vitesse de la classe sur le personnage.
