@@ -50,7 +50,10 @@ local MARGIN = 0.94
 local COLUMNS = { "primary", "secondary", "armor", "heal", "utility" }
 local COLUMN_WIDTH = 216
 local COLUMN_GAP = 12
-local CARD_HEIGHT = 96
+-- Quatre cartes par colonne au maximum, et 4 * 104 + 3 * 8 fait exactement
+-- les 440 du plateau : la hauteur de carte se deduit de la colonne la plus
+-- garnie, jamais l'inverse.
+local CARD_HEIGHT = 104
 local CARD_GAP = 8
 
 local BACKGROUND = Color3.fromRGB(12, 14, 20)
@@ -289,6 +292,15 @@ local function fit()
 	current.Scale = math.max(factor, MIN_SCALE)
 end
 
+-- « 1 pt », pas « 1 pts ». Un detail, mais il est affiche treize fois sur le
+-- meme ecran.
+local function points(count: number): string
+	if count <= 1 then
+		return string.format("%d pt", count)
+	end
+	return string.format("%d pts", count)
+end
+
 local function cardFor(item: any, parent: Frame, order: number): TextButton
 	local button = Instance.new("TextButton")
 	button.Name = item.id
@@ -308,7 +320,7 @@ local function cardFor(item: any, parent: Frame, order: number): TextButton
 	name.Text = item.name
 	name.Parent = button
 
-	local summary = label("Summary", UDim2.new(1, -20, 0, 40), UDim2.fromOffset(10, 30), 13)
+	local summary = label("Summary", UDim2.new(1, -20, 0, 42), UDim2.fromOffset(10, 30), 13)
 	summary.TextWrapped = true
 	summary.TextXAlignment = Enum.TextXAlignment.Left
 	summary.TextYAlignment = Enum.TextYAlignment.Top
@@ -316,17 +328,22 @@ local function cardFor(item: any, parent: Frame, order: number): TextButton
 	summary.Text = item.summary
 	summary.Parent = button
 
-	local price = label("Price", UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 70), 16)
+	-- Deux lignes, et elles servent toutes les deux : le prix, puis ce que le
+	-- clic fera vraiment — remplacer une arme, ou depasser le budget. Sur une
+	-- seule ligne, « remplace Pistolet-mitrailleur » sortait de la carte.
+	local price = label("Price", UDim2.new(1, -20, 0, 34), UDim2.fromOffset(10, 66), 16)
 	price.Font = Enum.Font.GothamBold
+	price.TextWrapped = true
 	price.TextXAlignment = Enum.TextXAlignment.Left
+	price.TextYAlignment = Enum.TextYAlignment.Top
 	-- L'affinite se voit sur la carte, prix plein barre a cote : sans ca le
 	-- joueur ne sait pas que sa classe lui fait un prix, et l'affinite ne joue
 	-- plus son role d'identite.
 	if item.affinity then
-		price.Text = string.format("%d pts   (au lieu de %d)", item.cost, item.fullCost)
+		price.Text = string.format("%s   (au lieu de %d)", points(item.cost), item.fullCost)
 		price.TextColor3 = GOOD
 	else
-		price.Text = string.format("%d pts", item.cost)
+		price.Text = points(item.cost)
 		price.TextColor3 = ACCENT
 	end
 	price.Parent = button
@@ -335,16 +352,21 @@ local function cardFor(item: any, parent: Frame, order: number): TextButton
 		button.BackgroundColor3 = CARD_TAKEN
 	elseif item.addable then
 		button.BackgroundColor3 = CARD
+		-- Un objet qui en remplacera un autre le dit AVANT le clic.
+		if item.replaces ~= nil then
+			price.Text ..= string.format("\nremplace %s", item.replaces)
+		end
 	else
-		-- Hors budget ou interdit par une regle : la carte s'eteint et la
-		-- raison remplace la description. C'est la que le joueur apprend les
-		-- regles, et il les apprend en essayant.
+		-- Hors budget : la carte s'eteint et la raison s'ajoute SOUS le prix.
+		-- Elle ne remplace plus la description — un objet qu'on ne peut pas se
+		-- payer aujourd'hui est exactement celui qu'on veut pouvoir lire, pour
+		-- savoir ce qu'on economise.
 		button.BackgroundColor3 = CARD_LOCKED
 		name.TextColor3 = MUTED
+		summary.TextColor3 = Color3.fromRGB(104, 110, 124)
 		price.TextColor3 = DANGER
 		if item.refusal ~= nil then
-			summary.Text = item.refusal
-			summary.TextColor3 = DANGER
+			price.Text ..= string.format("\n%s", item.refusal)
 		end
 	end
 
@@ -403,10 +425,10 @@ local function redraw(view: any)
 		end
 	end
 
-	local points = pointsLabel
-	if points ~= nil then
-		points.Text = string.format("%d / %d points", view.spent, view.budget)
-		points.TextColor3 = if view.ok then ACCENT else DANGER
+	local counter = pointsLabel
+	if counter ~= nil then
+		counter.Text = string.format("%d / %d points", view.spent, view.budget)
+		counter.TextColor3 = if view.ok then ACCENT else DANGER
 	end
 
 	local foot = footer

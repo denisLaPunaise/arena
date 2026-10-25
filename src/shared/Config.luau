@@ -1008,7 +1008,7 @@ Config.items = {
 		category = "primary",
 		cost = 4,
 		name = "Machette",
-		summary = "Melee rapide, portee courte",
+		summary = "Mêlée rapide, portée courte",
 		-- Moins de degats par coup mais une cadence bien plus elevee : environ
 		-- 30 % de degats par seconde en plus, paye par une portee reduite.
 		scale = { attackDamage = 0.85, attackCooldownSeconds = 0.65, attackRangeStuds = 0.8 },
@@ -1017,8 +1017,8 @@ Config.items = {
 		id = "shotgun",
 		category = "primary",
 		cost = 5,
-		name = "Fusil a pompe",
-		summary = "Devastateur a bout portant, inutile au-dela",
+		name = "Fusil à pompe",
+		summary = "Dévastateur à bout portant, inutile au-delà",
 		-- Le coup double, la cadence s'ecroule, et la portee tombe a environ
 		-- quatre studs : il faut etre colle a sa cible. C'est l'arme qui
 		-- demande le plus de courage du catalogue.
@@ -1029,7 +1029,7 @@ Config.items = {
 		category = "primary",
 		cost = 6,
 		name = "Arc composite",
-		summary = "Longue portee, traverse une partie des armures",
+		summary = "Longue portée, traverse une partie des armures",
 		-- Trois fois la portee de la classe, pour des degats par seconde un peu
 		-- en dessous : on paie la distance, on ne la recoit pas gratuitement.
 		scale = { attackDamage = 1.15, attackCooldownSeconds = 1.25, attackRangeStuds = 3.2 },
@@ -1043,7 +1043,7 @@ Config.items = {
 		category = "primary",
 		cost = 7,
 		name = "Marteau de guerre",
-		summary = "Degats enormes, tres lent, repousse fort",
+		summary = "Dégâts énormes, très lent, repousse fort",
 		scale = { attackDamage = 2.4, attackCooldownSeconds = 1.9, attackRangeStuds = 1 },
 		offset = { knockbackStuds = 35, knockbackUpStuds = 10 },
 	},
@@ -1062,7 +1062,7 @@ Config.items = {
 		category = "secondary",
 		cost = 4,
 		name = "Pistolet-mitrailleur",
-		summary = "Rafale courte, bonne a mi-distance",
+		summary = "Rafale courte, bonne à mi-distance",
 		scale = { attackDamage = 0.8, attackCooldownSeconds = 0.55, attackRangeStuds = 1.8 },
 	},
 
@@ -1071,8 +1071,8 @@ Config.items = {
 		id = "lightArmor",
 		category = "armor",
 		cost = 2,
-		name = "Armure legere",
-		summary = "Reduction legere, aucun malus",
+		name = "Armure légère",
+		summary = "Réduction légère, aucun malus",
 		offset = { damageTakenRatio = -0.08 },
 	},
 	{
@@ -1080,7 +1080,7 @@ Config.items = {
 		category = "armor",
 		cost = 5,
 		name = "Armure lourde",
-		summary = "Tres forte reduction, grosse perte de vitesse",
+		summary = "Très forte réduction, grosse perte de vitesse",
 		offset = { damageTakenRatio = -0.28 },
 		scale = { walkSpeed = 0.78 },
 	},
@@ -1091,7 +1091,7 @@ Config.items = {
 		category = "heal",
 		cost = 1,
 		name = "Stimulant",
-		summary = "Petit soin instantane, une seule charge",
+		summary = "Petit soin instantané, une seule charge",
 		-- Instantane : c'est tout ce qu'il a pour lui, et c'est beaucoup. Un
 		-- point pour sortir d'un echange perdu d'un cheveu.
 		use = { kind = "heal", charges = 1, amount = 25, castSeconds = 0 },
@@ -1118,8 +1118,8 @@ Config.items = {
 		id = "lightMine",
 		category = "utility",
 		cost = 1,
-		name = "Mine legere",
-		summary = "Un piege pose au sol, une charge",
+		name = "Mine légère",
+		summary = "Un piège posé au sol, une charge",
 		use = {
 			kind = "mine",
 			charges = 1,
@@ -1135,7 +1135,7 @@ Config.items = {
 		category = "utility",
 		cost = 2,
 		name = "Grenade",
-		summary = "Degats de zone a l'impact, deux charges",
+		summary = "Dégâts de zone à l'impact, deux charges",
 		-- Elle ne blesse que les adversaires, comme les mines de l'Artificier.
 		-- Les degats aux allies sont un sujet que la fiche n'ouvre jamais, et
 		-- l'ouvrir ici en cachette serait une decision de conception.
@@ -1152,8 +1152,8 @@ Config.items = {
 		id = "deployableShield",
 		category = "utility",
 		cost = 4,
-		name = "Bouclier deployable",
-		summary = "Une couverture posee devant soi, temporaire",
+		name = "Bouclier déployable",
+		summary = "Une couverture posée devant soi, temporaire",
 		-- Il bloque les deux equipes, exactement comme le mur du Forgeron. Une
 		-- couverture qui ne gene que l'adversaire ne serait pas une
 		-- couverture, ce serait un bouclier magique.

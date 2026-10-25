@@ -198,6 +198,18 @@ function LoadoutService.chosenFor(player: Player): { string }
 	return list
 end
 
+-- Pose un assemblage, apres validation. Renvoie faux et ne change rien si
+-- l'assemblage est illegal : c'est la seule porte d'entree, donc un client qui
+-- raconte n'importe quoi ne peut pas la contourner.
+function LoadoutService.setChosen(player: Player, itemIds: { string }): boolean
+	if not Loadout.validate(Config, itemIds, classOf(player)).ok then
+		return false
+	end
+	chosen[player] = itemIds
+	LoadoutService.push(player)
+	return true
+end
+
 -- Vrai si l'assemblage peut encore se modifier : hors manche uniquement.
 function LoadoutService.isEditable(): boolean
 	return not active
@@ -455,14 +467,18 @@ function LoadoutService.use(player: Player, slot: number): string?
 		return "Déjà en cours"
 	end
 
+	-- Les charges AVANT la recharge d'utilisation : « plus de charges » est le
+	-- message utile, et dans l'autre ordre il etait avale par une demi-seconde
+	-- de recharge chaque fois qu'on reappuyait tout de suite — c'est-a-dire
+	-- exactement quand on vient de vider sa derniere charge.
+	if LoadoutService.chargesLeft(player, usable.itemId) <= 0 then
+		return "Plus de charges"
+	end
+
 	local now = os.clock()
 	local last = lastUseAt[player]
 	if last ~= nil and (now - last) < Config.loadout.useCooldownSeconds then
 		return nil
-	end
-
-	if LoadoutService.chargesLeft(player, usable.itemId) <= 0 then
-		return "Plus de charges"
 	end
 
 	local use = usable.item.use
@@ -646,8 +662,17 @@ local function viewFor(player: Player): any
 		local carried = Loadout.contains(items, item.id)
 		local addable = false
 		local refusal: string? = nil
+		local replaces: string? = nil
 		if not carried then
-			addable, refusal = Loadout.canAdd(Config, items, classId, item.id)
+			-- La vue doit dire la verite sur ce qui se passera au clic, donc
+			-- elle valide le MEME assemblage candidat que le clic : avec le
+			-- remplacement d'une arme ou d'une armure deja portee.
+			local candidate = Loadout.withSwap(Config, items, item.id)
+			addable, refusal = Loadout.canAdd(Config, candidate, classId, item.id)
+			if #candidate < #items then
+				local dropped = Loadout.weaponOf(Config, items, item.category)
+				replaces = if dropped ~= nil then dropped.name else nil
+			end
 		end
 
 		table.insert(catalogue, {
@@ -662,15 +687,23 @@ local function viewFor(player: Player): any
 			carried = carried,
 			addable = addable,
 			refusal = refusal,
+			replaces = replaces,
 		})
 	end
 
 	local slots: { any } = {}
 	for _, usable in Loadout.usables(Config, items) do
+		-- Hors manche, la reserve n'est pas encore remplie : on affiche ce
+		-- qu'on aura. Montrer « 0 / 1 » a quelqu'un qui vient de choisir son
+		-- stimulant se lit comme une panne.
+		local left = if active
+			then LoadoutService.chargesLeft(player, usable.itemId)
+			else usable.item.use.charges
+
 		table.insert(slots, {
 			slot = usable.slot,
 			name = usable.item.name,
-			charges = LoadoutService.chargesLeft(player, usable.itemId),
+			charges = left,
 			maxCharges = usable.item.use.charges,
 		})
 	end
@@ -782,16 +815,16 @@ local function onClientEvent(player: Player, payload: any)
 	local items = LoadoutService.chosenFor(player)
 
 	if payload.reset == true then
-		chosen[player] = Loadout.defaultFor(Config, classId)
+		LoadoutService.setChosen(player, Loadout.defaultFor(Config, classId))
 	elseif typeof(payload.add) == "string" then
-		chosen[player] = Loadout.add(Config, items, classId, payload.add)
+		local candidate = Loadout.withSwap(Config, items, payload.add)
+		LoadoutService.setChosen(player, Loadout.add(Config, candidate, classId, payload.add))
 	elseif typeof(payload.remove) == "string" then
-		chosen[player] = Loadout.remove(items, payload.remove)
-	elseif payload.open ~= true then
-		return
+		LoadoutService.setChosen(player, Loadout.remove(items, payload.remove))
+	else
+		-- Une simple demande d'etat frais, a l'ouverture de l'ecran.
+		LoadoutService.push(player)
 	end
-
-	LoadoutService.push(player)
 end
 
 function LoadoutService.init()

@@ -205,7 +205,7 @@ function Loadout.validate(config, itemIds: { string }, classId: string?): Check
 	end
 
 	if spent > rules.budgetPoints then
-		check.reason = string.format("%d points sur %d", spent, rules.budgetPoints)
+		check.reason = string.format("%d points pour %d", spent, rules.budgetPoints)
 		return check
 	end
 
@@ -226,6 +226,35 @@ function Loadout.canAdd(
 	table.insert(candidate, itemId)
 	local check = Loadout.validate(config, candidate, classId)
 	return check.ok, check.reason
+end
+
+-- CE QUE DONNE « JE PRENDS CET OBJET », remplacement compris.
+--
+-- Les categories limitees a un seul objet — l'arme principale, la secondaire,
+-- l'armure — se REMPLACENT au lieu de se refuser. Cliquer sur le marteau
+-- quand on porte deja la machette repose la machette et prend le marteau.
+--
+-- Sans ca, l'ecran verrouillait les trois armes qu'on ne porte pas et affichait
+-- « une au maximum » a la place de ce qu'elles font : on ne pouvait plus lire
+-- le catalogue sans d'abord rendre son arme. La regle n'a pas change, c'est la
+-- facon de l'appliquer qui a change.
+function Loadout.withSwap(config, itemIds: { string }, itemId: string): { string }
+	local item = Loadout.find(config, itemId)
+	if item == nil then
+		return itemIds
+	end
+
+	local limit = config.loadout.maxPerCategory[item.category]
+	if limit ~= 1 then
+		return itemIds
+	end
+
+	local carried = Loadout.weaponOf(config, itemIds, item.category)
+	if carried == nil or carried.id == itemId then
+		return itemIds
+	end
+
+	return Loadout.remove(itemIds, carried.id)
 end
 
 function Loadout.add(config, itemIds: { string }, classId: string?, itemId: string): { string }
@@ -269,49 +298,72 @@ end
 -- doit pas arriver en manche avec quatre points sur douze et se demander
 -- pourquoi il tape comme une mouche.
 --
--- La methode est volontairement bete : l'arme principale la moins chere, puis
--- on remplit avec ce qui rentre encore, categorie par categorie, en prenant le
--- plus cher qui tient. Elle est deterministe, donc testable, et elle profite
--- des affinites de la classe sans rien savoir d'elles.
+-- DEUX TEMPS, et l'ordre est tout :
+--
+--   1. DE LA LARGEUR. Le moins cher de chaque categorie utile : une arme, un
+--      soin, une armure, un utilitaire. Un debutant doit avoir un exemplaire
+--      de chaque chose que le jeu lui demandera de comprendre.
+--   2. CE QUI RESTE sur le plus cher qui tient encore, tant que quelque chose
+--      tient.
+--
+-- Le premier temps compte plus qu'il n'y parait. La version qui prenait
+-- simplement le plus cher de chaque categorie donnait l'armure lourde a tout
+-- le monde : tous les debutants arrivaient lents, et la premiere chose que le
+-- jeu leur apprenait etait qu'on ne court pas.
 function Loadout.defaultFor(config, classId: string?): { string }
 	local chosen: { string } = {}
 
-	local function cheapestOf(categoryId: string): any?
-		local best: any? = nil
-		for _, item in Loadout.byCategory(config, categoryId) do
-			if
-				best == nil
-				or Loadout.costOf(config, item, classId) < Loadout.costOf(config, best, classId)
-			then
-				best = item
-			end
-		end
-		return best
-	end
-
-	local primary = cheapestOf("primary")
-	if primary ~= nil then
-		table.insert(chosen, primary.id)
-	end
-
-	-- L'ordre de remplissage dit la priorite : se soigner d'abord, encaisser
-	-- ensuite, puis le reste. Un debutant qui meurt sans jamais pouvoir se
-	-- soigner ne comprend pas ce qui lui arrive.
-	for _, categoryId in { "heal", "armor", "utility", "secondary" } do
+	-- Trie une categorie par prix, puis par identifiant : deterministe, donc
+	-- testable, et deux joueurs de la meme classe ont le meme defaut.
+	local function sorted(categoryId: string, cheapestFirst: boolean): { any }
 		local candidates = Loadout.byCategory(config, categoryId)
 		table.sort(candidates, function(a, b)
-			local costA, costB =
-				Loadout.costOf(config, a, classId), Loadout.costOf(config, b, classId)
+			local costA = Loadout.costOf(config, a, classId)
+			local costB = Loadout.costOf(config, b, classId)
 			if costA == costB then
 				return a.id < b.id
 			end
+			if cheapestFirst then
+				return costA < costB
+			end
 			return costA > costB
 		end)
-		for _, item in candidates do
+		return candidates
+	end
+
+	-- 1. De la largeur. L'arme d'abord, parce qu'elle est obligatoire ; le soin
+	-- ensuite, parce qu'un debutant qui meurt sans jamais pouvoir se soigner ne
+	-- comprend pas ce qui lui arrive.
+	for _, categoryId in { "primary", "heal", "armor", "utility" } do
+		for _, item in sorted(categoryId, true) do
 			local ok = Loadout.canAdd(config, chosen, classId, item.id)
 			if ok then
 				table.insert(chosen, item.id)
+				break
 			end
+		end
+	end
+
+	-- 2. Ce qui reste, sur le plus cher qui tient encore. La boucle s'arrete
+	-- toute seule quand plus rien ne rentre : c'est la validation complete qui
+	-- le decide, pas un calcul de points en double ici.
+	while true do
+		local added = false
+		for _, category in config.loadout.categories do
+			for _, item in sorted(category.id, false) do
+				local ok = Loadout.canAdd(config, chosen, classId, item.id)
+				if ok then
+					table.insert(chosen, item.id)
+					added = true
+					break
+				end
+			end
+			if added then
+				break
+			end
+		end
+		if not added then
+			break
 		end
 	end
 

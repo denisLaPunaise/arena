@@ -237,6 +237,44 @@ return function(t: harness.Harness)
 	local vampireOk, _ = Loadout.canAdd(Config, heavy, "vampire", "medkit")
 	t.check("et le Vampire ne peut pas", not vampireOk)
 
+	t.section("Une arme en remplace une autre")
+
+	-- Les categories limitees a un seul objet se remplacent au lieu de se
+	-- refuser : sans ca, l'ecran verrouille les trois armes qu'on ne porte pas
+	-- et affiche « une au maximum » a la place de ce qu'elles font.
+	local carried = { "machete", "lightArmor", "stimulant" }
+
+	local swapped = Loadout.withSwap(Config, carried, "warhammer")
+	t.check("prendre le marteau repose la machette", not Loadout.contains(swapped, "machete"))
+	t.check("et garde le reste", Loadout.contains(swapped, "lightArmor"))
+
+	local swappedArmor = Loadout.withSwap(Config, carried, "heavyArmor")
+	t.check(
+		"prendre l'armure lourde repose la legere",
+		not Loadout.contains(swappedArmor, "lightArmor")
+	)
+	t.check("et garde l'arme", Loadout.contains(swappedArmor, "machete"))
+
+	-- Les utilitaires s'empilent, donc rien a remplacer : c'est tout l'interet
+	-- de la categorie, et le remplacement ne doit surtout pas s'y appliquer.
+	local stacked = Loadout.withSwap(Config, carried, "grenade")
+	t.equal("un utilitaire ne remplace rien", #stacked, #carried)
+
+	local same = Loadout.withSwap(Config, carried, "machete")
+	t.equal("se reprendre son arme ne la repose pas", #same, #carried)
+
+	-- Et le remplacement doit rester soumis au budget : prendre le marteau a
+	-- la place de la machette coute quatre points de plus, et c'est refuse s'ils
+	-- ne sont pas la.
+	local rich = Loadout.withSwap(Config, carried, "warhammer")
+	local richOk = Loadout.canAdd(Config, rich, "vampire", "warhammer")
+	t.check("le remplacement passe quand le budget suit", richOk)
+
+	local tight = { "machete", "heavyArmor", "stimulant", "lightMine" }
+	local tightOk =
+		Loadout.canAdd(Config, Loadout.withSwap(Config, tight, "warhammer"), "vampire", "warhammer")
+	t.check("et il est refuse quand il ne suit pas", not tightOk)
+
 	t.section("L'assemblage par defaut")
 
 	-- Un joueur qui n'ouvre jamais l'ecran d'equipement doit quand meme arriver
@@ -258,6 +296,36 @@ return function(t: harness.Harness)
 		string.format("et il ne laisse jamais plus d'un point de cote (%d)", worstLeftover),
 		worstLeftover <= 1
 	)
+
+	-- DE LA LARGEUR, et c'est un garde-fou contre une vraie regression : la
+	-- premiere version prenait le plus cher de chaque categorie, donc l'armure
+	-- lourde pour les quatorze classes. Tous les debutants arrivaient lents, et
+	-- la premiere chose que le jeu leur apprenait etait qu'on ne court pas.
+	local narrow: string? = nil
+	local slow: string? = nil
+	for classId in Config.classStats do
+		local default = Loadout.defaultFor(Config, classId)
+		local seen: { [string]: boolean } = {}
+		for _, itemId in default do
+			local item = Loadout.find(Config, itemId)
+			if item ~= nil then
+				seen[item.category] = true
+			end
+		end
+		local breadth = 0
+		for _ in seen do
+			breadth += 1
+		end
+		if breadth < 4 then
+			narrow = classId
+		end
+		local armor = Loadout.weaponOf(Config, default, "armor")
+		if armor ~= nil and (armor.scale or {}).walkSpeed ~= nil then
+			slow = classId
+		end
+	end
+	t.equal("il touche au moins quatre categories", narrow, nil)
+	t.equal("et il ne met personne en armure qui ralentit", slow, nil)
 
 	local defaultVampire = Loadout.defaultFor(Config, "vampire")
 	t.check(
