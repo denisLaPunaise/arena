@@ -303,12 +303,24 @@ Config.elo = {
 	mirrorRanked = true,
 
 	startingRating = 1000,
-	-- A quelques dizaines de joueurs un classement bouge tres lentement : on
-	-- monte le coefficient au lancement, on le baisse quand la population
-	-- grandit.
-	kFactorLaunch = 64,
-	kFactorMature = 24,
-	kFactorSwitchAtPlayerCount = 500,
+
+	-- Le coefficient K baisse avec le nombre de parties JOUEES PAR LE JOUEUR,
+	-- pas avec la taille de la population. C'est la methode des systemes qui
+	-- tiennent (FIDE fonctionne par paliers de ce genre) : un nouveau venu doit
+	-- rejoindre son niveau reel en quelques parties, un habitue ne doit pas
+	-- voir son classement sauter sur un mauvais soir.
+	--
+	-- 32 est la valeur par defaut courante dans les communautes de jeu, et on
+	-- recommande 48 a 64 pour un petit groupe qui demarre, justement pour que
+	-- le classement se stabilise vite. Les sources sont dans
+	-- docs/EQUILIBRAGE.md. Si le classement reste trop nerveux a quelques
+	-- dizaines de joueurs, la vraie reponse n'est pas de baisser K mais de
+	-- passer a Glicko, qui porte une incertitude par joueur.
+	kFactorTiers = {
+		{ upToMatchesPlayed = 10, kFactor = 64 },
+		{ upToMatchesPlayed = 40, kFactor = 48 },
+		{ upToMatchesPlayed = math.huge, kFactor = 32 },
+	},
 }
 
 --------------------------------------------------------------------------------

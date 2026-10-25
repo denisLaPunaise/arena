@@ -127,12 +127,31 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 - **Rojo écrase, il ne fusionne pas.** Une modification faite dans Studio sur un
   script synchronisé est perdue à la prochaine synchro. Le code s'écrit dans le
   repo, jamais dans Studio.
-- **Les tirages payants sont réglementés par Roblox.** Comme les Robux achètent
-  des pièces de tirage, il faudra afficher la probabilité exacte de chaque
-  résultat avec un total de 100 %, mettre ces cotes à jour par joueur (la
-  garantie tous les sept tirages compte comme un modificateur de probabilité),
-  et bloquer le tirage dans les régions où ces mécaniques sont interdites. À
-  budgéter dès la conception de l'écran de tirage, pas après.
+- **Les tirages payants sont réglementés par Roblox**, et les exigences sont
+  précises. Comme les Robux achètent des pièces de tirage, le tirage est un
+  *paid random item* même indirectement. Ce que la politique officielle demande,
+  vérifié le 25 octobre 2026 :
+  - afficher **chaque** résultat possible et sa probabilité en pourcentage,
+    **avant** l'achat, avec un total qui fait exactement 100 % ; l'arrondi est
+    permis avec une mention, et les objets de même probabilité peuvent être
+    regroupés sous une seule ligne — ce qui simplifie beaucoup notre cas, les
+    62 objets étant équiprobables
+  - le lien vers ces cotes doit porter un **mot** (« Détails », « Infos ») : une
+    icône « (i) » seule est explicitement insuffisante
+  - **tout résultat doit donner quelque chose au joueur** : un tirage où il perd
+    simplement sa mise est interdit. Notre règle des doublons convertis en
+    fragments satisfait déjà ça — ne jamais la retirer sans la remplacer
+  - la garantie tous les sept tirages est un modificateur de probabilité : son
+    effet doit être expliqué chiffré, et les cotes affichées doivent se mettre à
+    jour quand elle est active
+  - le blocage régional se fait avec `PolicyService:GetPolicyInfoForPlayerAsync`
+    et l'attribut **`ArePaidRandomItemsRestricted`**. Quand il vaut `true`, on
+    retire la vente de pièces à ce joueur. Roblox cite explicitement « proposer
+    une voie gratuite pour obtenir l'objet » comme alternative acceptable :
+    notre économie de pièces gagnées en jouant est cette voie.
+
+  À budgéter dès la conception de l'écran de tirage, pas après. Sources dans
+  `docs/EQUILIBRAGE.md`.
 - **Le taux de doublons pilote deux économies à la fois** : moins de doublons,
   moins de fragments, donc des skins plus rares. Ces deux réglages se changent
   ensemble.
