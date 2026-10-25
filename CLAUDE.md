@@ -168,6 +168,21 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 
   À budgéter dès la conception de l'écran de tirage, pas après. Sources dans
   `docs/EQUILIBRAGE.md`.
+- **`execute_luau` a son propre cache de modules.** Le code envoyé par le pont
+  MCP ne tourne PAS dans la machine virtuelle du jeu : il a sa propre copie de
+  chaque module. Un `require(ZoneService)` depuis `execute_luau` renvoie une
+  instance neuve, avec son propre état, sans les connexions que `Bootstrap` a
+  branchées. On peut donc démarrer un service et constater qu'il « ne fait
+  rien » alors que le code est juste — c'est simplement l'autre copie qui
+  tourne. Vérifié le 25 octobre 2026, en faisant répondre les deux contextes à
+  la même question : le jeu disait `zone active = false`, `execute_luau` disait
+  `true`.
+
+  **Pour piloter les modules du jeu, il faut injecter un `Script`** dans
+  `ServerScriptService` et le détruire après : lui tourne dans la bonne machine
+  virtuelle. `execute_luau` reste parfait pour inspecter le DataModel (les
+  parts, les propriétés, l'arborescence), qui est partagé, lui.
+
 - **Le taux de doublons pilote deux économies à la fois** : moins de doublons,
   moins de fragments, donc des skins plus rares. Ces deux réglages se changent
   ensemble.
