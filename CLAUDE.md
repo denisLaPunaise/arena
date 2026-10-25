@@ -155,17 +155,26 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 manches, pas d'arbre, pas d'équipement. Si le Vampire contre le Colosse est déjà
 amusant dans ces conditions, tout le reste vaut la peine d'être construit.
 
-## Décisions prises après la fiche
+## Arbitrages du 25 octobre 2026
 
-Deux points où le code s'écarte volontairement du texte de la fiche, tranchés
-par Josh le 25 octobre 2026 :
+La fiche se contredisait sur trois points. Josh a tranché, et **la fiche a été
+corrigée** : elle dit maintenant la même chose que `Config.luau`. Ces trois
+décisions sont notées ici parce que les anciennes valeurs traînent peut-être
+encore dans une conversation ou une capture d'écran.
 
+- **Un point d'arbre par manche**, pas deux. L'étape 6 de la boucle de partie
+  disait « deux points d'arbre pour tout le monde », ce qui contredisait le
+  tableau des issues de partie. Un point avant la première manche, puis un par
+  fin de manche, donc une partie de M manches donne M points utilisables.
 - **Le point de revanche** est accordé une seule fois par partie, à l'équipe qui
   vient de perdre **trois manches d'affilée** (la fiche disait « menée de deux
   manches ou plus »).
 - **L'économie des pièces** suit les gains détaillés de la section « Les pièces »
   (caisse toutes les trois à six parties), pas la fourchette « quatre à huit »
   du récapitulatif.
+- **Le 1v1 miroir est classé** comme les autres formats : l'équilibrage étant
+  parfait par construction, il n'y a plus de raison d'en faire un mode détente
+  hors classement.
 
 Tous les chiffres sont des points de départ raisonnés, pas des certitudes. Le
 seul moyen de les valider, c'est de jouer.
