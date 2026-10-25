@@ -40,15 +40,17 @@ return function(t: harness.Harness)
 	end
 
 	t.equal("deux classes marquees pour le prototype", prototypeCount, 2)
-	t.check("le Vampire est dans le prototype", Classes.byId.vampire ~= nil and Classes.byId.vampire.prototype == true)
-	t.check("le Colosse est dans le prototype", Classes.byId.colossus ~= nil and Classes.byId.colossus.prototype == true)
 
-	t.check("l'index par identifiant est complet", (function()
-		for _, class in Classes.all do
-			if Classes.byId[class.id] ~= class then
-				return false
-			end
+	local vampire = Classes.byId.vampire
+	local colossus = Classes.byId.colossus
+	t.check("le Vampire est dans le prototype", vampire ~= nil and vampire.prototype == true)
+	t.check("le Colosse est dans le prototype", colossus ~= nil and colossus.prototype == true)
+
+	local indexComplete = true
+	for _, class in Classes.all do
+		if Classes.byId[class.id] ~= class then
+			indexComplete = false
 		end
-		return true
-	end)())
+	end
+	t.check("l'index par identifiant est complet", indexComplete)
 end

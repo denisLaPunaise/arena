@@ -33,13 +33,13 @@ return function(t: harness.Harness)
 	t.section("L'arbre de competences")
 
 	t.equal("aller au bout de l'arbre coute six points", sum(Config.skillTree.tierCosts), 6)
-	t.equal(
-		"il y a un cout par palier",
-		count(Config.skillTree.tierCosts),
-		Config.skillTree.tiers
-	)
+	t.equal("il y a un cout par palier", count(Config.skillTree.tierCosts), Config.skillTree.tiers)
 	t.equal("le premier palier est gratuit", Config.skillTree.tierCosts[1], 0)
-	t.equal("le dernier palier coute deux points", Config.skillTree.tierCosts[Config.skillTree.tiers], 2)
+	t.equal(
+		"le dernier palier coute deux points",
+		Config.skillTree.tierCosts[Config.skillTree.tiers],
+		2
+	)
 
 	-- Une partie de M manches distribue un point avant la premiere manche puis
 	-- un par fin de manche ; le dernier ne sert a rien, donc M points utilisables.
@@ -79,7 +79,11 @@ return function(t: harness.Harness)
 		local available = count(Classes.all) - bans
 		local reserve = available - format.classesDrawn
 		t.check(
-			string.format("le reroll reste possible en %s (%d classes en reserve)", format.id, reserve),
+			string.format(
+				"le reroll reste possible en %s (%d classes en reserve)",
+				format.id,
+				reserve
+			),
 			reserve >= 1
 		)
 		t.equal(
@@ -91,15 +95,17 @@ return function(t: harness.Harness)
 
 	t.section("Le budget d'equipement")
 
+	-- En additionnant le maximum de chaque categorie on arrive autour de
+	-- vingt-trois points : a douze, chaque assemblage renonce a la moitie de ce
+	-- qu'il pourrait porter, et c'est exactement l'intention.
+	local maxCostTotal = 0
+	for _, category in Config.loadout.categories do
+		maxCostTotal += category.maxCost
+	end
+
 	t.check(
 		"le budget est inferieur au total des maximums de categorie",
-		Config.loadout.budgetPoints < (function()
-			local total = 0
-			for _, category in Config.loadout.categories do
-				total += category.maxCost
-			end
-			return total
-		end)()
+		Config.loadout.budgetPoints < maxCostTotal
 	)
 	t.check(
 		"le budget permet au moins une arme principale la plus chere",
@@ -159,8 +165,5 @@ return function(t: harness.Harness)
 		previousFragments = tier.fragments
 	end
 
-	t.check(
-		"aucun skin en dessous de 50 Robux",
-		Config.cosmetics.skinTiers[1].robux >= 50
-	)
+	t.check("aucun skin en dessous de 50 Robux", Config.cosmetics.skinTiers[1].robux >= 50)
 end

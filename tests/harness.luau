@@ -41,7 +41,9 @@ local function create(): Harness
 			print("   ok   " .. label)
 		else
 			failures += 1
-			print(string.format("  ECHEC %s (obtenu %s, attendu %s)", label, tostring(actual), tostring(expected)))
+			local got = tostring(actual)
+			local want = tostring(expected)
+			print(string.format("  ECHEC %s (obtenu %s, attendu %s)", label, got, want))
 		end
 	end
 
