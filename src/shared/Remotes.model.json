@@ -12,6 +12,10 @@
 		{
 			"name": "Tree",
 			"className": "RemoteEvent"
+		},
+		{
+			"name": "Effects",
+			"className": "UnreliableRemoteEvent"
 		}
 	]
 }

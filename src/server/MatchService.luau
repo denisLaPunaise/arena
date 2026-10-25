@@ -45,6 +45,7 @@ local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
+local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
@@ -452,6 +453,19 @@ local function onStatusChanged(player: Player, status: string)
 	end
 	if entry == nil then
 		return
+	end
+
+	-- Tomber et se relever sont les deux moments ou personne ne lit du texte :
+	-- un eclair au bon endroit porte plus loin qu'une ligne de HUD.
+	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	if root and root:IsA("BasePart") then
+		local point = root.Position + Vector3.new(0, 1.5, 0)
+		if status == "standing" then
+			EffectsService.revive(point, player)
+		else
+			EffectsService.down(point, player)
+		end
 	end
 
 	if status == "downed" then

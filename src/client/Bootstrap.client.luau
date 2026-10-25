@@ -29,6 +29,7 @@ local Remotes = Arena:WaitForChild("Remotes")
 local attackRemote = Remotes:WaitForChild("Attack") :: RemoteEvent
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 
+local Effects = require(script.Parent:WaitForChild("Effects"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
 
 local player = Players.LocalPlayer
@@ -192,6 +193,7 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 	end
 end)
 
+Effects.start()
 TreePanel.start()
 
 print(string.format("[Arena] Client démarré pour %s", player.Name))

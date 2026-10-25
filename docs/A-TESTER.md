@@ -158,6 +158,29 @@ testés par quelqu'un d'autre que moi.
 
 ---
 
+## 5 bis. Les coups se voient enfin — **non vérifié en jeu**
+
+Honnêteté d'abord : cette partie est écrite, formatée, analysée, les tests
+passent et la place se construit, **mais je n'ai pas pu la voir tourner**. Rojo
+avait cessé de synchroniser quand je l'ai terminée. C'est la seule partie de
+cette session dans ce cas — tout le reste, je l'ai vu fonctionner.
+
+Donc à regarder avec méfiance :
+
+- [ ] **Le trait du coup** part de l'attaquant à chaque attaque, qu'elle touche
+      ou non. C'est fait exprès : rater doit se voir, sinon on n'apprend jamais
+      la portée de sa classe.
+- [ ] **Les nombres qui montent.** Rouge quand tu encaisses, clair quand tu
+      donnes, vert pour le vol de vie, violet pour la propagation de la Peste,
+      orange pour la zone. Un coup plus fort s'écrit plus gros.
+- [ ] Les dégâts de zone sont **cumulés une seconde** avant d'être annoncés,
+      sinon un nombre partirait à chaque image.
+- [ ] Un éclair sur la cible touchée, et sur qui tombe ou se relève.
+- [ ] **Si l'écran devient illisible**, `Config.effects.enabled = false` coupe
+      tout d'un coup, et le jeu revient exactement à avant.
+
+---
+
 ## 6. Ce que je ne peux pas tester du tout
 
 Ça ne dépend pas d'un réglage, ça dépend d'avoir du monde :

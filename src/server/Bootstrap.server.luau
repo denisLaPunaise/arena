@@ -61,6 +61,9 @@ print(
 		if Config.skillTree.enabled then "activé" else "coupé"
 	)
 )
+if not Config.effects.enabled then
+	print("[Arena] Les effets visuels sont coupés : les coups seront invisibles.")
+end
 if Config.skillTree.enabled then
 	print(
 		string.format(

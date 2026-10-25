@@ -50,6 +50,7 @@ local Debris = game:GetService("Debris")
 local Workspace = game:GetService("Workspace")
 
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
+local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
@@ -65,6 +66,12 @@ local lastAttackAt: { [Player]: number } = {}
 local lastCombatAt: { [Player]: number } = {}
 local lastDashAt: { [Player]: number } = {}
 local active = false
+
+-- Les degats de zone se cumulent avant d'etre annonces. Sans ca un nombre
+-- partirait a chaque image : illisible, et une inondation de messages reseau
+-- pour du decor.
+local zoneOwed: { [Player]: number } = {}
+local zoneToldAt: { [Player]: number } = {}
 
 -- Les blocs laisses par la Catapulte vivent la, et nulle part ailleurs dans
 -- Workspace. Workspace appartient a la construction des maps, pas au code : un
@@ -259,6 +266,16 @@ local function dealDamage(target: Entry, amount: number): number
 	return passed
 end
 
+-- A hauteur de poitrine, pas aux pieds : un nombre au sol se perd dans le
+-- decor, et un nombre au-dessus de la tete se confond avec le pseudo.
+local function effectPoint(target: Entry): Vector3?
+	local root = rootOf(target.player)
+	if root == nil then
+		return nil
+	end
+	return root.Position + Vector3.new(0, 1.5, 0)
+end
+
 local function healTo(player: Player, amount: number)
 	if amount <= 0 then
 		return
@@ -298,7 +315,11 @@ local function spreadFrom(entry: Entry, target: Entry, damageDealt: number)
 		if index > Config.combat.spreadMaxTargets then
 			break
 		end
-		dealDamage(other, Combat.damageTaken(Config, other.stats, share))
+		local passed = dealDamage(other, Combat.damageTaken(Config, other.stats, share))
+		local point = effectPoint(other)
+		if passed > 0 and point ~= nil then
+			EffectsService.spread(point, passed, other.player)
+		end
 	end
 end
 
@@ -325,6 +346,10 @@ local function pierceFrom(entry: Entry, target: Entry, rawDamage: number)
 		local falloff = math.max(1 - (settings.falloffPerTarget * index), 0)
 		local passed =
 			dealDamage(other, Combat.damageTaken(Config, other.stats, rawDamage * falloff))
+		local point = effectPoint(other)
+		if passed > 0 and point ~= nil then
+			EffectsService.hit(point, passed, other.player)
+		end
 		applyKnockback(entry, other)
 		spreadFrom(entry, other, passed)
 	end
@@ -416,6 +441,7 @@ local function tryDash(entry: Entry): boolean
 	lastDashAt[entry.player] = now
 	attackerRoot.AssemblyLinearVelocity = (flat.Unit * settings.speedStuds)
 		+ Vector3.new(0, settings.upStuds, 0)
+	EffectsService.dash(attackerRoot.Position, flat)
 	return true
 end
 
@@ -448,7 +474,27 @@ local function onAttack(player: Player)
 	-- hasard doit couter quelque chose.
 	lastAttackAt[player] = now
 
+	local attackerRoot = rootOf(player)
 	local target = findTarget(entry)
+
+	-- Le trait part AVANT de savoir si on a touche, et il part meme dans le
+	-- vide : rater doit se voir, sinon on n'apprend jamais la portee de sa
+	-- classe.
+	if attackerRoot ~= nil then
+		-- La portee dessinee va jusqu'a la cible quand il y en a une, sinon
+		-- droit devant sur toute la portee de la classe. On relit la position
+		-- de la cible au lieu de la supposer : findTarget garantit qu'elle
+		-- existait a l'instant d'avant, pas qu'elle existe encore.
+		local reach = attackerRoot.CFrame.LookVector * entry.stats.attackRangeStuds
+		if target ~= nil then
+			local targetRoot = rootOf(target.player)
+			if targetRoot ~= nil then
+				reach = targetRoot.Position - attackerRoot.Position
+			end
+		end
+		EffectsService.swing(attackerRoot.Position + Vector3.new(0, 1.5, 0), reach, target ~= nil)
+	end
+
 	if target == nil then
 		-- Un coup dans le vide, c'est l'occasion du bond : le Fauve du palier 6
 		-- n'a pas de touche a lui, attaquer un adversaire trop loin suffit.
@@ -481,10 +527,20 @@ local function onAttack(player: Player)
 
 	local passed = dealDamage(target, result.damage)
 
+	local point = effectPoint(target)
+	if passed > 0 and point ~= nil then
+		EffectsService.hit(point, passed, target.player)
+	end
+
 	-- Le vol de vie se recalcule sur ce qui est VRAIMENT passe : dealDamage
 	-- plafonne aux PV restants, et un coup de 24 sur une cible a 3 PV ne doit
 	-- pas soigner comme un coup de 24.
-	healTo(player, Combat.lifestealFor(entry.stats, attackerHumanoid.Health, passed))
+	local healed = Combat.lifestealFor(entry.stats, attackerHumanoid.Health, passed)
+	healTo(player, healed)
+
+	if healed >= 1 and attackerRoot ~= nil then
+		EffectsService.heal(attackerRoot.Position + Vector3.new(0, 1.5, 0), healed, player)
+	end
 
 	applyKnockback(entry, target)
 	spreadFrom(entry, target, passed)
@@ -533,6 +589,19 @@ local function applyZoneDamage(deltaSeconds: number)
 		end
 
 		local passed = dealDamage(entry, Combat.damageTaken(Config, entry.stats, amount))
+
+		if passed > 0 then
+			zoneOwed[player] = (zoneOwed[player] or 0) + passed
+
+			local now = os.clock()
+			local toldAt = zoneToldAt[player] or 0
+			local owed = zoneOwed[player]
+			if (now - toldAt) >= Config.effects.zoneNumberIntervalSeconds and owed >= 1 then
+				zoneToldAt[player] = now
+				zoneOwed[player] = 0
+				EffectsService.zone(root.Position + Vector3.new(0, 1.5, 0), owed, player)
+			end
+		end
 
 		-- Sangsue, palier 6 : la zone travaille pour le Vampire. Le ratio est
 		-- module dans Config.tier6, sinon il gagne la fin de manche en restant
@@ -591,6 +660,8 @@ function CombatService.init()
 		lastAttackAt[player] = nil
 		lastCombatAt[player] = nil
 		lastDashAt[player] = nil
+		zoneOwed[player] = nil
+		zoneToldAt[player] = nil
 	end)
 
 	attackRemote.OnServerEvent:Connect(onAttack)
@@ -602,6 +673,8 @@ function CombatService.setRoster(entries: { Entry })
 	lastAttackAt = {}
 	lastCombatAt = {}
 	lastDashAt = {}
+	zoneOwed = {}
+	zoneToldAt = {}
 	for _, entry in entries do
 		roster[entry.player] = entry
 	end

@@ -551,6 +551,44 @@ Config.combat = {
 }
 
 --------------------------------------------------------------------------------
+-- CE QUI REND LE COMBAT LISIBLE
+--------------------------------------------------------------------------------
+
+-- Du decor, uniquement. Aucun de ces chiffres ne change l'etat du jeu : ils
+-- decident seulement de ce qu'on voit. Mais un duel illisible ne peut pas etre
+-- juge amusant, donc ils comptent autant que les autres.
+Config.effects = {
+	enabled = true,
+
+	-- Les nombres qui montent au-dessus d'un coup.
+	numberSeconds = 0.9,
+	numberRiseStuds = 4.5,
+	numberSize = 28,
+	-- Un coup plus fort s'ecrit plus gros, jusqu'a cette limite. C'est ce qui
+	-- fait qu'un coup de Colosse et un coup de Vampire ne se ressemblent pas,
+	-- sans avoir a lire le chiffre.
+	numberSizeMax = 46,
+	numberSizeReference = 30,
+
+	-- Le coup lui-meme : un trait qui part de l'attaquant. Il part MEME dans le
+	-- vide : c'est comme ca qu'on apprend la portee de sa classe.
+	swingSeconds = 0.18,
+	swingWidthStuds = 3.2,
+	swingHeightStuds = 0.5,
+
+	-- L'eclair sur la cible touchee.
+	flashSeconds = 0.22,
+	flashStuds = 3.5,
+
+	-- La trainee du bond du Fauve.
+	dashSeconds = 0.35,
+
+	-- Les degats de zone se cumulent avant d'etre annonces : sans ca, un nombre
+	-- partirait a chaque image et l'ecran serait illisible.
+	zoneNumberIntervalSeconds = 1,
+}
+
+--------------------------------------------------------------------------------
 -- LES EFFETS DE PALIER 6
 --------------------------------------------------------------------------------
 
