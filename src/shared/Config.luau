@@ -18,7 +18,7 @@ local Config = {}
 -- Numero de version du reglage, affiche au demarrage. A incrementer quand on
 -- change un chiffre qui modifie l'equilibrage, pour savoir de quoi on parle
 -- quand on compare deux sessions de test.
-Config.version = 1
+Config.version = 2
 
 --------------------------------------------------------------------------------
 -- LE CADRE : formats de partie
@@ -322,6 +322,80 @@ Config.camera = {
 	-- couvertures doivent etre dessinees en partant de ce principe.
 	allowFirstPerson = true,
 	allowThirdPerson = true,
+}
+
+--------------------------------------------------------------------------------
+-- LE PROTOTYPE
+--------------------------------------------------------------------------------
+
+-- Etape 2 du plan de construction : deux joueurs, deux classes, une surface
+-- plane, trois manches. Pas d'arbre, pas d'equipement, pas de zone qui se
+-- referme, pas de fenetre d'agonie. Tout ca vient apres, et seulement si le
+-- duel est deja amusant comme ca.
+Config.prototype = {
+	enabled = true,
+	classes = { "vampire", "colossus" },
+
+	-- Premier a deux manches gagnees, donc trois manches au maximum.
+	roundsToWin = 2,
+
+	secondsBeforeRoundStarts = 3,
+	secondsBetweenRounds = 4,
+	secondsBetweenMatches = 8,
+
+	-- Les deux joueurs echangent de classe d'une partie a l'autre : chacun doit
+	-- juger les deux cotes du duel, pas seulement le sien.
+	swapClassesBetweenMatches = true,
+}
+
+--------------------------------------------------------------------------------
+-- LE COMBAT
+--------------------------------------------------------------------------------
+
+Config.combat = {
+	-- Roblox regenere la vie de tout le monde par defaut, sans qu'on le lui
+	-- demande. On coupe cette regeneration pour la piloter par classe : sans
+	-- ca, la faiblesse du Vampire n'existe pas.
+	disableDefaultRegen = true,
+
+	-- Delai sans degat donne ni recu avant de compter comme hors combat.
+	outOfCombatSeconds = 5,
+}
+
+-- A REGLER : ce sont les chiffres les plus provisoires du fichier. Ils ne se
+-- valident qu'en jouant le duel, et c'est tout l'objet de l'etape 2.
+--
+-- Le duel est calibre pour etre serre : le Colosse tue le Vampire en huit a
+-- neuf secondes de contact continu, le Vampire met le meme temps a entamer les
+-- 170 PV du Colosse. Le repoussement est l'outil du Colosse pour casser le vol
+-- de vie, la vitesse est l'outil du Vampire pour revenir au contact.
+Config.classStats = {
+	vampire = {
+		maxHealth = 100,
+		walkSpeed = 20,
+		attackDamage = 12,
+		attackCooldownSeconds = 0.6,
+		attackRangeStuds = 7,
+		-- Son pouvoir : il se soigne d'une part des degats infliges.
+		lifestealRatio = 0.35,
+		knockbackStuds = 0,
+		knockbackUpStuds = 0,
+		-- Sa faiblesse : il ne regenere rien hors combat.
+		regenPerSecond = 0,
+	},
+	colossus = {
+		maxHealth = 170,
+		-- Sa faiblesse : lent, donc cible facile des qu'il perd le contact.
+		walkSpeed = 12,
+		attackDamage = 24,
+		attackCooldownSeconds = 1.3,
+		attackRangeStuds = 9,
+		lifestealRatio = 0,
+		-- Son pouvoir : il pousse les adversaires.
+		knockbackStuds = 45,
+		knockbackUpStuds = 15,
+		regenPerSecond = 2,
+	},
 }
 
 --------------------------------------------------------------------------------

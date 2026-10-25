@@ -1,14 +1,10 @@
 --!strict
 --[[
-	Bootstrap — point d'entree serveur.
+	Bootstrap — point d'entree serveur, et le seul.
 
-	Pour l'instant il ne fait qu'une chose : prouver que la chaine complete
-	fonctionne. S'il affiche ses lignes dans la console de Studio, alors Rojo
-	synchronise bien, les modules partages se chargent, et le fichier de
-	configuration est lisible par le serveur. C'est le jalon de l'etape 1.
-
-	La suite se branchera ici, et nulle part ailleurs : un seul point d'entree
-	serveur, qui appelle des modules.
+	Il n'y a aucune logique ici : il affiche l'etat des reglages, puis demarre
+	les services dans l'ordre. Toute nouvelle mecanique se branche sur cette
+	liste, et nulle part ailleurs.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,20 +13,24 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Config = require(Arena:WaitForChild("Config"))
 local Classes = require(Arena:WaitForChild("Classes"))
 
-local function countFormats(): number
+local CombatService = require(script.Parent:WaitForChild("CombatService"))
+local MatchService = require(script.Parent:WaitForChild("MatchService"))
+
+local function count(list): number
 	local n = 0
-	for _ in Config.formats do
+	for _ in list do
 		n += 1
 	end
 	return n
 end
 
-local function countClasses(): number
-	local n = 0
-	for _ in Classes.all do
-		n += 1
+local function describePrototype(): string
+	local names = {}
+	for _, classId in Config.prototype.classes do
+		local class = Classes.byId[classId]
+		table.insert(names, if class then class.name else classId)
 	end
-	return n
+	return table.concat(names, " contre ")
 end
 
 print("================================================")
@@ -38,18 +38,19 @@ print(string.format("[Arena] Serveur démarré — réglages version %d", Config
 print(
 	string.format(
 		"[Arena] %d classes, %d formats, budget d'équipement %d points",
-		countClasses(),
-		countFormats(),
+		count(Classes.all),
+		count(Config.formats),
 		Config.loadout.budgetPoints
 	)
 )
 print(
 	string.format(
-		"[Arena] Arbre à %d paliers, premier à %d manches gagnées (%d au maximum)",
-		Config.skillTree.tiers,
-		Config.match.roundsToWin,
-		Config.match.maxRounds
+		"[Arena] Prototype : %s, premier à %d manches gagnées",
+		describePrototype(),
+		Config.prototype.roundsToWin
 	)
 )
-print("[Arena] Si tu lis ces lignes, l'étape 1 est validée : Rojo est branché.")
 print("================================================")
+
+CombatService.init()
+MatchService.start()
