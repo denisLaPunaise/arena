@@ -343,6 +343,136 @@ le montrer. Et dire la différence à Josh : *vérifié par instrumentation* n'e
 pas *vu de mes yeux*, et `docs/A-TESTER.md` le dit maintenant pour les nombres
 de dégâts et pour le compte à rebours de l'agonie.
 
+### Les chiffres des douze classes, et de leurs trente-six branches
+
+**Ce que j'ai inventé.** Tout. Statistiques de base, portées, recharges, durées,
+rayons, sacrifices de branche, crans par palier, effets de palier 6. La fiche
+donne un pouvoir, une faiblesse et un rôle par classe, en une phrase chacun ;
+elle ne donne aucun nombre pour les douze qui n'étaient pas prototypées.
+
+**Comment je m'y suis pris.** J'ai pris le Vampire (100 PV, 20 de vitesse, 12 de
+dégâts) et le Colosse (170, 12, 24) comme les deux bornes, et j'ai placé les
+douze autres entre les deux selon leur rôle. Une classe d'information frappe
+faible, une classe de terrain est lente et solide, une classe d'embuscade a le
+coup le plus fort et la cadence la plus basse.
+
+**Ce que ça vaut.** Rien, tant que personne n'a joué. Ce sont des points de
+départ cohérents entre eux, pas un équilibrage. La seule chose que je peux
+garantir, c'est qu'aucune classe n'arrive sans faiblesse appliquée dans le code,
+et qu'aucune branche ne pousse un chiffre que le combat ne lit pas.
+
+### Les chiffres d'un pouvoir sont des statistiques, pas une table à part
+
+**Le choix.** `mineCount`, `phaseSeconds`, `markHealStealRatio` et les vingt-huit
+autres vivent dans `Config.classStats`, avec la classe, et pas dans un coin
+réservé aux pouvoirs.
+
+**Pourquoi.** Trois conséquences, toutes voulues : une branche d'arbre peut les
+pousser comme elle pousse les dégâts (c'est ce qui rend « Arsenal » possible :
+cinq mines de plus au palier 5) ; l'interface de l'arbre sait déjà les afficher,
+avec leur libellé en français et la bonne couleur ; et le vérificateur de types
+attrape une faute de frappe, parce qu'ils sont déclarés dans `Combat.Stats`.
+
+**Le prix.** Chaque fonction qui lit un de ces chiffres doit accepter qu'il soit
+absent — le Traqueur n'a pas de mines. D'où les `or 0` dans `Abilities.luau`.
+Ce n'est pas de la négligence, c'est la contrepartie assumée.
+
+### Une seule touche pour tous les pouvoirs
+
+**La décision.** `E`, pour les quatorze classes.
+
+**Pourquoi.** La classe est **tirée au sort**. Une touche par classe serait à
+réapprendre à chaque partie, et on la chercherait au moment où on en a besoin.
+Le réglage est `Config.abilities.inputKey`.
+
+### Le Leurre ne pilote pas son clone — **et c'est une réduction**
+
+**C'est la seule chose de cette session qui s'écarte de la fiche**, et elle doit
+être relue par Josh.
+
+La fiche dit : « Pilote un clone qui attire l'attention », faiblesse « Reste
+immobile et vulnérable pendant qu'il le pilote ».
+
+**Ce qui est codé** : le clone est *posé* devant lui, il vit six secondes, il
+s'interpose physiquement (un coup dirigé vers le Leurre part sur le clone quand
+le clone est plus proche de l'attaquant), et pendant ce temps le Leurre **ne
+bouge plus et encaisse 35 % de plus**. La faiblesse est donc intégralement
+appliquée. C'est le **pilotage** qui manque.
+
+**Pourquoi je ne l'ai pas fait.** Piloter un clone demande de déplacer la caméra
+du joueur, de prendre ses entrées de déplacement, de les appliquer à un modèle
+qui n'est pas son personnage, et de tout rendre au bon moment ou en cas de
+déconnexion. C'est un chantier à part entière, du même ordre que tout le reste
+des pouvoirs réunis, et il aurait mangé la session sans que les onze autres
+classes existent.
+
+**Ce que ça change pour le jeu.** Le Leurre devient une classe de placement
+plutôt qu'une classe de diversion active. C'est jouable et honnête, mais ce
+n'est pas ce que la fiche décrit. **À trancher avec Josh** : soit on code le
+pilotage, soit on corrige la fiche.
+
+### « Les mines épargnent ses alliés » ne voulait rien dire
+
+Le palier 6 de la Démolition promettait que les mines épargneraient les alliés.
+Mais une mine ne blesse **que** les adversaires : l'effet n'aurait rien changé,
+tout en coûtant deux points. C'est précisément la panne des branches creuses,
+repérée cette fois avant d'être écrite.
+
+**Remplacé par** : les mines s'arment instantanément. Ça change vraiment le jeu
+de la branche — la mine cesse d'être un piège qu'on prépare pour devenir une
+arme qu'on pose sous les pieds de quelqu'un.
+
+### Le Lien choisit l'allié le plus proche, et ne peut pas mourir à sa place
+
+**Le ciblage.** Pas de visée : l'allié le plus proche dans la portée. Une
+interface de ciblage n'existe pas, et le Lien se joue au placement de toute
+façon.
+
+**Le plafond.** La part reprise à l'allié ne dépasse jamais 35 % des PV maximum
+du Lien (`bondMaxShareFraction`). Sans ce plafond, lier quelqu'un qui encaisse
+un coup énorme tuerait le Lien d'un coup, et le pouvoir deviendrait un piège
+qu'on n'utilise jamais deux fois.
+
+### Le relancement tire avant de rendre l'ancienne classe
+
+Dans l'autre ordre, le tirage pouvait rendre la classe qu'on venait de
+relancer. Un relancement qui ne change rien est pire que pas de relancement du
+tout : le joueur a dépensé sa seule chance pour rien. Un test le fige.
+
+### La fenêtre de ban s'écoule en entier
+
+Même quand toute l'équipe a voté. L'équipe d'en face doit avoir le temps de lire
+ce qui vient d'être écarté — c'est ce qui fait du ban une information plutôt
+qu'une formalité. **À rejuger en jouant** : si ça traîne, c'est
+`Config.draft.banVoteSeconds`.
+
+### Deux garde-fous qui arrêtent le serveur au démarrage
+
+Le serveur refuse de démarrer si `Config` annonce un pouvoir de classe ou un
+effet de palier 6 que rien n'exécute, et le message nomme le coupable.
+
+**C'est volontairement brutal.** Une classe creuse ou un palier 6 muet ne se
+voient qu'en jouant, et le palier 6 demande une série de sept manches — autant
+dire jamais pendant un test. Un serveur qui ne démarre pas se remarque tout de
+suite ; une classe qui ne fait rien, non.
+
+### Des groupes de collision, pour deux pouvoirs
+
+Le Spectre traverse les couverts, et le mur du Forgeron de palier 6 laisse
+passer son équipe. Les deux demandent des règles de collision, déclarées une
+fois pour toutes au démarrage dans `AbilityService`.
+
+Le sol reste dans le groupe par défaut, qu'on ne touche pas : un Spectre qui
+traverse les murs doit continuer à marcher dessus. Les couverts sont désignés
+par le contrat de nommage (`Cover`), parce que les maps ne sont pas dans Git et
+que rien d'autre ne peut les reconnaître.
+
+### Les classes retrouvent leurs accents
+
+`Classes.luau` écrivait « Degats faibles en melee ». Ces chaînes ne sont pas des
+commentaires : elles s'affichent aux joueurs, sur l'écran de bans et à la
+révélation. La convention du projet leur donne raison, et c'était une faute.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

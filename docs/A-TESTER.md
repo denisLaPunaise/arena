@@ -214,18 +214,112 @@ réserve vaut pour le **compte à rebours au-dessus d'un joueur à terre**
 
 ---
 
+## 7. Les bans et le tirage — **jamais vu tourner en vrai**
+
+Honnêteté d'abord : j'ai vérifié **l'écran** (il s'affiche, les quatorze classes
+sont lisibles, les accents passent) et **la logique** (872 vérifications, dont
+l'unicité des classes, le miroir du 1v1 et le fait qu'une classe bannie ne
+ressort jamais). Mais une phase de bans demande **deux équipes qui votent**, et
+je suis seul dans Studio. Toute cette section est donc à regarder avec méfiance.
+
+`Config.draft.enabled = false` ramène au duel Vampire contre Colosse si ça gêne.
+
+43. **La durée totale.** Deux bans de vingt secondes, puis six secondes de
+    relancement, puis cinq de révélation : **près d'une minute avant la
+    première manche**, pour un match en deux manches gagnantes. C'est le
+    premier chiffre que je changerais si ça traîne —
+    `Config.draft.banVoteSeconds`.
+44. **La fenêtre de ban s'écoule en entier**, même si tout le monde a déjà voté.
+    C'est fait exprès : l'équipe d'en face doit avoir le temps de lire ce qui
+    vient d'être écarté. Est-ce que ça se ressent comme du respect ou comme de
+    l'attente ?
+45. **Le vote est à la majorité de l'équipe**, égalité tranchée au sort. À deux
+    ou trois, est-ce que vous vous concertez, ou est-ce que chacun clique dans
+    son coin ?
+46. **Personne ne vote** : une classe est écartée au hasard et la partie
+    continue. Testez-le exprès — c'est ce qui arrivera avec un joueur qui
+    découvre.
+47. **Le relancement est aveugle** : on accepte avant de voir. Est-ce que c'est
+    un pari excitant ou juste frustrant ? (Le texte explique pourquoi ; est-ce
+    qu'on le lit ?)
+48. **La révélation** montre le pouvoir ET la faiblesse. Cinq secondes, est-ce
+    que ça suffit pour une classe qu'on ne connaît pas ?
+49. **En 1v1, les deux joueurs ont la même classe** (miroir), et les trois
+    classes qui ciblent un coéquipier sortent du vivier. Vérifiez que le
+    Lien, le Leurre et l'Infirmier n'apparaissent **jamais** en 1v1.
+
+---
+
+## 8. Les douze autres classes — **aucune n'a jamais été jouée**
+
+Tout est codé et vérifié techniquement : le serveur refuse de démarrer si une
+classe annonce un pouvoir que rien n'exécute, et j'ai vu l'Artificier poser ses
+mines en jeu, avec le stock qui descend et la recharge qui bloque. Mais
+**personne n'a jamais joué aucune de ces classes contre quelqu'un.** Les
+chiffres sont des points de départ raisonnés, rien de plus.
+
+**La touche du pouvoir est `E` pour toutes.** La classe est tirée au sort, donc
+une touche différente par classe serait à réapprendre à chaque partie.
+
+### Ce qu'il faut regarder sur chacune
+
+50. **Traqueur** — les traces de pas apparaissent sous les adversaires, **et
+    seulement pour lui**. Vérifiez que personne d'autre ne les voit : si tout
+    le monde les voit, le pouvoir est à l'envers.
+51. **Artificier** — trois mines par manche, armées après un délai. Le stock
+    ne se recharge **qu'entre deux manches**. Trois, c'est assez ?
+52. **Spectre** — trois secondes pour traverser un mur, pendant lesquelles il
+    **ne peut ni frapper ni être soigné**. Est-ce que trois secondes suffisent
+    pour arriver quelque part ?
+53. **Lien** — il choisit **l'allié le plus proche**, pas un allié désigné.
+    Est-ce que ça suffit, ou est-ce qu'on veut viser ?
+54. **Duelliste** — plus fort seul contre un, plus faible dès qu'un deuxième
+    ennemi est à moins de 22 studs. **C'est la bascule à vérifier** : est-ce
+    qu'elle se sent, ou est-ce qu'on ne comprend pas pourquoi on tape mou ?
+55. **Forgeron** — son mur **bloque aussi son équipe**. C'est la faiblesse
+    annoncée. Est-ce que c'est un outil ou une punition ?
+56. **Pyromane** — ses flammes **le brûlent aussi**. Pareil : outil ou
+    punition ?
+57. **Leurre** — **lu attentivement, c'est important** : le clone est *posé*,
+    pas piloté. Voir la section « Ce que j'ai décidé seul » plus bas. Pendant
+    que le clone vit, il ne bouge plus et encaisse 35 % de plus.
+58. **Sismique** — l'onde **n'atteint personne en l'air**. Sauter au bon moment
+    l'annule entièrement. Est-ce que c'est un contre satisfaisant ou injuste ?
+59. **Parasite** — le marqué **est prévenu** (bandeau violet clignotant).
+    Vérifiez que le message arrive bien, c'est toute la faiblesse de la classe.
+60. **Caméléon** — invisible après 1,2 s d'immobilité, visible au moindre
+    mouvement **et dès qu'il frappe**. Est-ce qu'on arrive à en faire quelque
+    chose, ou est-ce qu'il clignote en permanence ?
+61. **Infirmier** — il relève **deux fois plus vite** et rend plus de PV. À
+    trois ou plus, est-ce qu'il devient incontournable ?
+
+### Les questions qui valent pour les douze
+
+62. **Est-ce qu'une classe est clairement la meilleure ?** C'est la question
+    qui compte le plus. Si une classe est bannie à chaque partie, dites-le.
+63. **Est-ce qu'une classe est injouable ?** Même chose dans l'autre sens.
+64. **Est-ce que la faiblesse se sent ?** Chaque classe en a une qui n'est pas
+    décorative. Si elle ne gêne jamais, elle est mal réglée.
+65. **Les pouvoirs à plusieurs.** Le Lien, le Leurre et l'Infirmier n'ont de
+    sens qu'en équipe. Rien de tout ça n'a jamais tourné à plus de deux.
+66. **La ligne du pouvoir en haut à gauche** dit le nom, la recharge et le
+    stock. Assez clair ? Trop discrète ?
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
 
-- **les douze autres classes** — seuls le Vampire et le Colosse existent
 - **l'équipement, les objets, le budget de douze points** — rien n'est codé
 - **les tirages, les pièces, les fragments, les skins** — les chiffres sont
   dans `Config.luau`, le système n'existe pas
-- **les bans et le tirage au sort des classes** — le prototype distribue les
-  deux classes en dur
 - **l'Elo et le classement** — les chiffres sont posés, rien ne tourne
 - **le son** — il n'y en a aucun
-- **les animations d'attaque** — un coup est aujourd'hui invisible, à part les
-  PV qui descendent et la poussée. C'est sans doute le premier manque que tu
-  vas sentir, et c'est normal.
+- **les animations d'attaque** — le coup se voit (trait, éclair, nombre) mais le
+  personnage ne bouge pas. C'est sans doute le manque que tu vas sentir le
+  plus, maintenant que le reste existe.
+- **deux paliers 6 sur quarante-deux** attendent un système qui n'existe pas :
+  « immunisé aux projectiles » (Monolithe) et « la propagation traverse les
+  armures » (Peste). Ils s'affichent comme indisponibles, c'est voulu.
+- **le pilotage du clone du Leurre** — voir la section suivante.

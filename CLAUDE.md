@@ -220,6 +220,20 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 - **Le taux de doublons pilote deux économies à la fois** : moins de doublons,
   moins de fragments, donc des skins plus rares. Ces deux réglages se changent
   ensemble.
+- **Un pouvoir de classe ou un palier 6 déclaré mais pas exécuté ne fait rien,
+  en silence.** C'est la même panne que les branches creuses, en plus cher : un
+  palier 6 coûte deux points, et il faut une série de sept manches pour le
+  voir. Le serveur refuse donc de démarrer si `Config.abilities.registry` ou un
+  `tier6.implemented` annonce ce qu'aucun service n'applique. Les deux listes
+  de référence sont `HANDLED` et `HANDLED_TIER6` dans `AbilityService` : **en
+  ajoutant un pouvoir ou un effet, il faut les tenir à jour**, sinon le serveur
+  s'arrête avec un message qui nomme le coupable.
+- **`AbilityService` ne requiert jamais `CombatService` ni l'inverse.** Le
+  combat a besoin des pouvoirs et les pouvoirs ont besoin d'infliger des
+  dégâts : un `require` croisé et Roblox refuse de charger les deux. Le sens
+  est `CombatService -> AbilityService`, et les dégâts arrivent par un puits
+  que `CombatService` installe au démarrage. Même chose pour le relèvement :
+  `AbilityService` pose ses crochets dans `DownedService`, jamais l'inverse.
 - **Une branche d'arbre qui pousse un chiffre que le combat ne lit pas ne fait
   rien, mais son sacrifice s'applique quand même.** Trois branches sur six
   étaient dans cet état le 25 octobre 2026, et tous les tests passaient. Un test
@@ -238,8 +252,10 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 3. Ajouter la zone qui se referme, puis l'agonie et le relèvement
 4. Ajouter l'arbre à six paliers sur ces deux classes seulement — **fait**,
    logique pure, branchement serveur, interface et quatre effets de palier 6
-5. Seulement ensuite : les douze autres classes, puis l'équipement et les
-   tirages
+5. Les douze autres classes — **fait** : statistiques, pouvoirs, trois branches
+   chacune, plus les bans et le tirage au sort
+6. L'équipement et son budget de douze points, puis les tirages, les pièces et
+   les skins — **rien n'est codé**
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans
