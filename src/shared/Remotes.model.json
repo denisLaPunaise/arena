@@ -8,6 +8,10 @@
 		{
 			"name": "Hud",
 			"className": "RemoteEvent"
+		},
+		{
+			"name": "Tree",
+			"className": "RemoteEvent"
 		}
 	]
 }

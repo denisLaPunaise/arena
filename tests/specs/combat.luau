@@ -134,4 +134,79 @@ return function(t: harness.Harness)
 		math.abs(timeToKillColossus - timeToKillVampire) < 4
 	)
 	t.check("le Colosse perce le vol de vie du Vampire", colossusDps > vampireHeal)
+	t.section("La reduction de degats, et ses bornes")
+
+	-- Monolithe : damageTakenRatio est negatif, donc les degats descendent.
+	local tanky = table.clone(Config.classStats.colossus)
+	tanky.damageTakenRatio = -0.25
+	t.equal("une reduction de 25 % retire un quart", Combat.damageTaken(Config, tanky, 100), 75)
+
+	-- Le garde-fou : une statistique qui peut atteindre zero finit toujours par
+	-- y arriver, et un joueur invulnerable n'est plus un joueur.
+	local absurd = table.clone(Config.classStats.colossus)
+	absurd.damageTakenRatio = -10
+	t.equal(
+		"personne ne devient invulnerable",
+		Combat.damageTaken(Config, absurd, 100),
+		100 * Config.combat.damageTakenRatioMin
+	)
+
+	local fragile = table.clone(Config.classStats.colossus)
+	fragile.damageTakenRatio = 10
+	t.equal(
+		"et personne ne prend plus que le plafond",
+		Combat.damageTaken(Config, fragile, 100),
+		100 * Config.combat.damageTakenRatioMax
+	)
+
+	t.section("Le vol de vie se calcule sur ce qui passe vraiment")
+
+	local vampire = Config.classStats.vampire
+
+	-- Un coup de 12 sur une cible a 3 PV ne doit soigner que de 3 x le ratio.
+	local onLowTarget = Combat.resolveHit({
+		attackerStats = vampire,
+		attackerHealth = 50,
+		defenderStats = Config.classStats.colossus,
+		defenderHealth = 3,
+		config = Config,
+	})
+	t.equal("les degats sont plafonnes aux PV restants", onLowTarget.damage, 3)
+	t.equal("et le soin suit les degats passes", onLowTarget.healed, 3 * vampire.lifestealRatio)
+
+	-- Et il ne soigne pas ce que la reduction de la cible a absorbe.
+	local reduced = Combat.resolveHit({
+		attackerStats = vampire,
+		attackerHealth = 50,
+		defenderStats = tanky,
+		defenderHealth = 500,
+		config = Config,
+	})
+	t.check(
+		"une cible qui reduit soigne moins le Vampire",
+		reduced.healed < vampire.attackDamage * vampire.lifestealRatio
+	)
+
+	t.section("La propagation et la charge")
+
+	local plagued = table.clone(vampire)
+	plagued.spreadRatio = 0.25
+	plagued.spreadRadiusStuds = 8
+	t.check("la Peste propage", Combat.spreadsDamage(plagued))
+	t.equal("un quart du coup passe", Combat.spreadDamage(plagued, 40), 10)
+	t.equal("un coup qui ne passe pas ne propage rien", Combat.spreadDamage(plagued, 0), 0)
+
+	local charging = table.clone(Config.classStats.colossus)
+	charging.knockbackDamage = 8
+	t.equal(
+		"la charge s'ajoute aux degats bruts",
+		Combat.rawDamage(charging),
+		charging.attackDamage + 8
+	)
+
+	-- Sans poussee, pas de charge : c'est ce qui rend « la poussee devient une
+	-- charge qui blesse » litteralement vrai.
+	local pushless = table.clone(charging)
+	pushless.knockbackStuds = 0
+	t.equal("sans poussee, pas de charge", Combat.rawDamage(pushless), pushless.attackDamage)
 end

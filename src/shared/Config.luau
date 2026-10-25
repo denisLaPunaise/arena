@@ -18,7 +18,7 @@ local Config = {}
 -- Numero de version du reglage, affiche au demarrage. A incrementer quand on
 -- change un chiffre qui modifie l'equilibrage, pour savoir de quoi on parle
 -- quand on compare deux sessions de test.
-Config.version = 3
+Config.version = 4
 
 --------------------------------------------------------------------------------
 -- LE CADRE : formats de partie
@@ -149,8 +149,24 @@ Config.draft = {
 --------------------------------------------------------------------------------
 
 Config.skillTree = {
+	-- Interrupteur de comparaison, comme la zone et l'agonie : a false, le jeu
+	-- revient exactement a l'etape 3, sans arbre et sans phase de depense.
+	enabled = true,
+
 	tiers = 6,
 	branchesPerClass = 3,
+
+	-- La duree de la phase de depense, entre deux manches. Elle doit laisser le
+	-- temps de LIRE les trois branches la premiere fois, et se saute d'un bouton
+	-- quand tout le monde a decide. A REGLER : quinze secondes est long si les
+	-- joueurs connaissent deja leur classe, court s'ils decouvrent l'arbre.
+	spendWindowSeconds = 15,
+
+	-- On ne depense JAMAIS pendant une manche. Deux raisons : monter un palier
+	-- qui touche les PV maximum rendrait l'achat equivalent a un soin complet au
+	-- milieu d'un echange, et un arbre qui se modifie en combat transforme une
+	-- decision de strategie en reflexe d'urgence.
+	spendingDuringRound = false,
 
 	-- Cout de chaque palier, du 1er au 6e. Le palier 1 est gratuit : choisir sa
 	-- branche est une decision, pas un achat. Les paliers 2 a 5 coutent un
@@ -241,7 +257,7 @@ Config.skillTree = {
 				summary = "Les dégâts se propagent aux ennemis proches",
 				sacrifice = "Aucun vol de vie",
 				onUnlockSet = { lifestealRatio = 0 },
-				perTier = { spreadRadiusStuds = 1.6, spreadRatio = 0.05 },
+				perTier = { spreadRatio = 0.05, spreadRadiusStuds = 1.6 },
 				tier6 = {
 					label = "La propagation ignore les armures",
 					effect = "spreadPiercesArmor",
@@ -271,8 +287,11 @@ Config.skillTree = {
 				kind = "range",
 				summary = "Il projette un bloc à distance moyenne",
 				sacrifice = "Sa poussée au contact",
+				-- Le bloc projete n'est pas une seconde commande : c'est son
+				-- attaque qui devient lointaine. Un seul bouton, et une
+				-- portee qui s'allonge a chaque palier.
 				onUnlockSet = { knockbackStuds = 0, knockbackUpStuds = 0 },
-				perTier = { thrownDamage = 3, thrownRangeStuds = 4 },
+				perTier = { attackRangeStuds = 5, attackDamage = 1.5 },
 				tier6 = {
 					label = "Le bloc laisse un obstacle quelques secondes",
 					effect = "thrownLeavesCover",
@@ -283,10 +302,10 @@ Config.skillTree = {
 				id = "monolith",
 				name = "Monolithe",
 				kind = "resilience",
-				summary = "Réduction des dégâts reçus à distance",
+				summary = "Réduction des dégâts reçus",
 				sacrifice = "Encore de la vitesse",
 				onUnlock = { walkSpeed = -2 },
-				perTier = { rangedDamageReduction = 0.05 },
+				perTier = { damageTakenRatio = -0.05 },
 				tier6 = {
 					label = "Immobile deux secondes : immunité aux projectiles",
 					effect = "projectileImmunity",
@@ -517,6 +536,60 @@ Config.combat = {
 
 	-- Delai sans degat donne ni recu avant de compter comme hors combat.
 	outOfCombatSeconds = 5,
+
+	-- Les bornes de la reduction de degats (branche Monolithe). Personne ne
+	-- devient invulnerable par accumulation de paliers, et personne ne prend le
+	-- double : une statistique qui peut atteindre zero finit toujours par y
+	-- arriver, et un joueur invincible n'est plus un joueur.
+	damageTakenRatioMin = 0.5,
+	damageTakenRatioMax = 2,
+
+	-- Combien d'ennemis au maximum recoivent la propagation d'un seul coup
+	-- (branche Peste). A REGLER : sans plafond, la Peste devient la meilleure
+	-- branche du jeu des que les equipes grandissent.
+	spreadMaxTargets = 3,
+}
+
+--------------------------------------------------------------------------------
+-- LES EFFETS DE PALIER 6
+--------------------------------------------------------------------------------
+
+-- Chaque effet nomme du dernier palier a ses chiffres ici. Les deux effets qui
+-- attendent un systeme absent du jeu (armures, projectiles) n'en ont pas : leur
+-- drapeau `implemented` est a false dans skillTree.branches, et l'interface les
+-- affiche comme indisponibles.
+Config.tier6 = {
+	-- Fauve : un bond court vers la cible. La longue recharge est ce qui
+	-- l'empeche d'etre une simple augmentation de vitesse.
+	dash = {
+		cooldownSeconds = 8,
+		-- Plus loin que la portee d'attaque du Vampire (7), sinon le bond ne
+		-- sert jamais : il faudrait deja etre a portee pour l'utiliser.
+		rangeStuds = 34,
+		speedStuds = 95,
+		upStuds = 22,
+	},
+
+	-- Belier : la charge traverse. Chaque ennemi suivant prend moins, sinon un
+	-- seul coup dans un groupe decide la manche.
+	chargePierces = {
+		maxTargets = 3,
+		falloffPerTarget = 0.3,
+	},
+
+	-- Catapulte : le bloc projete reste au sol quelques secondes. C'est une
+	-- couverture, donc elle collisionne — y compris pour celui qui l'a lancee.
+	thrownLeavesCover = {
+		seconds = 6,
+		sizeStuds = { 6, 7, 6 },
+	},
+
+	-- Sangsue : le vol de vie fonctionne aussi sur les degats de zone subis par
+	-- les ennemis. Le ratio est module, sinon un Vampire gagne la fin de manche
+	-- en restant au centre a regarder la zone travailler pour lui.
+	leechFromZone = {
+		ratioOfLifesteal = 0.5,
+	},
 }
 
 -- A REGLER : ce sont les chiffres les plus provisoires du fichier. Ils ne se
@@ -527,6 +600,13 @@ Config.combat = {
 -- 170 PV du Colosse. Le repoussement est l'outil du Colosse pour casser le vol
 -- de vie, la vitesse est l'outil du Vampire pour revenir au contact.
 Config.classStats = {
+	-- Trois statistiques valent zero pour tout le monde au depart : seules des
+	-- branches d'arbre les font monter. Elles sont declarees ici quand meme,
+	-- pour qu'un modificateur parte toujours d'un nombre et jamais d'un nil.
+	--   spreadRatio        part des degats repercutee aux ennemis proches
+	--   spreadRadiusStuds  rayon de cette repercussion
+	--   knockbackDamage    degats portes par la poussee elle-meme
+	--   damageTakenRatio   ajustement des degats recus, negatif = reduction
 	vampire = {
 		maxHealth = 100,
 		walkSpeed = 20,
@@ -539,6 +619,10 @@ Config.classStats = {
 		knockbackUpStuds = 0,
 		-- Sa faiblesse : il ne regenere rien hors combat.
 		regenPerSecond = 0,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
 	},
 	colossus = {
 		maxHealth = 170,
@@ -552,6 +636,10 @@ Config.classStats = {
 		knockbackStuds = 45,
 		knockbackUpStuds = 15,
 		regenPerSecond = 2,
+		spreadRatio = 0,
+		spreadRadiusStuds = 0,
+		knockbackDamage = 0,
+		damageTakenRatio = 0,
 	},
 }
 

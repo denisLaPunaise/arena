@@ -151,6 +151,15 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   l'erreur la plus facile à commettre et la plus pénible à défaire.
 - **Un chiffre en dur** passe les tests et ruine l'équilibrage six semaines plus
   tard. Tout dans `Config.luau`.
+- **Rojo peut ajouter un doublon au lieu de remplacer.** Vu le 25 octobre 2026 :
+  chaque module ajouté depuis la dernière synchronisation complète existait en
+  double dans la place, `Remotes.Tree` compris. Deux RemoteEvent du même nom, et
+  `WaitForChild` en désigne un au hasard : le client et le serveur parlent alors
+  à deux objets différents, **sans la moindre erreur**. Après avoir ajouté ou
+  recréé des fichiers, lister les enfants de `ReplicatedStorage.Arena`,
+  `ServerScriptService.Arena` et `StarterPlayerScripts.Arena` avant de conclure
+  que quelque chose ne marche pas. Supprimer un fichier et le recréer déclenche
+  le problème.
 - **Rojo écrase, il ne fusionne pas.** Une modification faite dans Studio sur un
   script synchronisé est perdue à la prochaine synchro. Le code s'écrit dans le
   repo, jamais dans Studio.
@@ -197,6 +206,11 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 - **Le taux de doublons pilote deux économies à la fois** : moins de doublons,
   moins de fragments, donc des skins plus rares. Ces deux réglages se changent
   ensemble.
+- **Une branche d'arbre qui pousse un chiffre que le combat ne lit pas ne fait
+  rien, mais son sacrifice s'applique quand même.** Trois branches sur six
+  étaient dans cet état le 25 octobre 2026, et tous les tests passaient. Un test
+  vérifie désormais que toute clé touchée par une branche existe dans les
+  statistiques de base de la classe : ne pas le retirer.
 - **Ne pas prendre de l'avance sur l'ordre des étapes.** Douze objets suffisent
   à tester si le budget est bon ; s'il n'est pas amusant à douze, il ne le sera
   pas à soixante-deux.
@@ -208,9 +222,14 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    Studio.**
 2. Prototyper le Vampire contre le Colosse sur une map vide, en trois manches
 3. Ajouter la zone qui se referme, puis l'agonie et le relèvement
-4. Ajouter l'arbre à six paliers sur ces deux classes seulement
+4. Ajouter l'arbre à six paliers sur ces deux classes seulement — **fait**,
+   logique pure, branchement serveur, interface et quatre effets de palier 6
 5. Seulement ensuite : les douze autres classes, puis l'équipement et les
    tirages
+
+Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
+`docs/A-TESTER.md`. Les décisions prises sans Josh sont dans
+`docs/DECISIONS.md`.
 
 **Première chose à coder** : une map vide, deux joueurs, deux classes, trois
 manches, pas d'arbre, pas d'équipement. Si le Vampire contre le Colosse est déjà

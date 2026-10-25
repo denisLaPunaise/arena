@@ -36,7 +36,72 @@ local FLOORS = {
 	knockbackStuds = 0,
 	knockbackUpStuds = 0,
 	regenPerSecond = 0,
+	knockbackDamage = 0,
+	spreadRatio = 0,
+	spreadRadiusStuds = 0,
+	-- damageTakenRatio n'a pas de plancher ici : il est negatif par nature, et
+	-- ses bornes sont dans Config.combat, la ou les degats sont calcules.
 }
+
+-- Le nom lisible de chaque statistique, et comment l'ecrire. Ces libelles sont
+-- ici et pas dans Config parce que Config ne contient que des chiffres a
+-- regler : un libelle ne se regle pas, il se traduit.
+--
+--   unit = "ratio" s'affiche en pourcentage, "studs" en distance, nil en brut
+--   better = 1 quand monter est bon, -1 quand monter est mauvais. C'est ce qui
+--   decide la couleur affichee, et c'est pour ca que damageTakenRatio vaut -1 :
+--   une reduction est un nombre negatif, donc une BONNE nouvelle qui descend.
+local LABELS: { [string]: { text: string, unit: string?, better: number } } = {
+	maxHealth = { text = "PV maximum", better = 1 },
+	walkSpeed = { text = "Vitesse", better = 1 },
+	attackDamage = { text = "Dégâts", better = 1 },
+	attackCooldownSeconds = { text = "Recharge", unit = "seconds", better = -1 },
+	attackRangeStuds = { text = "Portée", unit = "studs", better = 1 },
+	lifestealRatio = { text = "Vol de vie", unit = "ratio", better = 1 },
+	knockbackStuds = { text = "Poussée", unit = "studs", better = 1 },
+	knockbackUpStuds = { text = "Poussée verticale", unit = "studs", better = 1 },
+	regenPerSecond = { text = "Régénération", better = 1 },
+	knockbackDamage = { text = "Dégâts de charge", better = 1 },
+	damageTakenRatio = { text = "Dégâts reçus", unit = "ratio", better = -1 },
+	spreadRatio = { text = "Propagation", unit = "ratio", better = 1 },
+	spreadRadiusStuds = { text = "Rayon de propagation", unit = "studs", better = 1 },
+}
+
+function Modifiers.label(key: string): string
+	local entry = LABELS[key]
+	return if entry then entry.text else key
+end
+
+-- Vrai si voir ce chiffre monter est une bonne nouvelle pour le joueur.
+function Modifiers.isGain(key: string, from: number, to: number): boolean
+	local entry = LABELS[key]
+	local direction = if entry then entry.better else 1
+	return (to - from) * direction > 0
+end
+
+local function formatValue(key: string, value: number): string
+	local entry = LABELS[key]
+	local unit = if entry then entry.unit else nil
+
+	if unit == "ratio" then
+		return string.format("%d%%", math.floor((value * 100) + 0.5))
+	elseif unit == "studs" then
+		return string.format("%.4g", value)
+	elseif unit == "seconds" then
+		return string.format("%.2fs", value)
+	end
+	return string.format("%.4g", value)
+end
+
+-- Une ligne lisible pour l'interface : « Dégâts  12 → 15 ».
+function Modifiers.describe(key: string, from: number, to: number): string
+	return string.format(
+		"%s  %s → %s",
+		Modifiers.label(key),
+		formatValue(key, from),
+		formatValue(key, to)
+	)
+end
 
 -- Combien de crans valent un palier donne. Les paliers 1 a 5 en donnent un
 -- chacun ; le sixieme n'en donne pas, il donne l'effet nomme.

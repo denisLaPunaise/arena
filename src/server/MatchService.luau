@@ -13,9 +13,21 @@
 	pas d'arbre, pas d'equipement. Le prototype repond a une seule question :
 	ce duel est-il amusant.
 
-	La zone et l'agonie sont arrivees a l'etape 3. Elles se coupent toutes les
-	deux depuis Config, pour pouvoir jouer une manche avec et une manche sans
-	et comparer.
+	La zone et l'agonie sont arrivees a l'etape 3, l'arbre de competences a
+	l'etape 4. Les trois se coupent depuis Config, pour pouvoir jouer une manche
+	avec et une manche sans et comparer.
+
+	LA FORME D'UNE MANCHE, depuis l'arbre :
+
+	    1. phase de depense   on choisit sa branche, on monte ses paliers
+	    2. apparition         les statistiques achetees sont posees ICI
+	    3. decompte           tout le monde est fige
+	    4. combat             la zone part, les services sont actifs
+	    5. fin de manche      un point a chacun, deux a qui enchaine trois pertes
+
+	L'ordre de 1 et 2 n'est pas un detail : depenser AVANT d'apparaitre est ce
+	qui empeche un achat de PV maximum d'etre un soin complet au milieu d'une
+	manche. Voir Config.skillTree.spendingDuringRound.
 ]]
 
 local MatchService = {}
@@ -34,6 +46,7 @@ local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
+local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
 local TEAMS = { "A", "B" }
@@ -48,12 +61,34 @@ local function className(classId: string): string
 	return if class then class.name else classId
 end
 
+-- La ligne d'arbre affichee en permanence : combien de points dorment, et a
+-- quel palier on en est. Un point non depense doit demanger.
+local function treeLineFor(player: Player): string
+	local state = SkillTreeService.stateOf(player)
+	if state == nil then
+		return ""
+	end
+
+	local points = state.pointsEarned - state.pointsSpent
+	local tierText = if state.branchId == nil
+		then "aucune branche"
+		else string.format("palier %d / %d", state.tier, Config.skillTree.tiers)
+
+	if points <= 0 then
+		return tierText
+	end
+
+	local plural = if points > 1 then "points" else "point"
+	return string.format("%s  ·  %d %s à dépenser  [T]", tierText, points, plural)
+end
+
 local function tell(player: Player, title: string, status: string, zone: string?, alert: string?)
 	hudRemote:FireClient(player, {
 		title = title,
 		status = status,
 		zone = zone or "",
 		alert = alert or "",
+		tree = treeLineFor(player),
 	})
 end
 
@@ -198,6 +233,45 @@ local function waitForRoundEnd(entries: { CombatService.Entry }, state: MatchSta
 	end
 end
 
+-- La phase de depense, entre deux manches. Elle est sautee quand personne n'a
+-- rien a decider, et se coupe des que tout le monde a appuye sur « Prêt » :
+-- quinze secondes de silence entre deux manches tuent le rythme d'une serie.
+local function spendPhase(entries: { CombatService.Entry }, state: MatchState.State)
+	if not SkillTreeService.isEnabled() or not SkillTreeService.anyoneCanSpend() then
+		return
+	end
+
+	local seconds = Config.skillTree.spendWindowSeconds
+	SkillTreeService.openSpending(seconds)
+
+	local deadline = os.clock() + seconds
+	while os.clock() < deadline do
+		for _, entry in entries do
+			if entry.player.Parent == nil then
+				SkillTreeService.closeSpending()
+				return
+			end
+		end
+
+		if SkillTreeService.everyoneDone() then
+			break
+		end
+
+		local left = math.max(math.ceil(deadline - os.clock()), 0)
+		for _, entry in entries do
+			tell(
+				entry.player,
+				"Arbre de compétences",
+				string.format("Manche %d dans %d s", MatchState.roundNumber(state), left)
+			)
+		end
+
+		task.wait(0.25)
+	end
+
+	SkillTreeService.closeSpending()
+end
+
 local function countdown(entries: { CombatService.Entry }, state: MatchState.State)
 	for _, entry in entries do
 		CombatService.setFrozen(entry.player, true)
@@ -235,6 +309,8 @@ local function buildEntries(players: { Player }): { CombatService.Entry }
 			player = player,
 			team = TEAMS[index],
 			classId = classId,
+			-- Les statistiques de la classe nue. L'arbre les remplace avant
+			-- chaque apparition, par SkillTreeService.refreshStats.
 			stats = Config.classStats[classId],
 		})
 	end
@@ -247,6 +323,10 @@ local function runMatch(players: { Player })
 	roundEntries = entries
 	CombatService.setRoster(entries)
 	DownedService.setRoster(entries)
+
+	-- L'arbre est remis a zero a chaque partie. C'est le troisieme principe du
+	-- projet, et c'est cette ligne qui le tient.
+	SkillTreeService.beginMatch(entries)
 
 	local state = MatchState.create(Config.prototype.roundsToWin)
 
@@ -263,6 +343,12 @@ local function runMatch(players: { Player })
 
 	while not MatchState.isOver(state) do
 		DownedService.resetRound()
+		CombatService.clearTemporary()
+
+		-- On depense AVANT d'apparaitre : les statistiques achetees sont celles
+		-- du personnage qui se leve, et aucun achat ne soigne en pleine manche.
+		spendPhase(entries, state)
+		SkillTreeService.refreshStats(entries)
 
 		for index, entry in entries do
 			spawnEntry(entry, index)
@@ -294,9 +380,29 @@ local function runMatch(players: { Player })
 
 		MatchState.recordRoundWin(state, winner)
 
+		-- Les points de fin de manche, point de revanche compris. Un point qui
+		-- arrive sans qu'on le dise n'est pas un point : chacun l'apprend ici.
+		local granted = SkillTreeService.grantRoundEnd(entries, winner)
+
 		for _, entry in entries do
-			local verdict = if entry.team == winner then "Manche gagnee" else "Manche perdue"
-			tell(entry.player, verdict, statusFor(entry, state))
+			local verdict = if entry.team == winner then "Manche gagnée" else "Manche perdue"
+			local award = granted[entry.player]
+			local line = statusFor(entry, state)
+
+			if award ~= nil and award.granted > 0 then
+				if award.comeback then
+					line = string.format(
+						"%s  ·  +%d points (dont le point de revanche)",
+						line,
+						award.granted
+					)
+				else
+					local plural = if award.granted > 1 then "points" else "point"
+					line = string.format("%s  ·  +%d %s d'arbre", line, award.granted, plural)
+				end
+			end
+
+			tell(entry.player, verdict, line)
 		end
 
 		print(
@@ -324,6 +430,9 @@ local function runMatch(players: { Player })
 			MatchState.scoreLine(state, "A")
 		)
 	)
+
+	SkillTreeService.endMatch()
+	CombatService.clearTemporary()
 
 	if Config.prototype.swapClassesBetweenMatches then
 		swapClasses = not swapClasses
@@ -382,6 +491,13 @@ function MatchService.start()
 	map = resolved
 
 	DownedService.onStatusChanged(onStatusChanged)
+
+	-- Un achat recalcule les statistiques tout de suite, meme si elles ne seront
+	-- posees sur le personnage qu'a la prochaine apparition : l'interface lit le
+	-- meme etat que le combat, et ne peut donc pas en mentir.
+	SkillTreeService.onChanged(function()
+		SkillTreeService.refreshStats(roundEntries)
+	end)
 
 	if isTestMap then
 		print("[Arena] Arene de test : deux lignes de points de depart, pas de couverture.")

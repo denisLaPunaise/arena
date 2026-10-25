@@ -13,6 +13,7 @@
 	    automatique.
 ]]
 
+local Combat = require("../../src/shared/Combat")
 local Config = require("../../src/shared/Config")
 local Modifiers = require("../../src/shared/Modifiers")
 local SkillTree = require("../../src/shared/SkillTree")
@@ -164,7 +165,37 @@ return function(t: harness.Harness)
 
 	local catapult = SkillTree.findBranch(Config, "colossus", "catapult")
 	local catapultOne = Modifiers.apply(Config, colossusBase, catapult, 1)
+	local catapultFive = Modifiers.apply(Config, colossusBase, catapult, 5)
 	t.equal("la Catapulte perd sa poussee au contact", catapultOne.knockbackStuds, 0)
+	t.check(
+		"et frappe de plus en plus loin",
+		catapultFive.attackRangeStuds > colossusBase.attackRangeStuds
+	)
+
+	-- La charge du Belier ne compte que si la poussee existe : la Catapulte,
+	-- qui n'a plus de poussee, ne doit pas encaisser de degats de charge.
+	t.equal(
+		"la Catapulte ne porte aucune charge",
+		Combat.rawDamage(catapultFive),
+		catapultFive.attackDamage
+	)
+	t.check("le Belier, lui, en porte une", Combat.rawDamage(ramFive) > ramFive.attackDamage)
+
+	local monolith = SkillTree.findBranch(Config, "colossus", "monolith")
+	local monolithFive = Modifiers.apply(Config, colossusBase, monolith, 5)
+	t.check("le Monolithe reduit les degats recus", monolithFive.damageTakenRatio < 0)
+	t.check(
+		"et cette reduction se voit vraiment sur un coup",
+		Combat.damageTaken(Config, monolithFive, 100) < 100
+	)
+	t.check(
+		"mais elle ne rend jamais invulnerable",
+		Combat.damageTaken(Config, monolithFive, 100) > 0
+	)
+
+	local plagueFive = Modifiers.apply(Config, base, plague, 5)
+	t.check("la Peste propage vraiment", Combat.spreadsDamage(plagueFive))
+	t.check("et la classe nue ne propage rien", Combat.spreadsDamage(base) == false)
 
 	t.section("Les planchers tiennent")
 
@@ -199,6 +230,75 @@ return function(t: harness.Harness)
 	while SkillTree.advance(Config, coded) do
 	end
 	t.equal("un effet code s'active", SkillTree.activeTier6Effect(Config, coded), "leechFromZone")
+
+	t.section("Aucune branche ne pousse un chiffre que le combat ne lit pas")
+
+	-- LE TEST LE PLUS IMPORTANT DE CE FICHIER.
+	--
+	-- Une branche qui fait monter `thrownRangeStuds` alors que rien dans le
+	-- combat ne lit ce nom passe tous les autres tests, s'affiche correctement
+	-- dans l'interface, et ne fait RIEN. Pire : son sacrifice s'applique quand
+	-- meme, donc la branche rend le joueur plus faible en echange de zero.
+	-- C'est exactement ce qui s'etait produit sur trois des six branches.
+	--
+	-- La regle que ce test fige : toute cle touchee par une branche doit exister
+	-- dans les statistiques de base de la classe. Si on ajoute une statistique
+	-- a une branche, il faut l'ajouter aux classes, donc le combat la verra.
+	for classId, branches in tree.branches do
+		local base = Config.classStats[classId]
+		t.check(string.format("%s a des statistiques de base", classId), base ~= nil)
+
+		for _, branch in branches do
+			local blocks = {
+				onUnlock = branch.onUnlock,
+				onUnlockScale = branch.onUnlockScale,
+				onUnlockSet = branch.onUnlockSet,
+				perTier = branch.perTier,
+			}
+
+			for blockName, block in blocks do
+				for key in block or {} do
+					t.check(
+						string.format(
+							"%s / %s : %s.%s existe sur la classe",
+							classId,
+							branch.id,
+							blockName,
+							key
+						),
+						base[key] ~= nil
+					)
+				end
+			end
+		end
+	end
+
+	t.section("Chaque branche change vraiment quelque chose a chaque palier")
+
+	-- Une branche dont le palier 3 ne change rien par rapport au palier 2 fait
+	-- payer un point pour rien. Le palier 6 est exclu : il ne donne pas de cran,
+	-- il donne l'effet nomme.
+	for classId, branches in tree.branches do
+		local base = Config.classStats[classId]
+		for _, branch in branches do
+			local differentAtEachTier = true
+			for tier = 2, tree.tiers - 1 do
+				local before = Modifiers.apply(Config, base, branch, tier - 1)
+				local after = Modifiers.apply(Config, base, branch, tier)
+				if #Modifiers.differences(before, after) == 0 then
+					differentAtEachTier = false
+				end
+			end
+			t.check(
+				string.format(
+					"%s / %s : aucun palier ne coute un point pour rien",
+					classId,
+					branch.id
+				),
+				differentAtEachTier
+			)
+		end
+	end
 
 	t.section("Les branches des deux classes du prototype sont bien formees")
 

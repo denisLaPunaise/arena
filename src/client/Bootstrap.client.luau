@@ -13,6 +13,10 @@
 	Le bandeau rouge en haut et en bas sert a une chose : rendre l'etat du
 	joueur lisible sans qu'il ait a lire. A terre, l'ecran bat. Hors de la zone,
 	il rougit. Un texte seul se rate au milieu d'un combat.
+
+	L'arbre de competences a son propre ecran, dans TreePanel : il prend tout
+	l'ecran et se pilote a la souris, donc il n'a rien a voir avec un affichage
+	de combat qui doit rester lisible en bougeant.
 ]]
 
 local Players = game:GetService("Players")
@@ -24,6 +28,8 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
 local attackRemote = Remotes:WaitForChild("Attack") :: RemoteEvent
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
+
+local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -96,8 +102,16 @@ title.Parent = gui
 local zone = makeLabel("Zone", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.88), 18)
 zone.Parent = gui
 
+-- La ligne d'arbre : combien de points dorment, et a quel palier on en est.
+-- Elle est en haut a gauche et pas au centre, parce qu'elle doit etre
+-- consultable sans jamais attirer l'oeil pendant un echange.
+local tree = makeLabel("Tree", UDim2.fromScale(0.6, 0.05), UDim2.fromScale(0.32, 0.12), 17)
+tree.TextXAlignment = Enum.TextXAlignment.Left
+tree.TextColor3 = Color3.fromRGB(246, 200, 96)
+tree.Parent = gui
+
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
-hint.Text = "Clic ou tap pour frapper"
+hint.Text = "Clic ou tap pour frapper  ·  T pour l'arbre"
 hint.TextTransparency = 0.35
 hint.Parent = gui
 
@@ -151,6 +165,8 @@ hudRemote.OnClientEvent:Connect(function(payload)
 	title.Text = payload.title or ""
 	status.Text = payload.status or ""
 
+	tree.Text = payload.tree or ""
+
 	local zoneText = payload.zone or ""
 	zone.Text = zoneText
 	outsideZone = string.find(zoneText, "HORS", 1, true) ~= nil
@@ -175,5 +191,7 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		attackRemote:FireServer()
 	end
 end)
+
+TreePanel.start()
 
 print(string.format("[Arena] Client démarré pour %s", player.Name))

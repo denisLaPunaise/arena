@@ -16,6 +16,7 @@ local Classes = require(Arena:WaitForChild("Classes"))
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local MatchService = require(script.Parent:WaitForChild("MatchService"))
+local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
 local function count(list): number
@@ -54,16 +55,28 @@ print(
 )
 print(
 	string.format(
-		"[Arena] Zone %s · agonie %s",
+		"[Arena] Zone %s · agonie %s · arbre %s",
 		if Config.round.zoneEnabled then "activée" else "coupée",
-		if Config.downed.enabled then "activée" else "coupée"
+		if Config.downed.enabled then "activée" else "coupée",
+		if Config.skillTree.enabled then "activé" else "coupé"
 	)
 )
+if Config.skillTree.enabled then
+	print(
+		string.format(
+			"[Arena] Arbre : %d paliers, %d branches par classe, %d s pour dépenser",
+			Config.skillTree.tiers,
+			Config.skillTree.branchesPerClass,
+			Config.skillTree.spendWindowSeconds
+		)
+	)
+end
 print("================================================")
 
 -- L'ordre compte : DownedService et ZoneService branchent leurs boucles avant
 -- que CombatService ne les interroge, et MatchService demarre en dernier.
 DownedService.init()
 ZoneService.init()
+SkillTreeService.init()
 CombatService.init()
 MatchService.start()

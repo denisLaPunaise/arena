@@ -207,6 +207,107 @@ personne ne se retrouve immobile et invincible-par-erreur dans une partie.
 
 ---
 
+## 25 octobre 2026 — Brancher l'arbre dans le jeu
+
+### Trois branches sur six ne faisaient rien, et je ne l'avais pas vu
+
+**Constaté, pas décidé.** En branchant l'arbre, je me suis aperçu que Peste,
+Catapulte et Monolithe faisaient monter des chiffres (`spreadRadiusStuds`,
+`thrownDamage`, `thrownRangeStuds`, `rangedDamageReduction`) que **le combat ne
+lisait nulle part**. Leur sacrifice s'appliquait, lui. Les trois branches
+rendaient donc le joueur plus faible en échange de rien, et tous les tests
+passaient.
+
+Ce qui a été fait :
+
+- **Peste** : la propagation existe maintenant pour de bon. Un coup répercute
+  `spreadRatio` de ses dégâts aux ennemis proches de la cible, au plus trois.
+- **Bélier** : `knockbackDamage` est un vrai chiffre, ajouté aux dégâts — mais
+  seulement si la poussée existe. « La poussée devient une charge qui blesse »
+  est maintenant littéralement vrai.
+- **Catapulte** : plutôt qu'inventer une commande de lancer, la branche
+  **allonge sa portée d'attaque** et lui retire sa poussée. Il frappe de loin,
+  ce qui est exactement la promesse, avec le bouton qui existe déjà.
+- **Monolithe** : `rangedDamageReduction` devient `damageTakenRatio`, une
+  réduction de **tous** les dégâts reçus, zone comprise.
+
+**Pour revenir dessus :** quand les projectiles existeront, Monolithe pourra
+redevenir une réduction à distance seulement. En attendant, une branche qui ne
+réduit que des dégâts qui n'existent pas est une branche morte.
+
+**Le garde-fou qui empêche que ça se reproduise :** un test vérifie désormais
+que **toute clé touchée par une branche existe dans les statistiques de base de
+la classe**. Une branche qui pousse un chiffre inventé fait échouer la suite.
+
+### On ne dépense jamais pendant une manche
+
+**Décidé :** la phase de dépense s'ouvre entre deux manches, avant l'apparition
+des personnages, et dure quinze secondes — sautée si personne n'a rien à
+décider, coupée dès que tout le monde a appuyé sur « Prêt ».
+
+**Pourquoi :** poser les statistiques sur le personnage remet les PV au maximum.
+Acheter un palier qui touche les PV maximum au milieu d'un échange serait donc
+un soin complet gratuit. Et au-delà du bug, un arbre qui se modifie en combat
+transforme une décision de stratégie en réflexe d'urgence.
+
+**Interrupteur :** `Config.skillTree.spendingDuringRound`, à `false`. Le refus
+est vérifié côté serveur, pas en cachant un bouton.
+
+### Les quatre effets de palier 6 qui sont codés
+
+- **Sangsue** — le vol de vie fonctionne sur les dégâts de zone subis par les
+  ennemis, à la moitié du ratio (`Config.tier6.leechFromZone`). Modulé exprès :
+  à taux plein, le Vampire gagne la fin de manche en regardant l'autre brûler.
+- **Fauve** — le bond. Il n'a **pas de touche à lui** : attaquer un adversaire
+  hors de portée, c'est lui sauter dessus. Un coup dans le vide devient une
+  approche, ce qui évite d'ajouter une commande à apprendre.
+- **Bélier** — la charge touche jusqu'à trois ennemis, chacun prenant 30 % de
+  moins que le précédent. Sans cette dégressivité, un seul coup dans un groupe
+  déciderait la manche.
+- **Catapulte** — le coup laisse un bloc au sol six secondes. C'est une vraie
+  couverture : elle gêne aussi celui qui l'a lancée.
+
+Les deux autres (Peste, Monolithe) restent `implemented = false` : il n'y a
+toujours ni armures ni projectiles.
+
+### Les blocs temporaires vivent dans leur propre dossier
+
+**Décidé :** les blocs de la Catapulte vont dans `Workspace.ArenaTemp`, vidé
+entre deux manches.
+
+**Pourquoi :** `Workspace` appartient à la construction des maps. Du code qui y
+pose des objets en vrac finit par y laisser des traces, et personne ne saura
+plus ce qui fait partie de la map. Une couverture héritée de la manche
+précédente serait aussi un avantage que personne n'a payé.
+
+### L'interface est posée en pixels, pas empilée
+
+**Décidé :** le panneau de l'arbre a une taille de dessin fixe (1180 × hauteur
+variable) et une `UIScale` qui le fait tenir dans la fenêtre.
+
+**Pourquoi :** les deux premières versions se sont cassées en jeu. Avec un
+empilement automatique, le bouton « Prêt » se dessinait par-dessus les chiffres ;
+avec `UIFlexItem` pour rattraper, les cartes ont pris une hauteur nulle et ont
+purement disparu. Les deux fois, les tests passaient et la capture d'écran a
+tranché.
+
+Conséquence pratique : **une fenêtre courte réduit tout, elle ne rogne rien.**
+Les lignes qui servent à décider — le sacrifice, et la promesse du palier 6 —
+sont celles qui disparaissaient en premier.
+
+### Un doublon de synchronisation Rojo, trouvé par hasard
+
+**Constaté.** Chaque module ajouté depuis la dernière synchronisation complète
+existait **en double** dans la place, `Remotes.Tree` compris. Un
+`WaitForChild("Tree")` côté client et côté serveur pouvait donc désigner deux
+RemoteEvent différents — l'arbre aurait simplement été muet, sans erreur.
+
+C'est noté dans `CLAUDE.md`. Le réflexe à garder : après avoir ajouté des
+fichiers, **vérifier la liste des enfants dans la place** avant de conclure que
+quelque chose ne marche pas.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si
