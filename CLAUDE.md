@@ -13,14 +13,30 @@ question de conception se pose, elle se tranche avec Josh, pas dans le code.
 
 | | Rôle |
 | --- | --- |
-| L'assistant | Tout le code Luau, la structure du repo, la configuration, les tests |
-| Josh | Tout ce qui passe par Roblox Studio : maps, lancement des parties, tests de jeu, publication |
+| L'assistant | Tout le code Luau, la structure du repo, la configuration, les tests, et la construction dans Studio |
+| Josh | Les parties réelles avec des joueurs, le jugement sur le plaisir de jeu, la publication |
 
-Le Luau ne s'exécute que dans Studio. **Josh est la seule boucle de test en
-jeu** : l'assistant ne peut jamais vérifier lui-même qu'une mécanique
-fonctionne, ni juger si elle est amusante. D'où la règle d'architecture
-ci-dessous, et d'où l'habitude à prendre : quand une mécanique est écrite, dire
-à Josh précisément quoi faire dans Studio pour la vérifier, et quoi observer.
+**Depuis le 25 octobre 2026, l'assistant atteint Studio directement** par le
+serveur MCP de Studio : il lit l'arborescence de la place, la console et les
+scripts, exécute du Luau, construit de la géométrie, génère des matériaux et des
+maillages, et lance une partie de test tout seul. La procédure d'installation est
+l'étape 9 du `README.md`.
+
+Ce qui reste à Josh, et que rien ne remplace : **savoir si c'est amusant**, et le
+vérifier à plusieurs. Un test en solo dans Studio dit qu'une mécanique
+fonctionne ; il ne dit pas qu'un duel est tendu, ni qu'une classe est
+frustrante. Donc l'habitude à garder : quand une mécanique est écrite et
+vérifiée en jeu par l'assistant, dire à Josh ce qu'il faut regarder en y jouant,
+et dans quel ordre.
+
+Deux prudences, parce que l'accès direct est destructeur :
+
+- **Publier une version de la place avant une grosse opération.** Tout n'est pas
+  annulable depuis Studio.
+- **Ne rien construire dans `Workspace` qui doive durer sans le dire à Josh.**
+  La frontière Rojo / Team Create ci-dessous ne change pas : les maps restent
+  hors de Git, donc une map construite par l'assistant n'existe que dans la
+  place, et une seule mauvaise manipulation la supprime sans trace.
 
 ## Les six principes à ne jamais casser
 

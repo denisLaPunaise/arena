@@ -124,6 +124,40 @@ Tu dois lire :
 Si ces lignes s'affichent, l'étape 1 est finie : le code du repo s'exécute dans
 Studio.
 
+### 9. Brancher l'assistant directement sur Studio
+
+Studio contient un serveur MCP : c'est ce qui permet à l'assistant de voir ta
+place, de lire la console et d'y construire lui-même, au lieu de te décrire quoi
+faire. Deux choses à activer, une fois pour toutes.
+
+**Dans Studio**, ouvre le panneau **Assistant**, puis **… → Settings → MCP
+Servers** (ou **Manage MCP Servers** sur une version plus ancienne), et active
+**Enable Studio as MCP server**.
+
+**Du côté de Claude**, le pont est déjà déclaré sur cette machine. S'il faut le
+refaire un jour, ou le poser sur une autre machine, c'est une seule commande :
+
+```powershell
+claude mcp add roblox-studio --scope user -- cmd.exe /c "cd /d %LOCALAPPDATA%\Roblox && .\mcp.bat"
+```
+
+`mcp.bat` est fourni par Studio et retrouve tout seul sa version courante, donc
+la commande survit aux mises à jour de Studio. Pour vérifier :
+
+```powershell
+claude mcp list
+```
+
+`roblox-studio: ... - Connected` veut dire que le pont est bon. **Les serveurs
+MCP ne se chargent qu'au démarrage d'une session**, donc après l'avoir ajouté il
+faut relancer l'app Claude pour que l'assistant voie les outils.
+
+> **Avant de laisser l'assistant travailler dans la place :** il la modifie
+> directement — scripts, objets, exécution de Luau. Tout n'est pas annulable
+> depuis Studio. Publie une version de la place avant une grosse opération.
+
+---
+
 ---
 
 ## Le travail de tous les jours
