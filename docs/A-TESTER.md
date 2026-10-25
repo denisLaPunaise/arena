@@ -307,15 +307,122 @@ une touche différente par classe serait à réapprendre à chaque partie.
 
 ---
 
+## 9. L'équipement et son budget — **la grosse nouveauté, jamais jouée**
+
+Treize objets, douze points, un seul assemblage à la fois. J'ai vérifié en jeu
+que tout fonctionne : les statistiques se cumulent dans le bon ordre, l'arme
+secondaire sort à la bonne distance, les charges descendent, les objets se
+posent, et le clic de l'écran ajoute, retire et remplace. **Mais personne n'a
+jamais choisi un assemblage contre quelqu'un.** C'est là que tout se joue.
+
+**`L` ouvre l'écran d'équipement**, entre deux manches seulement. **`1` à `4`
+utilisent les objets**, et les cases en bas à gauche sont cliquables, donc ça
+marche aussi au doigt.
+
+### Les trois questions qui décident si le budget est bon
+
+67. **Est-ce que tout le monde joue le même assemblage ?** C'est l'échec le
+    plus probable et le plus silencieux. Si au bout de dix parties vous portez
+    tous la machette, l'armure légère et deux utilitaires à un point, le budget
+    ne crée pas de choix, il a une bonne réponse. Le premier réglage serait de
+    passer les utilitaires à un point à deux.
+68. **Est-ce que l'arme à sept points vaut ses sept points ?** Le marteau coûte
+    plus de la moitié du budget : il ne reste que cinq points pour tout le
+    reste. S'il gagne quand même, il est trop fort ; si personne ne le prend,
+    il est trop cher. Les deux se corrigent dans `Config.items`.
+69. **Est-ce que l'arme secondaire se remarque ?** Elle sort toute seule quand
+    la cible est trop loin pour l'arme principale, sans aucune touche. Est-ce
+    que ça se sent comme une bonne surprise, ou est-ce qu'on ne comprend pas
+    pourquoi on tape parfois mou ? **C'est le mécanisme dont je suis le moins
+    sûr**, parce qu'il décide quelque chose à votre place.
+
+### Le reste, objet par objet
+
+70. **Le fusil à pompe** porte à **quatre studs**. Il faut être collé. Est-ce
+    jouable, ou juste frustrant ?
+71. **L'arc composite** ignore la moitié de la réduction d'armure. C'est le
+    seul contre à l'armure lourde du catalogue : sans lui, cinq points
+    d'armure n'ont aucune réponse. Est-ce que ça se voit ?
+72. **L'armure lourde** retire 22 % de la vitesse. À douze points elle ne laisse
+    place qu'à une arme à quatre ou cinq points, rien d'autre. Assemblage
+    viable ou piège ?
+73. **La trousse de soin** demande 1,6 s à l'abri, et **un seul coup reçu
+    annule la pose**. La charge est rendue — j'ai choisi de ne pas la faire
+    perdre, pour un premier test. Si se soigner devient trop facile, c'est le
+    premier levier.
+74. **Le stimulant** à un point soigne 25 instantanément, une seule fois. La
+    vraie question du budget : un point instantané, ou deux pour 45 à l'abri ?
+75. **La grenade** rebondit et explose après 1,6 s. Elle ne blesse **que les
+    adversaires** — la fiche n'ouvre jamais le sujet des dégâts aux alliés, et
+    je ne l'ai pas ouvert à sa place.
+76. **Le bouclier déployable** bloque **les deux équipes**, comme le mur du
+    Forgeron. Outil ou punition ?
+77. **Les affinités de classe** font un point de moins sur deux ou trois
+    objets. Elles sont annoncées sur la carte (« 3 pts au lieu de 4 »). Est-ce
+    qu'on les remarque, et est-ce qu'elles donnent envie de jouer sa classe
+    autrement ?
+78. **L'assemblage par défaut** est machette + stimulant + armure légère + mine
+    légère + pistolet-mitrailleur, à 11 points sur 12. Quelqu'un qui n'ouvre
+    jamais l'écran doit pouvoir jouer. Est-ce que c'est le cas ?
+79. **Six objets au maximum**, et un seul par catégorie sauf les utilitaires.
+    C'est la seule catégorie où on peut empiler, donc c'est elle qui crée les
+    styles de jeu. Trop permissive ?
+
+---
+
+## 10. Les pièces, les tirages et le classement — **aucun n'a d'effet sur le jeu**
+
+À lire avant d'y toucher : **les treize objets sont disponibles pour tout le
+monde**. La collection existe, les tirages fonctionnent, mais rien n'est encore
+verrouillé derrière eux. C'est volontaire : à treize objets, bloquer
+l'équipement derrière une loterie rendrait le test du budget impossible, et
+c'est le budget qu'on teste maintenant.
+
+**`P` ouvre l'écran de progression.**
+
+80. **« Progression NON sauvegardée sur ce serveur »** s'affiche en rouge tant
+    que « Enable Studio Access to API Services » est décoché dans Studio, et
+    dans une place non publiée. **Vérifie que ce message disparaît** une fois
+    publiée : s'il reste, les profils ne sont pas écrits, et il ne faut
+    surtout pas laisser des joueurs remplir une collection qui s'efface.
+81. **Les pièces d'une partie** : 280 en écrasant, 250 en gagnant serré, 180 en
+    perdant serré, 170 en se faisant écraser. Une caisse coûte 1000.
+82. **Ton récapitulatif disait « une caisse toutes les trois à six parties ».**
+    Avec ces chiffres, c'est **quatre à six**. Écraser tout le monde rapporte
+    280, il en faudrait 334 pour que trois parties suffisent. Deux façons de
+    trancher : soit on monte `winBase` de 220 à 280 et `lossPerRoundWon` de 10
+    à 30, soit on corrige le récapitulatif. **C'est toi qui décides, c'est ton
+    économie.**
+83. **Trois objets sont offerts à l'ouverture du compte** : une arme, une
+    armure, un soin, tous à bas prix. Un débutant ne doit pas tirer l'arme à
+    sept points et se retrouver avec un assemblage impossible à compléter.
+84. **L'écran des cotes est affiché en permanence sous le bouton**, et il est
+    déjà conforme aux exigences de Roblox sur les objets aléatoires payants —
+    chaque résultat, son pourcentage, un total à exactement 100 %, un *mot* et
+    pas une icône, et les cotes qui changent quand la garantie du septième
+    tirage est active. **À ne pas simplifier** : ces règles coûtent la
+    publication si elles sautent. Elles ne s'appliquent pas encore, puisque les
+    pièces ne s'achètent pas ; l'écran est prêt pour le jour où.
+85. **Le classement** démarre à 1000 et bouge beaucoup les dix premières
+    parties, puis de moins en moins. Dans une équipe, **le plus faible gagne le
+    plus** quand elle l'emporte. Est-ce que ça se ressent comme juste ?
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
 
-- **l'équipement, les objets, le budget de douze points** — rien n'est codé
-- **les tirages, les pièces, les fragments, les skins** — les chiffres sont
-  dans `Config.luau`, le système n'existe pas
-- **l'Elo et le classement** — les chiffres sont posés, rien ne tourne
-- **le son** — il n'y en a aucun
+- **le son** — il n'y en a aucun. C'est maintenant le plus gros manque.
+- **les quarante-neuf autres objets** — treize sur soixante-deux sont codés.
+  Les autres attendent de savoir si le budget est bon à treize.
+- **les skins** — les fragments s'accumulent et ne servent encore à rien.
+  Aucune boutique, aucun skin.
+- **l'achat de pièces en Robux** — rien n'est branché, et c'est volontaire :
+  tant que les pièces ne s'achètent pas, le tirage n'est pas un objet aléatoire
+  payant. L'écran des cotes est déjà conforme pour le jour où.
+- **les objets débloqués ne verrouillent pas l'équipement** — tout le monde a
+  accès aux treize. À rebrancher quand le catalogue sera plus grand.
 - **les animations d'attaque** — le coup se voit (trait, éclair, nombre) mais le
   personnage ne bouge pas. C'est sans doute le manque que tu vas sentir le
   plus, maintenant que le reste existe.

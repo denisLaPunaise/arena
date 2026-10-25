@@ -2,6 +2,21 @@
 
 À relire par Josh. Barre ce qui ne te plaît pas, je code ce qui reste.
 
+> **Treize sont codés** depuis le 25 octobre 2026, et jouables : Machette,
+> Fusil à pompe, Arc composite, Marteau de guerre, Couteau,
+> Pistolet-mitrailleur, Armure légère, Armure lourde, Stimulant,
+> Trousse de soin, Mine légère, Grenade, Bouclier déployable.
+>
+> Les quarante-neuf autres attendent de savoir si le budget est bon à treize.
+> Leurs chiffres n'existent pas encore : ce document donne leur coût et leur
+> rôle, pas leurs dégâts.
+>
+> **Les affinités de classe sont provisoires.** Celles de
+> `Config.itemAffinities` ne portent que sur les treize objets existants, et
+> plusieurs pointent vers l'équivalent le plus proche de ce que ce tableau
+> donne — le Vampire a la machette plutôt que les griffes, qui n'existent pas
+> encore. Le tableau ci-dessous reste la cible.
+
 ## Les règles que ce catalogue respecte
 
 - **Douze points de budget**, pas un de plus. Au moins une arme principale, six

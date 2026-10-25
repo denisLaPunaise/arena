@@ -473,6 +473,144 @@ que rien d'autre ne peut les reconnaître.
 commentaires : elles s'affichent aux joueurs, sur l'écran de bans et à la
 révélation. La convention du projet leur donne raison, et c'était une faute.
 
+### Un objet déforme la classe, il ne la remplace pas
+
+**Le choix.** Les chiffres d'un objet sont des **facteurs** et des **décalages**
+appliqués aux statistiques de la classe, comme une branche d'arbre. Le marteau
+multiplie les dégâts par 2,4 et la recharge par 1,9 ; il ne dit pas « 29 dégâts
+toutes les 1,14 seconde ».
+
+**Pourquoi.** Avec des chiffres absolus, toutes les classes portant la même arme
+frappent pareil, et l'identité de classe disparaît dès qu'on ouvre l'équipement.
+Un Vampire au marteau garde son vol de vie, ses cent points de vie et sa
+fragilité ; il frappe simplement plus fort et plus lentement.
+
+**Le prix.** Une arme forte est plus forte sur une classe qui frappe fort. Le
+Colosse au marteau fait 58 de dégâts par coup. C'est un effet multiplicatif
+assumé, et c'est exactement ce que les tests d'équilibrage devront surveiller
+en premier.
+
+### L'arme secondaire n'a pas de touche
+
+**Le choix.** Elle sort automatiquement quand la cible est hors de portée de
+l'arme principale, et uniquement dans ce cas.
+
+**Pourquoi.** C'est littéralement ce que la fiche lui demande : « combler un
+trou de l'arme principale ». Une touche de changement d'arme coûterait une
+touche de plus sur un jeu qui en a déjà quatre, serait illisible sur téléphone,
+et obligerait à changer d'arme au moment précis où on n'a pas le temps.
+
+**Ce que ça change.** Le jeu décide quelque chose à la place du joueur, ce qui
+est toujours un risque. **À rejuger en jouant** : si on ne comprend pas pourquoi
+on tape parfois mou, c'est ce mécanisme qu'il faut rendre visible, pas enlever.
+
+### Treize objets, pas douze
+
+Avec un seul soin, la question « est-ce que je paie un point ou deux pour me
+soigner » ne se pose pas. Le stimulant à un point et la trousse à deux sont la
+question du budget en miniature, et le catalogue n'en vaudrait rien sans elle.
+
+### Une arme en remplace une autre au lieu d'être refusée
+
+L'écran verrouillait les trois armes qu'on ne porte pas et affichait « une au
+maximum » à la place de ce qu'elles font. Il fallait rendre son arme pour lire
+le catalogue. Maintenant, cliquer une arme repose celle qu'on porte — la règle
+n'a pas changé, c'est la façon de l'appliquer qui a changé.
+
+### L'assemblage par défaut prend de la largeur avant de prendre cher
+
+**La première version** prenait le plus cher de chaque catégorie qui rentrait.
+Résultat : l'armure lourde pour les quatorze classes, et la première chose que
+le jeu apprenait à un débutant était qu'on ne court pas.
+
+**Maintenant** : le moins cher de chaque catégorie utile d'abord — une arme, un
+soin, une armure, un utilitaire — puis le reste du budget sur le plus cher qui
+tient. Ça donne machette + stimulant + armure légère + mine légère +
+pistolet-mitrailleur, à onze points sur douze, qui est un bon assemblage de
+départ **et** qui fait découvrir l'arme secondaire. Deux tests gèlent les deux
+propriétés.
+
+### La grenade ne blesse que les adversaires
+
+La fiche n'ouvre jamais le sujet des dégâts aux alliés. L'ouvrir ici en cachette
+serait une décision de conception prise dans un coin de code, donc la grenade se
+comporte comme les mines de l'Artificier. Le bouclier déployable, lui, bloque
+les deux équipes — mais une couverture qui ne gêne que l'adversaire ne serait
+pas une couverture.
+
+### Une pose de soin interrompue rend sa charge
+
+Perdre une trousse de soin sur une balle perdue serait la punition la plus amère
+du jeu, et la recharge d'utilisation empêche déjà d'en abuser. **C'est le levier
+d'équilibrage de la catégorie** : si se soigner devient trop facile, on garde
+l'annulation et on retire le remboursement. Une ligne dans `LoadoutService`.
+
+### Les objets ne sont pas encore verrouillés derrière les tirages
+
+La collection existe, les tirages fonctionnent, les trois objets d'ouverture
+sont donnés — mais **les treize objets restent disponibles pour tout le monde**.
+
+À treize objets, bloquer l'équipement derrière une loterie rendrait le test du
+budget impossible : la moitié des assemblages intéressants seraient hors
+d'atteinte. C'est le budget qu'on teste maintenant, pas la collection. Le
+verrou se rebranche quand le catalogue sera assez grand pour que la collection
+veuille dire quelque chose.
+
+### Les cotes sont conformes avant que les Robux n'existent
+
+Les pièces ne s'achètent pas encore, donc le tirage n'est pas un objet aléatoire
+payant et la politique de Roblox ne s'applique pas. L'écran la respecte quand
+même intégralement : chaque résultat possible et son pourcentage, un total à
+exactement 100 % vérifié à chacun des quatorze états de la collection, un *mot*
+(« Détails des chances ») et pas une icône, aucun résultat qui ne rende rien, et
+les cotes qui se mettent à jour quand la garantie du septième tirage est active.
+
+**Pourquoi maintenant.** Ces règles sont structurelles : elles décident de la
+forme de l'écran et de la forme du tirage. Les ajouter après coup voudrait dire
+refaire les deux, au moment où la vente de pièces est prête et où on voudra
+publier vite. Les sources sont dans `docs/EQUILIBRAGE.md`.
+
+### L'économie ne tombe pas sur la fourchette annoncée
+
+**À trancher par Josh.** Le récapitulatif de la fiche promet « une caisse toutes
+les trois à six parties ». Avec les coefficients de `Config.economy`, c'est
+**quatre à six** : écraser tout le monde rapporte 280 pièces, et il en faudrait
+334 pour que trois parties suffisent.
+
+Je n'ai pas touché aux chiffres : l'économie est une décision de conception, pas
+un détail d'implémentation. Les deux sorties possibles sont dans
+`docs/A-TESTER.md`, point 82.
+
+### Si la lecture d'un profil échoue, on n'écrit pas
+
+Un profil qu'on n'a pas su lire n'est pas un profil vide — c'est un profil
+inconnu, et l'écraser par des valeurs neuves efface une collection entière. Le
+joueur joue quand même, sa session n'est simplement pas gardée, et l'écran le
+lui dit **en rouge**.
+
+C'est la règle la plus importante de `ProgressService`, et elle prime sur tout
+le reste du fichier.
+
+### Une partie sans adversaire ne touche pas au classement
+
+Vu en jeu : un joueur seul perdait soixante-quatre points de classement. La
+moyenne d'une liste vide vaut zéro, donc l'adversaire était noté zéro, donc la
+défaite coûtait le coefficient K entier. Un test le gèle.
+
+C'est le genre de panne qui n'arrive qu'en vrai, sur un serveur presque vide, un
+soir — c'est-à-dire exactement quand on ne regarde pas.
+
+### Le plafond de coût des objets d'ouverture valait trois, pour une arme à quatre
+
+Les trois tirages offerts à l'ouverture du compte ne pouvaient piocher que parmi
+les objets à trois points ou moins. L'arme principale la moins chère en coûte
+quatre : **la catégorie n'avait aucun candidat**, et le débutant démarrait sans
+arme. Le plafond est passé à quatre, et un test vérifie désormais que chaque
+catégorie d'ouverture a au moins un candidat.
+
+Ce piège-là ne se voit qu'au premier compte créé, c'est-à-dire jamais pendant
+les tests.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

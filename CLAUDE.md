@@ -242,6 +242,35 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 - **Ne pas prendre de l'avance sur l'ordre des étapes.** Douze objets suffisent
   à tester si le budget est bon ; s'il n'est pas amusant à douze, il ne le sera
   pas à soixante-deux.
+- **Les chaînes affichées gardent leurs accents, les commentaires non.** La
+  faute a été commise deux fois : dans `Classes.luau`, puis dans le catalogue
+  d'objets de `Config.luau`. Un nom d'objet, une description, un message de
+  refus et un libellé de catégorie sont lus par les joueurs. Au moindre doute :
+  est-ce que quelqu'un verra cette chaîne à l'écran ?
+- **Un écran qui « marche » et un écran lisible sont deux choses.** Le panneau
+  d'équipement a fonctionné du premier coup et était inutilisable : trois armes
+  verrouillées sans explication, une description remplacée par un message
+  d'erreur, du texte qui débordait de sa carte. Rien de tout ça n'apparaît dans
+  les tests. **Regarder l'écran** fait partie du travail, et le moyen est
+  `screen_capture` plus `user_mouse_input` pour cliquer dedans.
+- **Les planchers de statistiques n'existent qu'à un seul endroit**, dans
+  `Modifiers.luau`. L'arbre passe par `Modifiers.apply`, l'équipement par
+  `Modifiers.applyDeltas`, et les deux partagent la même table `FLOORS`. Ne
+  jamais en recopier une deuxième ailleurs.
+- **L'ordre des trois couches de statistiques ne change pas** : classe nue,
+  puis arbre, puis équipement. C'est ce qui fait que l'armure lourde retire un
+  pourcentage de la vitesse *que l'arbre a déjà donnée*. Chaque appel à
+  `SkillTreeService.refreshStats` doit être suivi de
+  `LoadoutService.refreshStats`, sinon l'équipement disparaît silencieusement.
+- **Si la lecture d'un profil échoue, on n'écrit pas.** Un profil illisible
+  n'est pas un profil vide. `ProgressService` porte ce garde-fou, et c'est la
+  seule chose de ce fichier qui peut détruire quelque chose d'irremplaçable.
+- **Les trois listes de garde-fous doivent rester à jour** : `HANDLED` et
+  `HANDLED_TIER6` dans `AbilityService`, et la table `handled` des sortes
+  d'utilisation dans `LoadoutService.init`. Le serveur refuse de démarrer si
+  `Config` annonce quelque chose qu'aucun service n'exécute, et le message
+  nomme le coupable. C'est volontairement brutal : un objet qui coûte des
+  points et ne fait rien ne se voit jamais en jouant.
 
 ## L'ordre des étapes
 
@@ -254,8 +283,11 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    logique pure, branchement serveur, interface et quatre effets de palier 6
 5. Les douze autres classes — **fait** : statistiques, pouvoirs, trois branches
    chacune, plus les bans et le tirage au sort
-6. L'équipement et son budget de douze points, puis les tirages, les pièces et
-   les skins — **rien n'est codé**
+6. L'équipement et son budget de douze points, les pièces, les tirages et le
+   classement — **fait** : treize objets sur soixante-deux, l'écran
+   d'équipement, l'économie, l'Elo, et les cotes conformes à Roblox
+7. Ce qui reste : le son (aucun), les animations d'attaque, les quarante-neuf
+   autres objets, les skins, et l'achat de pièces en Robux
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans
