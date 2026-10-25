@@ -1219,8 +1219,12 @@ Config.draws = {
 	-- essentiel, piochés uniquement parmi les objets a cout faible : sinon un
 	-- debutant tire l'arme a sept points et se retrouve avec un assemblage
 	-- impossible a completer dans le budget.
+	-- Le plafond doit rester AU MOINS egal a l'arme principale la moins chere,
+	-- sinon la categorie n'a aucun candidat et le debutant demarre sans arme.
+	-- Un test le verifie, parce que ce piege ne se voit qu'au premier compte
+	-- cree — c'est-a-dire jamais pendant les tests.
 	starterDraws = 3,
-	starterDrawsMaxItemCost = 3,
+	starterDrawsMaxItemCost = 4,
 	starterDrawsCategories = { "primary", "armor", "heal" },
 
 	-- Les vingt premieres parties sont accelerees, sinon un nouveau joueur met

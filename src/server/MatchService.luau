@@ -49,6 +49,7 @@ local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local DraftService = require(script.Parent:WaitForChild("DraftService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
+local ProgressService = require(script.Parent:WaitForChild("ProgressService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
@@ -473,6 +474,11 @@ local function runMatch(players: { Player })
 			MatchState.scoreLine(state, "A")
 		)
 	)
+
+	-- Les pieces et le classement, une seule fois, a la fin de la partie. Pas
+	-- a la fin d'une manche : une serie se joue en entier, et payer la manche
+	-- recompenserait celui qui abandonne apres en avoir gagne une.
+	ProgressService.awardMatch(entries, winner, state.scores)
 
 	SkillTreeService.endMatch()
 	CombatService.clearTemporary()

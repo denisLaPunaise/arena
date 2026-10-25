@@ -26,6 +26,7 @@ local suites = {
 	{ name = "Pouvoirs de classe", run = require("./specs/abilities") },
 	{ name = "Bans et tirage", run = require("./specs/draft") },
 	{ name = "Equipement et budget", run = require("./specs/loadout") },
+	{ name = "Pieces, tirages et classement", run = require("./specs/progress") },
 }
 
 local t = harness.create()

@@ -28,6 +28,10 @@
 		{
 			"name": "Loadout",
 			"className": "RemoteEvent"
+		},
+		{
+			"name": "Progress",
+			"className": "RemoteEvent"
 		}
 	]
 }

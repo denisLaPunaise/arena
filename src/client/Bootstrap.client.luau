@@ -35,6 +35,7 @@ local Config = require(Arena:WaitForChild("Config"))
 local DraftPanel = require(script.Parent:WaitForChild("DraftPanel"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local LoadoutPanel = require(script.Parent:WaitForChild("LoadoutPanel"))
+local ProgressPanel = require(script.Parent:WaitForChild("ProgressPanel"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
 
 local player = Players.LocalPlayer
@@ -137,7 +138,8 @@ end
 local EDIT_KEY = (Enum.KeyCode :: any)[Config.loadout.editKey]
 
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
-hint.Text = "Clic pour frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement"
+hint.Text =
+	"Clic frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement  ·  P pièces"
 hint.TextTransparency = 0.35
 hint.Parent = gui
 
@@ -335,12 +337,15 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		LoadoutPanel.use(4)
 	elseif input.KeyCode == EDIT_KEY then
 		LoadoutPanel.toggle()
+	elseif input.KeyCode == Enum.KeyCode.P then
+		ProgressPanel.toggle()
 	end
 end)
 
 Effects.start()
 DraftPanel.start()
 LoadoutPanel.start()
+ProgressPanel.start()
 TreePanel.start()
 
 print(string.format("[Arena] Client démarré pour %s", player.Name))
