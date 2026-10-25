@@ -203,6 +203,20 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   virtuelle. `execute_luau` reste parfait pour inspecter le DataModel (les
   parts, les propriétés, l'arborescence), qui est partagé, lui.
 
+- **`screen_capture` ne photographie pas les `BillboardGui`.** La scène 3D, les
+  parts et les `ScreenGui` apparaissent normalement ; tout ce qui est accroché à
+  un `BillboardGui` est absent de l'image, sans la moindre erreur. On peut donc
+  conclure qu'un affichage ne marche pas alors qu'il marche très bien, et partir
+  corriger du code qui n'a rien. Vérifié le 25 octobre 2026 par un témoin : une
+  part rouge et un panneau vert créés au même instant, côte à côte, tous deux
+  confirmés à l'écran par `WorldToViewportPoint` — la part apparaît sur la
+  capture, le panneau non.
+
+  Ça touche les **nombres de dégâts** et le **compte à rebours de l'agonie**.
+  Pour les vérifier, il faut interroger le client (`Enabled`, `Visible`,
+  `TextTransparency`, `WorldToViewportPoint`) et le dire comme tel — c'est
+  vérifié par instrumentation, pas vu de ses yeux — ou demander à Josh.
+
 - **Le taux de doublons pilote deux économies à la fois** : moins de doublons,
   moins de fragments, donc des skins plus rares. Ces deux réglages se changent
   ensemble.

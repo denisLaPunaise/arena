@@ -306,6 +306,43 @@ C'est noté dans `CLAUDE.md`. Le réflexe à garder : après avoir ajouté des
 fichiers, **vérifier la liste des enfants dans la place** avant de conclure que
 quelque chose ne marche pas.
 
+### Pourquoi Rojo avait cessé de synchroniser
+
+**Constaté.** Le serveur Rojo tournait, Studio était connecté en TCP, et
+pourtant plus rien n'arrivait dans la place — sans une seule erreur nulle part.
+Preuve : une fonction écrite dix minutes plus tôt (`changesHeight`) était
+absente de la copie de `TreePanel` dans Studio.
+
+**La cause.** Le plugin Rojo demande une **confirmation avant d'appliquer un
+patch**, et son réglage par défaut (« Initial ») la demande **une fois par
+projet et par session de Studio**. J'avais redémarré le serveur, donc une
+nouvelle confirmation attendait un clic que je ne pouvais pas donner. Tant
+qu'elle attend, la synchronisation est silencieusement à l'arrêt.
+
+**Décision.** Recommander à Josh de passer ce réglage sur « Never ». Le risque
+que ça couvre — Rojo écrase du travail fait dans Studio — ne nous concerne pas :
+par construction, le code ne s'écrit jamais dans Studio ici, et `Workspace`
+n'est pas dans le projet Rojo. La confirmation ne protège donc rien et coûte
+une panne muette.
+
+### L'outil de capture d'écran ne voit pas les `BillboardGui`
+
+**Constaté.** Les nombres de dégâts n'apparaissaient sur aucune capture, alors
+qu'une interrogation du client en direct les montrait bien présents, affichés,
+à l'écran, avec la transparence qui montait de 0 à 1.
+
+**La preuve.** Une part rouge opaque et un panneau vert opaque, créés au même
+instant, côte à côte, tous deux confirmés à l'écran par
+`WorldToViewportPoint`. Sur la capture : la part est là, le panneau n'y est
+pas.
+
+**Conséquence, et c'est elle qui compte.** J'ai failli partir corriger du code
+qui n'avait rien. La règle que j'en tire, notée dans `CLAUDE.md` : quand un
+affichage « ne marche pas », vérifier d'abord que **mon moyen de regarder** sait
+le montrer. Et dire la différence à Josh : *vérifié par instrumentation* n'est
+pas *vu de mes yeux*, et `docs/A-TESTER.md` le dit maintenant pour les nombres
+de dégâts et pour le compte à rebours de l'agonie.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

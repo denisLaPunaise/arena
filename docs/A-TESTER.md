@@ -19,15 +19,22 @@ des certitudes, et le seul moyen de les valider c'est de jouer.
 
 - [ ] **Publie une version de la place.** Tout n'est pas annulable, et j'ai
       touché à la place directement pendant cette session.
-- [ ] **Reconnecte le plugin Rojo** (bouton Connect). J'ai dû redémarrer le
-      serveur, et la place contient une copie de `TreePanel` que j'ai éditée à
-      la main pour pouvoir vérifier l'affichage. **Le dépôt fait foi** : dès que
-      Rojo est reconnecté, il remet la bonne version, qui est légèrement plus
-      récente que celle de la place.
-- [ ] **Vérifie qu'il n'y a pas de doublons** dans `ReplicatedStorage.Arena`,
-      `ServerScriptService.Arena` et `StarterPlayerScripts.Arena`. J'en ai
-      trouvé cinq cette fois, dont le RemoteEvent `Tree`. Deux modules du même
-      nom, et le jeu devient muet sans la moindre erreur.
+- [x] ~~Reconnecte le plugin Rojo~~ — **fait**, et tout est passé : la place a
+      reçu la bonne version de tout le code, **sans doublons**, et la copie de
+      `TreePanel` que j'avais éditée à la main a été écrasée par celle du dépôt.
+      C'est le bon sens de l'écrasement : **le dépôt fait foi, toujours.**
+- [ ] **Règle la confirmation de Rojo sur « Never ».** C'est ce qui nous a coûté
+      une heure aujourd'hui. Par défaut le plugin demande une confirmation **une
+      fois par session de Studio**, et tant que personne ne clique, rien ne se
+      synchronise **et aucune erreur ne s'affiche** : ça a tout l'air de
+      marcher. Le réglage est dans le panneau du plugin Rojo, ligne
+      « Confirm behavior ».
+- [ ] **Vérifie quand même qu'il n'y a pas de doublons** dans
+      `ReplicatedStorage.Arena`, `ServerScriptService.Arena` et
+      `StarterPlayerScripts.Arena`. J'en avais trouvé cinq en cours de route,
+      dont le RemoteEvent `Tree`. Deux objets du même nom, et le jeu devient
+      muet sans la moindre erreur — c'est le genre de panne qui ne se voit
+      qu'en regardant l'arborescence.
 
 ---
 
@@ -158,14 +165,26 @@ testés par quelqu'un d'autre que moi.
 
 ---
 
-## 5 bis. Les coups se voient enfin — **non vérifié en jeu**
+## 5 bis. Les coups se voient enfin — vérifié, sauf les nombres
 
-Honnêteté d'abord : cette partie est écrite, formatée, analysée, les tests
-passent et la place se construit, **mais je n'ai pas pu la voir tourner**. Rojo
-avait cessé de synchroniser quand je l'ai terminée. C'est la seule partie de
-cette session dans ce cas — tout le reste, je l'ai vu fonctionner.
+Rojo a resynchronisé, j'ai donc pu voir tourner cette partie. **Vu de mes
+yeux** : le trait du coup, les éclairs, et le fait que tout se crée dans
+`Workspace.ArenaEffects` puis disparaît proprement.
 
-Donc à regarder avec méfiance :
+**Pas vu de mes yeux : les nombres eux-mêmes.** Pas parce qu'ils manquent —
+j'ai interrogé le client en direct pendant un combat, et ils sont là : affichés,
+à l'écran, au bon endroit, de la bonne couleur, avec la transparence qui monte
+bien de 0 à 1 pendant qu'ils s'effacent. C'est l'outil de capture d'écran de
+Studio qui ne photographie pas ce type d'affichage. Je l'ai prouvé proprement :
+une part rouge et un panneau vert posés côte à côte au même instant, la part
+apparaît sur la capture, le panneau non.
+
+Donc les nombres sont **vérifiés par instrumentation, pas à l'œil** — c'est
+moins solide, et c'est pour ça qu'ils restent en tête de ta liste. La même
+réserve vaut pour le **compte à rebours au-dessus d'un joueur à terre**
+(point 12), que je n'ai jamais pu voir non plus.
+
+À regarder en premier, donc :
 
 - [ ] **Le trait du coup** part de l'attaquant à chaque attaque, qu'elle touche
       ou non. C'est fait exprès : rater doit se voir, sinon on n'apprend jamais
