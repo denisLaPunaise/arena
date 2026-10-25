@@ -46,6 +46,7 @@ local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
+local DraftService = require(script.Parent:WaitForChild("DraftService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
@@ -296,20 +297,44 @@ local function countdown(entries: { CombatService.Entry }, state: MatchState.Sta
 	end
 end
 
-local function buildEntries(players: { Player }): { CombatService.Entry }
-	local entries: { CombatService.Entry } = {}
+-- Qui joue dans quelle equipe. On en a besoin AVANT le tirage, puisque les
+-- bans se votent par equipe.
+local function teamsFor(players: { Player }): { [Player]: string }
+	local teams: { [Player]: string } = {}
+	for index, player in players do
+		teams[player] = TEAMS[index]
+	end
+	return teams
+end
+
+-- La classe du prototype, utilisee quand le tirage est coupe ou qu'il n'a pas
+-- pu servir tout le monde. Mieux vaut un Vampire de secours qu'un joueur sans
+-- classe, qui n'aurait ni PV ni attaque et ne comprendrait pas pourquoi.
+local function fallbackClass(index: number): string
 	local classes = Config.prototype.classes
+	local classIndex = index
+	if swapClasses then
+		classIndex = (#classes + 1) - index
+	end
+	return classes[((classIndex - 1) % #classes) + 1]
+end
+
+local function buildEntries(
+	players: { Player },
+	teams: { [Player]: string },
+	drawn: { [Player]: string }?
+): { CombatService.Entry }
+	local entries: { CombatService.Entry } = {}
 
 	for index, player in players do
-		local classIndex = index
-		if swapClasses then
-			classIndex = (#classes + 1) - index
+		local classId = if drawn then drawn[player] else nil
+		if classId == nil or Config.classStats[classId] == nil then
+			classId = fallbackClass(index)
 		end
 
-		local classId = classes[classIndex]
 		table.insert(entries, {
 			player = player,
-			team = TEAMS[index],
+			team = teams[player] or TEAMS[index],
 			classId = classId,
 			-- Les statistiques de la classe nue. L'arbre les remplace avant
 			-- chaque apparition, par SkillTreeService.refreshStats.
@@ -321,7 +346,18 @@ local function buildEntries(players: { Player }): { CombatService.Entry }
 end
 
 local function runMatch(players: { Player })
-	local entries = buildEntries(players)
+	local teams = teamsFor(players)
+
+	-- Les bans, puis le tirage. Coupe, on retombe sur les deux classes du
+	-- prototype : c'est l'interrupteur de comparaison qui permet de rejuger le
+	-- duel nu sans la phase de bans par-dessus.
+	local drawn: { [Player]: string }? = nil
+	if Config.draft.enabled then
+		tellAll("PHASE DE BANS", "Votez pour la classe à écarter")
+		drawn = DraftService.run(players, teams)
+	end
+
+	local entries = buildEntries(players, teams, drawn)
 	roundEntries = entries
 	CombatService.setRoster(entries)
 	DownedService.setRoster(entries)

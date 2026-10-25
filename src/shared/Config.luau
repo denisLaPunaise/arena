@@ -121,6 +121,12 @@ Config.downed = {
 --------------------------------------------------------------------------------
 
 Config.draft = {
+	-- Interrupteur de comparaison, comme la zone, l'agonie et l'arbre : a
+	-- false, les deux classes du prototype sont distribuees en dur et la partie
+	-- commence tout de suite. C'est ce qui permet de revenir au duel nu pour
+	-- juger une mecanique sans la phase de bans par-dessus.
+	enabled = true,
+
 	-- Un ban par equipe, quelle que soit la taille.
 	bansPerTeam = 1,
 	-- Bans alternes et pas simultanes : l'equipe B voit le ban de A, ce qui
@@ -142,6 +148,15 @@ Config.draft = {
 	-- L'echange de classe entre coequipiers est abandonne : il ne servait qu'a
 	-- compenser l'absence de marge en 5v5.
 	allowTeammateSwap = false,
+
+	-- Le temps laisse pour accepter ou refuser le relancement. Court exprès :
+	-- le relancement est aveugle, donc il n'y a rien a peser. C'est un pari,
+	-- pas une decision, et un long compte a rebours ferait croire le contraire.
+	rerollSeconds = 6,
+
+	-- Le temps pendant lequel la classe tiree reste affichee en grand avant que
+	-- la manche demarre. Il faut pouvoir lire son pouvoir ET sa faiblesse.
+	revealSeconds = 5,
 }
 
 --------------------------------------------------------------------------------

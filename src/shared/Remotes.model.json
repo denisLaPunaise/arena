@@ -20,6 +20,10 @@
 		{
 			"name": "Ability",
 			"className": "RemoteEvent"
+		},
+		{
+			"name": "Draft",
+			"className": "RemoteEvent"
 		}
 	]
 }

@@ -32,6 +32,7 @@ local abilityRemote = Remotes:WaitForChild("Ability") :: RemoteEvent
 
 local Config = require(Arena:WaitForChild("Config"))
 
+local DraftPanel = require(script.Parent:WaitForChild("DraftPanel"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
 
@@ -313,6 +314,7 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 end)
 
 Effects.start()
+DraftPanel.start()
 TreePanel.start()
 
 print(string.format("[Arena] Client démarré pour %s", player.Name))
