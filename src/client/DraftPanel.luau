@@ -35,8 +35,12 @@ local PANEL_HEIGHT = 640
 local MIN_SCALE = 0.4
 local MARGIN = 0.94
 
-local CARD_WIDTH = 158
-local CARD_HEIGHT = 150
+-- Sept cartes par rangee, donc DEUX rangees pour les quatorze classes.
+-- Six par rangee en faisait trois, et la troisieme passait sous le pied de
+-- page : la largeur se regle en fonction du nombre de classes, pas l'inverse.
+--   7 * 148 + 6 * 10 = 1096, pour 1120 disponibles
+local CARD_WIDTH = 148
+local CARD_HEIGHT = 158
 
 local BACKGROUND = Color3.fromRGB(12, 14, 20)
 local CARD = Color3.fromRGB(26, 30, 40)
@@ -51,6 +55,13 @@ local header: TextLabel? = nil
 local subheader: TextLabel? = nil
 local timerLabel: TextLabel? = nil
 local grid: Frame? = nil
+-- Le corps libre, a la meme place que la grille. Les deux ne sont jamais
+-- affiches ensemble : la grille a une disposition qui impose la taille de ses
+-- enfants, donc tout ce qui n'est pas une carte de classe doit vivre ailleurs.
+-- C'est ce qui ecrasait le bouton de relancement a la taille d'une carte.
+local body: Frame? = nil
+local bodyTitle: TextLabel? = nil
+local bodyNote: TextLabel? = nil
 local footer: TextLabel? = nil
 
 local deadline = 0
@@ -139,6 +150,23 @@ local function build()
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = area
 
+	local free = Instance.new("Frame")
+	free.Name = "Body"
+	free.Size = UDim2.fromOffset(PANEL_WIDTH - 60, 330)
+	free.Position = UDim2.fromOffset(30, 150)
+	free.BackgroundTransparency = 1
+	free.Visible = false
+	free.Parent = frame
+
+	local bigText = label("BodyTitle", UDim2.new(1, 0, 0, 120), UDim2.fromOffset(0, 40), 27)
+	bigText.TextWrapped = true
+	bigText.Parent = free
+
+	local note = label("BodyNote", UDim2.new(1, 0, 0, 90), UDim2.fromOffset(0, 168), 21)
+	note.TextWrapped = true
+	note.TextColor3 = DANGER
+	note.Parent = free
+
 	local foot = label("Footer", UDim2.fromOffset(PANEL_WIDTH, 60), UDim2.fromOffset(0, 500), 20)
 	foot.TextColor3 = MUTED
 	foot.TextWrapped = true
@@ -150,6 +178,9 @@ local function build()
 	subheader = sub
 	timerLabel = timer
 	grid = area
+	body = free
+	bodyTitle = bigText
+	bodyNote = note
 	footer = foot
 end
 
@@ -177,6 +208,17 @@ end
 --------------------------------------------------------------------------------
 -- LES CARTES
 --------------------------------------------------------------------------------
+
+local function showGrid(visible: boolean)
+	local area = grid
+	local free = body
+	if area ~= nil then
+		area.Visible = visible
+	end
+	if free ~= nil then
+		free.Visible = not visible
+	end
+end
 
 local function clearGrid()
 	local area = grid
@@ -250,6 +292,8 @@ local function showBans(payload: any)
 		return
 	end
 
+	showGrid(true)
+
 	local mine = payload.mine == true
 	deadline = os.clock() + (payload.seconds or 0)
 
@@ -312,11 +356,18 @@ end
 local function showReroll(payload: any)
 	build()
 	clearGrid()
+	showGrid(false)
 
 	local screen = gui
-	local area = grid
-	if screen == nil or area == nil then
+	local free = body
+	if screen == nil or free == nil then
 		return
+	end
+
+	for _, child in free:GetChildren() do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
 	end
 
 	deadline = os.clock() + (payload.seconds or 0)
@@ -334,15 +385,24 @@ local function showReroll(payload: any)
 			.. "ce ne serait plus un pari mais un choix, et tout le monde prendrait la même."
 	end
 
+	if bodyTitle then
+		bodyTitle.Text = ""
+	end
+	if bodyNote then
+		bodyNote.Text = ""
+	end
+
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(320, 72)
+	button.Size = UDim2.fromOffset(320, 76)
+	button.Position = UDim2.new(0.5, 0, 0, 90)
+	button.AnchorPoint = Vector2.new(0.5, 0)
 	button.BackgroundColor3 = CARD
 	button.BorderSizePixel = 0
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 22
 	button.TextColor3 = Color3.fromRGB(240, 244, 255)
 	button.Text = "Relancer"
-	button.Parent = area
+	button.Parent = free
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
@@ -363,10 +423,18 @@ end
 local function showClass(payload: any)
 	build()
 	clearGrid()
+	showGrid(false)
 
 	local screen = gui
-	if screen == nil then
+	local free = body
+	if screen == nil or free == nil then
 		return
+	end
+
+	for _, child in free:GetChildren() do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
 	end
 
 	deadline = os.clock() + (payload.seconds or 0)
@@ -378,12 +446,18 @@ local function showClass(payload: any)
 	if subheader then
 		subheader.Text = tostring(payload.role or "")
 	end
+
+	-- Le pouvoir en grand, la faiblesse juste dessous et en rouge, aussi
+	-- lisible. Les deux se lisent ensemble ou pas du tout : une classe dont on
+	-- ne connait que le pouvoir se joue mal pendant toute la premiere manche.
+	if bodyTitle then
+		bodyTitle.Text = tostring(payload.power or "")
+	end
+	if bodyNote then
+		bodyNote.Text = string.format("Faiblesse : %s", tostring(payload.weakness or ""))
+	end
 	if footer then
-		footer.Text = string.format(
-			"%s\n\nFaiblesse : %s",
-			tostring(payload.power or ""),
-			tostring(payload.weakness or "")
-		)
+		footer.Text = "La manche commence dans un instant."
 	end
 
 	screen.Enabled = true
