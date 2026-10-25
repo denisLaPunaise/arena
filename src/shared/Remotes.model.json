@@ -24,6 +24,10 @@
 		{
 			"name": "Draft",
 			"className": "RemoteEvent"
+		},
+		{
+			"name": "Loadout",
+			"className": "RemoteEvent"
 		}
 	]
 }

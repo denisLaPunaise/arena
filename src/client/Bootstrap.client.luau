@@ -34,6 +34,7 @@ local Config = require(Arena:WaitForChild("Config"))
 
 local DraftPanel = require(script.Parent:WaitForChild("DraftPanel"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
+local LoadoutPanel = require(script.Parent:WaitForChild("LoadoutPanel"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
 
 local player = Players.LocalPlayer
@@ -127,8 +128,16 @@ local READY_COLOR = Color3.fromRGB(150, 220, 255)
 local CHARGING_COLOR = Color3.fromRGB(150, 160, 175)
 local MARKED_COLOR = Color3.fromRGB(200, 120, 240)
 
+-- Les touches des objets viennent de Config, pas d ici : une touche est un
+-- reglage comme un autre, et celle de l equipement a deja change une fois.
+local USE_KEYS: { Enum.KeyCode } = {}
+for index, name in Config.loadout.useKeys do
+	USE_KEYS[index] = (Enum.KeyCode :: any)[name]
+end
+local EDIT_KEY = (Enum.KeyCode :: any)[Config.loadout.editKey]
+
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
-hint.Text = "Clic ou tap pour frapper  ·  E pour le pouvoir  ·  T pour l'arbre"
+hint.Text = "Clic pour frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement"
 hint.TextTransparency = 0.35
 hint.Parent = gui
 
@@ -308,13 +317,30 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 		attackRemote:FireServer()
-	elseif input.KeyCode == Enum.KeyCode.E then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.E then
 		abilityRemote:FireServer()
+		return
+	end
+
+	if input.KeyCode == USE_KEYS[1] then
+		LoadoutPanel.use(1)
+	elseif input.KeyCode == USE_KEYS[2] then
+		LoadoutPanel.use(2)
+	elseif input.KeyCode == USE_KEYS[3] then
+		LoadoutPanel.use(3)
+	elseif input.KeyCode == USE_KEYS[4] then
+		LoadoutPanel.use(4)
+	elseif input.KeyCode == EDIT_KEY then
+		LoadoutPanel.toggle()
 	end
 end)
 
 Effects.start()
 DraftPanel.start()
+LoadoutPanel.start()
 TreePanel.start()
 
 print(string.format("[Arena] Client démarré pour %s", player.Name))

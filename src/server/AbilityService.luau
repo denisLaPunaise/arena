@@ -295,6 +295,15 @@ end
 -- Appelee par MapService quand une map est validee : c'est la seule facon de
 -- savoir quelles parts sont des couverts, puisque les maps ne sont pas dans
 -- Git et que seul le contrat de nommage les designe.
+-- Le groupe de collision des couvertures de map. Le bouclier deployable de
+-- l'equipement s'y met aussi : il bloque les deux equipes, et le Spectre le
+-- traverse pendant sa phase, exactement comme un rocher de la map. C'est la
+-- seule chose que LoadoutService a besoin de savoir des groupes.
+function AbilityService.coverGroup(): string
+	ensureGroups()
+	return GROUP_COVER
+end
+
 function AbilityService.markCover(coverFolder: Instance)
 	ensureGroups()
 	for _, part in coverFolder:GetDescendants() do

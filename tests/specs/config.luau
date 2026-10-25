@@ -124,7 +124,10 @@ return function(t: harness.Harness)
 	for _, n in Config.itemCounts.prototype do
 		prototypeTotal += n
 	end
-	t.equal("douze objets dans le prototype", prototypeTotal, 12)
+	-- Treize et pas douze : avec un seul soin, la question « est-ce que je
+	-- paie un point ou deux pour me soigner » ne se pose pas, et c'est
+	-- exactement la question que le budget doit faire naitre.
+	t.equal("treize objets dans le prototype", prototypeTotal, 13)
 
 	t.section("L'economie des pieces")
 

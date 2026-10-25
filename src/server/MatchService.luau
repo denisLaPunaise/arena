@@ -48,6 +48,7 @@ local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local DraftService = require(script.Parent:WaitForChild("DraftService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
+local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
@@ -387,6 +388,10 @@ local function runMatch(players: { Player })
 		-- du personnage qui se leve, et aucun achat ne soigne en pleine manche.
 		spendPhase(entries, state)
 		SkillTreeService.refreshStats(entries)
+		-- L'equipement est la DERNIERE couche, apres l'arbre : c'est ce qui fait
+		-- que l'armure lourde retire un pourcentage de la vitesse que l'arbre a
+		-- deja donnee, et pas l'inverse.
+		LoadoutService.refreshStats(entries)
 
 		for index, entry in entries do
 			spawnEntry(entry, index)
@@ -560,6 +565,7 @@ function MatchService.start()
 	-- meme etat que le combat, et ne peut donc pas en mentir.
 	SkillTreeService.onChanged(function()
 		SkillTreeService.refreshStats(roundEntries)
+		LoadoutService.refreshStats(roundEntries)
 	end)
 
 	if isTestMap then

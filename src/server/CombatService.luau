@@ -51,6 +51,7 @@ local Workspace = game:GetService("Workspace")
 
 local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
+local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
@@ -63,6 +64,42 @@ export type Entry = {
 }
 
 local roster: { [Player]: Entry } = {}
+
+-- L'ARME DU COUP EN COURS.
+--
+-- entry.stats porte l'arme principale, et c'est elle que tout le jeu lit : PV
+-- maximum, vitesse, regeneration. Mais un coup peut partir avec la SECONDAIRE,
+-- quand la cible est hors de portee de la principale — c'est tout ce que
+-- l'arme secondaire fait, et elle n'a pas de touche a elle.
+--
+-- Plutot que de faire passer un jeu de statistiques dans chaque fonction du
+-- chemin d'attaque (la poussee, la propagation, la charge qui traverse), on
+-- note ici l'arme choisie au debut du coup et `striking` la rend. Rien
+-- n'interrompt un coup, donc cette note ne peut pas se melanger entre deux
+-- joueurs ni entre deux coups.
+local strikeProfile: { [Player]: { stats: Combat.Stats, pierce: number } } = {}
+
+local function striking(entry: Entry): Combat.Stats
+	local profile = strikeProfile[entry.player]
+	if profile == nil then
+		return entry.stats
+	end
+	return profile.stats
+end
+
+-- La part de l'armure de la cible que l'arme ignore. Seul l'arc composite en a
+-- une, et c'est le seul contre a l'armure lourde du catalogue.
+local function strikingPierce(entry: Entry?): number
+	if entry == nil then
+		return 0
+	end
+	local profile = strikeProfile[entry.player]
+	if profile == nil then
+		return 0
+	end
+	return profile.pierce
+end
+
 local lastAttackAt: { [Player]: number } = {}
 local lastCombatAt: { [Player]: number } = {}
 local lastDashAt: { [Player]: number } = {}
@@ -145,6 +182,11 @@ local function findTarget(entry: Entry): Entry?
 		return nil
 	end
 
+	-- La plus longue des deux portees : sans ca une secondaire a longue portee
+	-- ne trouverait jamais personne, puisque la recherche s'arreterait a la
+	-- portee de l'arme principale.
+	local searchRange = LoadoutService.searchRange(entry)
+
 	local bestStanding: Entry? = nil
 	local bestStandingDistance = math.huge
 	local bestDowned: Entry? = nil
@@ -161,7 +203,7 @@ local function findTarget(entry: Entry): Entry?
 		end
 
 		local distance = (root.Position - attackerRoot.Position).Magnitude
-		if distance > entry.stats.attackRangeStuds then
+		if distance > searchRange then
 			continue
 		end
 
@@ -209,7 +251,8 @@ local function standingEnemiesNear(
 end
 
 local function applyKnockback(attacker: Entry, target: Entry)
-	if attacker.stats.knockbackStuds <= 0 then
+	local stats = striking(attacker)
+	if stats.knockbackStuds <= 0 then
 		return
 	end
 	-- Le Socle du Sismique ne bouge plus d'un pouce.
@@ -229,8 +272,8 @@ local function applyKnockback(attacker: Entry, target: Entry)
 		return
 	end
 
-	targetRoot.AssemblyLinearVelocity = (flat.Unit * attacker.stats.knockbackStuds)
-		+ Vector3.new(0, attacker.stats.knockbackUpStuds, 0)
+	targetRoot.AssemblyLinearVelocity = (flat.Unit * stats.knockbackStuds)
+		+ Vector3.new(0, stats.knockbackUpStuds, 0)
 end
 
 -- Le seul endroit du jeu ou des PV sont retires. Renvoie les degats REELLEMENT
@@ -248,17 +291,28 @@ end
 local function defenderReading(target: Entry, attacker: Entry?): Combat.Stats
 	local extra = AbilityService.extraDamageTakenRatio(target.player)
 	local pierced = attacker ~= nil and AbilityService.piercesResistance(attacker)
+	local armorPierce = strikingPierce(attacker)
 
-	if extra == 0 and not pierced then
+	if extra == 0 and not pierced and armorPierce <= 0 then
 		return target.stats
 	end
 
 	local reading = table.clone(target.stats)
 	if pierced then
 		reading.damageTakenRatio = 0
-	else
-		reading.damageTakenRatio = (reading.damageTakenRatio or 0) + extra
+		return reading
 	end
+
+	local ratio = (reading.damageTakenRatio or 0) + extra
+
+	-- L'arc composite ignore la moitie de la REDUCTION, pas la moitie des
+	-- degats, et seulement quand c'en est une. Sans la condition, percer une
+	-- cible deja plus fragile la rendrait moins fragile, ce qui n'a aucun sens.
+	if armorPierce > 0 and ratio < 0 then
+		ratio *= (1 - armorPierce)
+	end
+
+	reading.damageTakenRatio = ratio
 	return reading
 end
 
@@ -303,6 +357,9 @@ local function dealDamage(target: Entry, amount: number): number
 	DownedService.interruptRevivesBy(target.player)
 	lastCombatAt[target.player] = os.clock()
 	AbilityService.onDamaged(target, amount)
+	-- Et il annule la pose d'une trousse de soin : on ne se bande pas le bras
+	-- sous le feu.
+	LoadoutService.onDamaged(target.player)
 
 	local passed = math.min(amount, humanoid.Health)
 	local remaining = humanoid.Health - passed
@@ -356,7 +413,8 @@ end
 -- Elle se calcule sur les degats VRAIMENT passes, donc frapper un adversaire a
 -- un PV n'arrose pas ses coequipiers.
 local function spreadFrom(entry: Entry, target: Entry, damageDealt: number)
-	if damageDealt <= 0 or not Combat.spreadsDamage(entry.stats) then
+	local stats = striking(entry)
+	if damageDealt <= 0 or not Combat.spreadsDamage(stats) then
 		return
 	end
 
@@ -365,13 +423,12 @@ local function spreadFrom(entry: Entry, target: Entry, damageDealt: number)
 		return
 	end
 
-	local share = Combat.spreadDamage(entry.stats, damageDealt)
+	local share = Combat.spreadDamage(stats, damageDealt)
 	if share <= 0 then
 		return
 	end
 
-	local nearby =
-		standingEnemiesNear(entry, targetRoot.Position, entry.stats.spreadRadiusStuds, target)
+	local nearby = standingEnemiesNear(entry, targetRoot.Position, stats.spreadRadiusStuds, target)
 	for index, other in nearby do
 		if index > Config.combat.spreadMaxTargets then
 			break
@@ -398,7 +455,7 @@ local function pierceFrom(entry: Entry, target: Entry, rawDamage: number)
 
 	local settings = Config.tier6.chargePierces
 	local nearby =
-		standingEnemiesNear(entry, attackerRoot.Position, entry.stats.attackRangeStuds, target)
+		standingEnemiesNear(entry, attackerRoot.Position, striking(entry).attackRangeStuds, target)
 
 	for index, other in nearby do
 		if index >= settings.maxTargets then
@@ -533,16 +590,32 @@ local function onAttack(player: Player)
 	end
 
 	local now = os.clock()
-	if not Combat.canAttack(entry.stats, now, lastAttackAt[player]) then
+	local attackerRoot = rootOf(player)
+	local target = findTarget(entry)
+
+	-- QUELLE ARME. On cherche la cible AVANT de verifier la recharge, parce que
+	-- c'est la distance a la cible qui decide de l'arme, et que c'est l'arme
+	-- qui porte la recharge. Un couteau a une demi-seconde de recharge, un
+	-- marteau presque deux : verifier la recharge du marteau pour un coup de
+	-- couteau serait faux dans les deux sens.
+	local distance: number? = nil
+	if target ~= nil and attackerRoot ~= nil then
+		local targetRoot = rootOf(target.player)
+		if targetRoot ~= nil then
+			distance = (targetRoot.Position - attackerRoot.Position).Magnitude
+		end
+	end
+
+	local stats, pierce = LoadoutService.strikeWith(entry, distance)
+	strikeProfile[player] = { stats = stats, pierce = pierce }
+
+	if not Combat.canAttack(stats, now, lastAttackAt[player]) then
 		return
 	end
 
 	-- La recharge est consommee meme si le coup part dans le vide : frapper au
 	-- hasard doit couter quelque chose.
 	lastAttackAt[player] = now
-
-	local attackerRoot = rootOf(player)
-	local target = findTarget(entry)
 
 	-- Le trait part AVANT de savoir si on a touche, et il part meme dans le
 	-- vide : rater doit se voir, sinon on n'apprend jamais la portee de sa
@@ -552,7 +625,7 @@ local function onAttack(player: Player)
 		-- droit devant sur toute la portee de la classe. On relit la position
 		-- de la cible au lieu de la supposer : findTarget garantit qu'elle
 		-- existait a l'instant d'avant, pas qu'elle existe encore.
-		local reach = attackerRoot.CFrame.LookVector * entry.stats.attackRangeStuds
+		local reach = attackerRoot.CFrame.LookVector * LoadoutService.searchRange(entry)
 		if target ~= nil then
 			local targetRoot = rootOf(target.player)
 			if targetRoot ~= nil then
@@ -589,7 +662,7 @@ local function onAttack(player: Player)
 	end
 
 	local result = Combat.resolveHit({
-		attackerStats = entry.stats,
+		attackerStats = stats,
 		attackerHealth = attackerHumanoid.Health,
 		defenderStats = defenderReading(target, entry),
 		defenderHealth = targetHumanoid.Health,
@@ -619,7 +692,7 @@ local function onAttack(player: Player)
 	-- Le vol de vie se recalcule sur ce qui est VRAIMENT passe : dealDamage
 	-- plafonne aux PV restants, et un coup de 24 sur une cible a 3 PV ne doit
 	-- pas soigner comme un coup de 24.
-	local healed = Combat.lifestealFor(entry.stats, attackerHumanoid.Health, passed)
+	local healed = Combat.lifestealFor(stats, attackerHumanoid.Health, passed)
 	healTo(player, healed)
 
 	if healed >= 1 and attackerRoot ~= nil then
@@ -630,7 +703,7 @@ local function onAttack(player: Player)
 
 	applyKnockback(entry, target)
 	spreadFrom(entry, target, passed)
-	pierceFrom(entry, target, Combat.rawDamage(entry.stats))
+	pierceFrom(entry, target, Combat.rawDamage(stats))
 	leaveCover(entry, target)
 end
 
@@ -733,6 +806,7 @@ local function onHeartbeat(deltaSeconds: number)
 	applyZoneDamage(deltaSeconds)
 	applyRegen(deltaSeconds)
 	AbilityService.step(deltaSeconds)
+	LoadoutService.step(deltaSeconds)
 end
 
 function CombatService.init()
@@ -749,6 +823,7 @@ function CombatService.init()
 
 	Players.PlayerRemoving:Connect(function(player)
 		roster[player] = nil
+		strikeProfile[player] = nil
 		lastAttackAt[player] = nil
 		lastCombatAt[player] = nil
 		lastDashAt[player] = nil
@@ -766,6 +841,16 @@ function CombatService.init()
 	AbilityService.setHealSink(healTo)
 	AbilityService.init()
 
+	-- Le meme puits pour l'equipement : une mine legere et une grenade
+	-- traversent exactement le meme chemin qu'un coup d'epee, donc la reduction
+	-- d'armure, le plafond aux PV restants et le passage par l'agonie
+	-- s'appliquent sans que LoadoutService ait a les connaitre.
+	LoadoutService.setDamageSink(function(entry: Entry, amount: number): number
+		return dealDamage(entry, damageTakenBy(entry, amount, nil))
+	end)
+	LoadoutService.setHealSink(healTo)
+	LoadoutService.init()
+
 	attackRemote.OnServerEvent:Connect(onAttack)
 	RunService.Heartbeat:Connect(onHeartbeat)
 end
@@ -777,10 +862,12 @@ function CombatService.setRoster(entries: { Entry })
 	lastDashAt = {}
 	zoneOwed = {}
 	zoneToldAt = {}
+	strikeProfile = {}
 	for _, entry in entries do
 		roster[entry.player] = entry
 	end
 	AbilityService.setRoster(entries)
+	LoadoutService.setRoster(entries)
 end
 
 -- Les blocs de la Catapulte ne survivent pas a la manche. Appele entre deux
@@ -792,13 +879,16 @@ function CombatService.clearTemporary()
 		folder:ClearAllChildren()
 	end
 	AbilityService.endRound()
+	LoadoutService.endRound()
 end
 
 function CombatService.setActive(value: boolean)
 	active = value
 	AbilityService.setActive(value)
+	LoadoutService.setActive(value)
 	if value then
 		AbilityService.beginRound()
+		LoadoutService.beginRound()
 	end
 end
 

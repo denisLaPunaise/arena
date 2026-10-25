@@ -215,6 +215,40 @@ function Modifiers.apply(config, baseStats, branch, tier: number): { [string]: a
 	return stats
 end
 
+-- Applique un jeu de modifications quelconque : des facteurs, des decalages,
+-- et les memes planchers. C'est par ici que passe l'equipement, et c'est la
+-- raison d'etre de cette fonction — les planchers n'ont le droit d'exister
+-- qu'une seule fois dans tout le projet, et ils sont ici.
+--
+-- L'ORDRE : les facteurs d'abord, les decalages ensuite. Une armure lourde
+-- retire 22 % de la vitesse QUE LE JOUEUR A VRAIMENT, arbre compris, et le
+-- marteau ajoute sa poussee apres avoir multiplie les degats. Dans l'autre
+-- ordre, une branche qui donne de la vitesse en recevrait moins si on portait
+-- une armure, ce qui n'a aucun sens a expliquer.
+function Modifiers.applyDeltas(baseStats, deltas): { [string]: any }
+	local stats: { [string]: any } = table.clone(baseStats)
+	if deltas == nil then
+		return stats
+	end
+
+	for key, factor in deltas.scale or {} do
+		if typeof(stats[key]) == "number" then
+			stats[key] = stats[key] * factor
+		end
+	end
+	for key, amount in deltas.offset or {} do
+		stats[key] = (stats[key] or 0) + amount
+	end
+
+	for key, floor in FLOORS do
+		if stats[key] ~= nil and stats[key] < floor then
+			stats[key] = floor
+		end
+	end
+
+	return stats
+end
+
 -- Ce que la branche a change, pour pouvoir l'afficher au joueur sans lui faire
 -- lire deux tableaux de chiffres. Renvoie une liste de { key, from, to }.
 function Modifiers.differences(

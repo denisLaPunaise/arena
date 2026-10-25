@@ -25,6 +25,7 @@ local suites = {
 	{ name = "Arbre de competences", run = require("./specs/skilltree") },
 	{ name = "Pouvoirs de classe", run = require("./specs/abilities") },
 	{ name = "Bans et tirage", run = require("./specs/draft") },
+	{ name = "Equipement et budget", run = require("./specs/loadout") },
 }
 
 local t = harness.create()

@@ -904,8 +904,22 @@ Config.loadout = {
 	-- beaucoup de joueurs Roblox sont sur telephone.
 	maxItems = 6,
 	minWeapons = 1,
-	maxArmor = 1,
 	allowDuplicateItems = false,
+
+	-- Un seul objet par categorie, sauf les utilitaires. L'armure est le cas
+	-- evident ; l'arme principale et la secondaire le sont moins, mais une
+	-- deuxieme principale ne servirait jamais : la secondaire sort toute seule
+	-- quand la cible est trop loin, donc deux principales veut dire une arme
+	-- payee et jamais utilisee.
+	--
+	-- Les utilitaires n'y figurent pas, et c'est tout l'interet de la
+	-- categorie : c'est la seule ou on peut empiler.
+	maxPerCategory = {
+		primary = 1,
+		secondary = 1,
+		armor = 1,
+		heal = 2,
+	},
 
 	-- Fourchettes de cout par categorie. La puissance d'un objet est portee par
 	-- son cout en points, jamais par sa rarete.
@@ -923,6 +937,32 @@ Config.loadout = {
 	affinityDiscount = 1,
 	affinityItemsPerClassMin = 2,
 	affinityItemsPerClassMax = 3,
+
+	-- L'ECRAN D'EQUIPEMENT ET LES TOUCHES.
+	--
+	-- L'assemblage se modifie entre deux manches, jamais pendant : il est pris
+	-- en compte a l'apparition suivante. Sinon on change d'armure en pleine
+	-- fusillade, et le budget cesse d'etre un choix.
+	editKey = "L",
+
+	-- Les objets consommables occupent des emplacements numerotes, dans l'ordre
+	-- de l'assemblage. Les chiffres plutot qu'une touche par objet : l'objet
+	-- change a chaque partie, le chiffre non.
+	--
+	-- Quatre au maximum, parce que c'est le plus qu'on puisse porter — un soin
+	-- plus trois utilitaires a un point — et parce qu'au-dela l'interface ne
+	-- tient pas sur un ecran de telephone.
+	maxUsableSlots = 4,
+	useKeys = { "One", "Two", "Three", "Four" },
+
+	-- Une demi-seconde entre deux utilisations, toutes charges confondues. Sans
+	-- ca, deux grenades partent dans la meme seconde et la zone devient un
+	-- feu d'artifice.
+	useCooldownSeconds = 0.6,
+
+	-- Les charges reviennent entre deux manches, comme les mines de
+	-- l'Artificier. Une manche est l'unite de reserve du jeu.
+	chargesRefillBetweenRounds = true,
 }
 
 --------------------------------------------------------------------------------
@@ -932,9 +972,229 @@ Config.loadout = {
 -- Cible a terme et contenu du prototype. Douze objets suffisent a tester si le
 -- systeme de budget est bon : s'il n'est pas amusant a douze, il ne le sera pas
 -- davantage a soixante-deux.
+--
+-- Il y en a treize et pas douze, pour une raison precise : avec un seul soin,
+-- la question « est-ce que je paie un point ou deux pour me soigner » ne se
+-- pose pas, et c'est exactement la question que le budget doit faire naitre.
 Config.itemCounts = {
 	target = { primary = 24, secondary = 10, armor = 8, heal = 6, utility = 14 },
-	prototype = { primary = 4, secondary = 2, armor = 2, heal = 1, utility = 3 },
+	prototype = { primary = 4, secondary = 2, armor = 2, heal = 2, utility = 3 },
+}
+
+-- LES OBJETS.
+--
+-- Un objet ne remplace jamais la classe : il la deforme. Ses chiffres sont des
+-- FACTEURS (`scale`) et des DECALAGES (`offset`) appliques aux statistiques de
+-- la classe, comme une branche d'arbre. Un Vampire au marteau frappe donc fort
+-- et lentement, mais reste un Vampire : il garde son vol de vie et ses cent PV.
+--
+-- C'est ce qui evite le piege de l'arme a chiffres absolus, ou toutes les
+-- classes portant la meme arme frappent pareil et ou l'identite de classe
+-- disparait des qu'on ouvre l'equipement.
+--
+-- L'ARME SECONDAIRE N'EST PAS UNE DEUXIEME TOUCHE. Elle sert automatiquement
+-- quand la cible est hors de portee de l'arme principale, et c'est tout ce
+-- qu'elle fait. C'est litteralement ce que la fiche lui demande — « combler un
+-- trou de l'arme principale » — et ca ne coute aucune touche de plus, ce qui
+-- compte sur telephone.
+--
+-- `use` decrit un objet consommable : le joueur l'utilise, il a des charges, et
+-- les charges reviennent entre deux manches. Les objets sans `use` agissent
+-- tout seuls, en permanence.
+Config.items = {
+	------------------------------------------------------------------ principales
+	{
+		id = "machete",
+		category = "primary",
+		cost = 4,
+		name = "Machette",
+		summary = "Melee rapide, portee courte",
+		-- Moins de degats par coup mais une cadence bien plus elevee : environ
+		-- 30 % de degats par seconde en plus, paye par une portee reduite.
+		scale = { attackDamage = 0.85, attackCooldownSeconds = 0.65, attackRangeStuds = 0.8 },
+	},
+	{
+		id = "shotgun",
+		category = "primary",
+		cost = 5,
+		name = "Fusil a pompe",
+		summary = "Devastateur a bout portant, inutile au-dela",
+		-- Le coup double, la cadence s'ecroule, et la portee tombe a environ
+		-- quatre studs : il faut etre colle a sa cible. C'est l'arme qui
+		-- demande le plus de courage du catalogue.
+		scale = { attackDamage = 2, attackCooldownSeconds = 1.45, attackRangeStuds = 0.55 },
+	},
+	{
+		id = "compositeBow",
+		category = "primary",
+		cost = 6,
+		name = "Arc composite",
+		summary = "Longue portee, traverse une partie des armures",
+		-- Trois fois la portee de la classe, pour des degats par seconde un peu
+		-- en dessous : on paie la distance, on ne la recoit pas gratuitement.
+		scale = { attackDamage = 1.15, attackCooldownSeconds = 1.25, attackRangeStuds = 3.2 },
+		-- La moitie de la reduction de degats de la cible est ignoree. C'est le
+		-- seul contre aux armures lourdes du catalogue, et c'est voulu : sans
+		-- lui, l'armure a cinq points n'a aucune reponse.
+		armorPierceRatio = 0.5,
+	},
+	{
+		id = "warhammer",
+		category = "primary",
+		cost = 7,
+		name = "Marteau de guerre",
+		summary = "Degats enormes, tres lent, repousse fort",
+		scale = { attackDamage = 2.4, attackCooldownSeconds = 1.9, attackRangeStuds = 1 },
+		offset = { knockbackStuds = 35, knockbackUpStuds = 10 },
+	},
+
+	------------------------------------------------------------------ secondaires
+	{
+		id = "knife",
+		category = "secondary",
+		cost = 2,
+		name = "Couteau",
+		summary = "Rapide et faible, pour quand on n'a plus rien",
+		scale = { attackDamage = 0.5, attackCooldownSeconds = 0.5, attackRangeStuds = 0.7 },
+	},
+	{
+		id = "smg",
+		category = "secondary",
+		cost = 4,
+		name = "Pistolet-mitrailleur",
+		summary = "Rafale courte, bonne a mi-distance",
+		scale = { attackDamage = 0.8, attackCooldownSeconds = 0.55, attackRangeStuds = 1.8 },
+	},
+
+	---------------------------------------------------------------------- armures
+	{
+		id = "lightArmor",
+		category = "armor",
+		cost = 2,
+		name = "Armure legere",
+		summary = "Reduction legere, aucun malus",
+		offset = { damageTakenRatio = -0.08 },
+	},
+	{
+		id = "heavyArmor",
+		category = "armor",
+		cost = 5,
+		name = "Armure lourde",
+		summary = "Tres forte reduction, grosse perte de vitesse",
+		offset = { damageTakenRatio = -0.28 },
+		scale = { walkSpeed = 0.78 },
+	},
+
+	------------------------------------------------------------------------ soins
+	{
+		id = "stimulant",
+		category = "heal",
+		cost = 1,
+		name = "Stimulant",
+		summary = "Petit soin instantane, une seule charge",
+		-- Instantane : c'est tout ce qu'il a pour lui, et c'est beaucoup. Un
+		-- point pour sortir d'un echange perdu d'un cheveu.
+		use = { kind = "heal", charges = 1, amount = 25, castSeconds = 0 },
+	},
+	{
+		id = "medkit",
+		category = "heal",
+		cost = 2,
+		name = "Trousse de soin",
+		summary = "Soin moyen, deux charges, pose lente",
+		-- Presque deux fois plus de PV pour un point de plus, mais il faut une
+		-- seconde et demie a l'abri, et un seul coup recu annule la pose.
+		use = {
+			kind = "heal",
+			charges = 2,
+			amount = 45,
+			castSeconds = 1.6,
+			interruptedByDamage = true,
+		},
+	},
+
+	------------------------------------------------------------------ utilitaires
+	{
+		id = "lightMine",
+		category = "utility",
+		cost = 1,
+		name = "Mine legere",
+		summary = "Un piege pose au sol, une charge",
+		use = {
+			kind = "mine",
+			charges = 1,
+			damage = 22,
+			radiusStuds = 8,
+			armSeconds = 1.2,
+			knockbackStuds = 28,
+			knockbackUpStuds = 18,
+		},
+	},
+	{
+		id = "grenade",
+		category = "utility",
+		cost = 2,
+		name = "Grenade",
+		summary = "Degats de zone a l'impact, deux charges",
+		-- Elle ne blesse que les adversaires, comme les mines de l'Artificier.
+		-- Les degats aux allies sont un sujet que la fiche n'ouvre jamais, et
+		-- l'ouvrir ici en cachette serait une decision de conception.
+		use = {
+			kind = "grenade",
+			charges = 2,
+			damage = 34,
+			radiusStuds = 12,
+			fuseSeconds = 1.6,
+			throwStuds = 55,
+		},
+	},
+	{
+		id = "deployableShield",
+		category = "utility",
+		cost = 4,
+		name = "Bouclier deployable",
+		summary = "Une couverture posee devant soi, temporaire",
+		-- Il bloque les deux equipes, exactement comme le mur du Forgeron. Une
+		-- couverture qui ne gene que l'adversaire ne serait pas une
+		-- couverture, ce serait un bouclier magique.
+		use = {
+			kind = "shield",
+			charges = 1,
+			seconds = 14,
+			widthStuds = 10,
+			heightStuds = 7,
+			thicknessStuds = 1.6,
+			aheadStuds = 6,
+		},
+	},
+}
+
+-- LES AFFINITES DE CLASSE : un point de moins sur deux ou trois objets.
+--
+-- Le catalogue n'en compte que treize, donc plusieurs classes n'ont ici qu'une
+-- seule affinite, et certaines pointent vers l'equivalent le plus proche de
+-- l'objet que la fiche leur donnait — le Vampire a la machette plutot qu'aux
+-- griffes, qui n'existent pas encore. La liste complete est dans
+-- docs/OBJETS.md et se remplira avec le catalogue.
+--
+-- Aucune affinite ne porte sur un objet a un point : avec la remise il
+-- deviendrait gratuit, et un objet gratuit est pris par tout le monde. Un test
+-- le verifie.
+Config.itemAffinities = {
+	vampire = { "machete", "knife" },
+	colossus = { "warhammer", "deployableShield", "heavyArmor" },
+	tracker = { "compositeBow" },
+	artificer = { "grenade" },
+	spectre = { "machete" },
+	link = { "medkit" },
+	duelist = { "smg", "lightArmor" },
+	smith = { "deployableShield", "lightArmor" },
+	pyromaniac = { "grenade" },
+	decoy = { "smg" },
+	seismic = { "warhammer" },
+	parasite = { "knife" },
+	chameleon = { "knife", "compositeBow" },
+	medic = { "medkit" },
 }
 
 --------------------------------------------------------------------------------
