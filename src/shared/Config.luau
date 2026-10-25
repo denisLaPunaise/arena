@@ -43,8 +43,11 @@ Config.balanceReferenceFormat = "3v3"
 
 Config.match = {
 	-- Premier a quatre manches gagnees, donc sept manches au maximum. Colle a
-	-- l'arbre a six paliers : une serie serree permet d'aller au bout, une
-	-- victoire nette s'arrete au palier 4.
+	-- l'arbre a six paliers : une victoire nette 4-0 donne quatre points et
+	-- mene au palier 5, une serie complete de sept manches en donne sept et
+	-- ouvre le palier 6, qui en coute six a lui seul. C'est ce qui donne son
+	-- prix a une serie qui va au bout. (Verifie par un test : le commentaire
+	-- disait palier 4, c'etait faux.)
 	roundsToWin = 4,
 	maxRounds = 7,
 }
@@ -179,6 +182,120 @@ Config.skillTree = {
 	-- L'arbre est remis a zero a chaque partie : il ne porte aucune progression
 	-- de compte.
 	resetEveryMatch = true,
+
+	-- LES BRANCHES
+	--
+	-- Une branche par partie, verrouillee des qu'elle est choisie. Le palier 1
+	-- est gratuit : il declenche le bonus de depart ET le sacrifice. Les
+	-- paliers 2 a 5 poussent d'un cran le chiffre de la branche. Le palier 6
+	-- donne l'effet nomme, et lui seul.
+	--
+	-- `onUnlock` est le sacrifice : il tombe au palier 1 et ne s'aggrave
+	-- jamais. Une branche est un choix, pas une dette qui se creuse. Il se
+	-- dit de trois facons, selon ce qu'on veut vraiment exprimer :
+	--   onUnlock      ajoute (ou retire) une quantite
+	--   onUnlockScale multiplie — "reduit de moitie"
+	--   onUnlockSet   impose une valeur — "aucun vol de vie" vaut zero, pas
+	--                 moins mille
+	-- `perTier` est le cran, applique autant de fois qu'on a de paliers,
+	-- plafonne a cinq : le sixieme palier n'ajoute pas de cran.
+	--
+	-- `implemented = false` sur un palier 6 veut dire que l'effet est decrit
+	-- mais que le systeme dont il depend n'existe pas encore. Il est alors
+	-- affiche comme indisponible plutot que de ne rien faire en silence.
+	-- A REGLER : tous les chiffres ci-dessous sont des points de depart.
+	branches = {
+		vampire = {
+			{
+				id = "leech",
+				name = "Sangsue",
+				kind = "identity",
+				summary = "Vol de vie accru",
+				sacrifice = "Dégâts bruts plus faibles",
+				onUnlock = { attackDamage = -2.5 },
+				perTier = { lifestealRatio = 0.06 },
+				tier6 = {
+					label = "Le vol de vie fonctionne aussi sur les dégâts de zone",
+					effect = "leechFromZone",
+					implemented = true,
+				},
+			},
+			{
+				id = "beast",
+				name = "Fauve",
+				kind = "range",
+				summary = "Vitesse et dégâts en hausse",
+				sacrifice = "Vol de vie réduit de moitié",
+				onUnlockScale = { lifestealRatio = 0.5 },
+				perTier = { walkSpeed = 1, attackDamage = 1.2 },
+				tier6 = {
+					label = "Un bond court vers la cible, longue recharge",
+					effect = "dash",
+					implemented = true,
+				},
+			},
+			{
+				id = "plague",
+				name = "Peste",
+				kind = "resilience",
+				summary = "Les dégâts se propagent aux ennemis proches",
+				sacrifice = "Aucun vol de vie",
+				onUnlockSet = { lifestealRatio = 0 },
+				perTier = { spreadRadiusStuds = 1.6, spreadRatio = 0.05 },
+				tier6 = {
+					label = "La propagation ignore les armures",
+					effect = "spreadPiercesArmor",
+					-- Il n'y a pas encore d'armures a ignorer.
+					implemented = false,
+				},
+			},
+		},
+		colossus = {
+			{
+				id = "ram",
+				name = "Bélier",
+				kind = "identity",
+				summary = "La poussée devient une charge qui blesse",
+				sacrifice = "Des PV maximum",
+				onUnlock = { maxHealth = -20 },
+				perTier = { knockbackDamage = 4, knockbackStuds = 4 },
+				tier6 = {
+					label = "La charge traverse plusieurs ennemis",
+					effect = "chargePierces",
+					implemented = true,
+				},
+			},
+			{
+				id = "catapult",
+				name = "Catapulte",
+				kind = "range",
+				summary = "Il projette un bloc à distance moyenne",
+				sacrifice = "Sa poussée au contact",
+				onUnlockSet = { knockbackStuds = 0, knockbackUpStuds = 0 },
+				perTier = { thrownDamage = 3, thrownRangeStuds = 4 },
+				tier6 = {
+					label = "Le bloc laisse un obstacle quelques secondes",
+					effect = "thrownLeavesCover",
+					implemented = true,
+				},
+			},
+			{
+				id = "monolith",
+				name = "Monolithe",
+				kind = "resilience",
+				summary = "Réduction des dégâts reçus à distance",
+				sacrifice = "Encore de la vitesse",
+				onUnlock = { walkSpeed = -2 },
+				perTier = { rangedDamageReduction = 0.05 },
+				tier6 = {
+					label = "Immobile deux secondes : immunité aux projectiles",
+					effect = "projectileImmunity",
+					-- Il n'y a pas encore de projectiles.
+					implemented = false,
+				},
+			},
+		},
+	},
 
 	-- Les points en reserve, une fois l'arbre termine, vont aux ameliorations
 	-- communes a toutes les classes.

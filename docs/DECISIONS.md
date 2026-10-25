@@ -159,6 +159,54 @@ ne la fait.
 
 ---
 
+## 25 octobre 2026 — L'étape 4
+
+### Une victoire nette mène au palier 5, pas 4
+
+**Constaté, pas décidé :** `Config.luau` affirmait qu'une victoire nette
+s'arrêtait au palier 4 de l'arbre. C'est faux : une partie 4-0 donne quatre
+points utilisables, et les paliers 2 à 5 coûtent un point chacun, donc on
+atteint le palier 5. Le palier 6 en coûte deux de plus et demande une série de
+sept manches.
+
+Le commentaire est corrigé et un test le fige désormais. Le principe que le
+commentaire voulait exprimer — une série serrée doit valoir la peine d'être
+jouée jusqu'au bout — reste vrai, et il est même plus net qu'annoncé : seul un
+7 manches ouvre le dernier palier.
+
+### Un effet décrit mais pas codé se déclare indisponible
+
+**Décidé :** chaque palier 6 porte un drapeau `implemented`. Quand il est faux,
+`SkillTree.activeTier6Effect` renvoie `nil` et l'interface affiche l'option
+comme indisponible, au lieu de la proposer et de ne rien faire.
+
+**Pourquoi :** deux paliers 6 dépendent de systèmes qui n'existent pas encore —
+« la propagation ignore les armures » (pas d'armures) et « immunité aux
+projectiles » (pas de projectiles). Une option qui se vend deux points et ne
+fait rien est pire qu'une option absente : le joueur croit avoir mal compris.
+
+**Pour revenir dessus :** passer le drapeau à `true` quand le système arrive.
+
+### Trois façons d'écrire un sacrifice
+
+**Décidé :** `onUnlock` ajoute ou retire, `onUnlockScale` multiplie,
+`onUnlockSet` impose une valeur.
+
+**Pourquoi :** « aucun vol de vie » vaut zéro, pas moins mille. Mon premier jet
+écrivait `knockbackStuds = -1000` pour annuler une poussée, ce qui marche par
+accident et ment sur l'intention.
+
+### Des planchers sur les statistiques
+
+**Décidé :** aucune branche ne peut descendre un joueur sous 20 PV, 4 de
+vitesse ou 1 de dégâts.
+
+**Pourquoi :** ce sont des garde-fous, pas de l'équilibrage. Si une branche
+touche un plancher, c'est que ses chiffres sont à revoir — mais entre-temps,
+personne ne se retrouve immobile et invincible-par-erreur dans une partie.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

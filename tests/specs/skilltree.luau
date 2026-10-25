@@ -1,0 +1,230 @@
+--!strict
+--[[
+	Tests de l'arbre de competences.
+
+	Trois choses sont verifiees ici, et ce sont celles qui cassent l'equilibrage
+	si elles derivent :
+
+	  - combien de points une partie donne vraiment, selon qu'elle est courte
+	    ou serree. C'est ce qui decide si le palier 6 vaut la peine d'exister.
+	  - que le sacrifice d'une branche tombe une seule fois et ne se cumule pas
+	    d'une manche a l'autre.
+	  - que le point de revanche reste une option et pas un rattrapage
+	    automatique.
+]]
+
+local Config = require("../../src/shared/Config")
+local Modifiers = require("../../src/shared/Modifiers")
+local SkillTree = require("../../src/shared/SkillTree")
+
+local harness = require("../harness")
+
+return function(t: harness.Harness)
+	local tree = Config.skillTree
+
+	t.section("Le cout d'une branche complete")
+
+	t.equal("aller au bout coute six points", SkillTree.fullBranchCost(Config), 6)
+	t.equal("le premier palier est gratuit", tree.tierCosts[1], 0)
+	t.equal("le dernier en coute deux", tree.tierCosts[tree.tiers], 2)
+
+	t.section("Combien de points une partie donne")
+
+	-- Une partie de M manches donne M points utilisables : un avant la
+	-- premiere, puis un par fin de manche, et celui de la derniere ne sert
+	-- plus a rien.
+	t.equal("une partie de 4 manches donne 4 points", SkillTree.usablePoints(Config, 4), 4)
+	t.equal("une partie de 7 manches en donne 7", SkillTree.usablePoints(Config, 7), 7)
+
+	-- A quel palier on arrive avec N points, en montant tout ce qu'on peut.
+	local function tierReachedWith(points: number): number
+		local state = SkillTree.create("vampire")
+		state.pointsEarned = points
+		SkillTree.chooseBranch(Config, state, "leech")
+		while SkillTree.advance(Config, state) do
+		end
+		return state.tier
+	end
+
+	-- Une victoire nette en 4 manches : la serie courte n'ouvre pas le palier
+	-- 6, et c'est ce qui donne son prix a une serie qui va au bout.
+	t.equal("une victoire 4-0 mene au palier 5", tierReachedWith(4), 5)
+	t.equal("une serie complete de 7 manches ouvre le palier 6", tierReachedWith(7), 6)
+	t.check("et il reste un point en reserve", 7 - SkillTree.fullBranchCost(Config) == 1)
+
+	t.section("Le choix de branche")
+
+	local state = SkillTree.create("vampire")
+	t.equal("on commence sans branche", state.branchId, nil)
+	t.equal("et au palier zero", state.tier, 0)
+	t.check("on ne peut pas monter sans branche", SkillTree.canAdvance(Config, state) == false)
+
+	t.check(
+		"une branche inconnue est refusee",
+		SkillTree.chooseBranch(Config, state, "inexistante") == false
+	)
+	t.check(
+		"choisir une vraie branche marche",
+		SkillTree.chooseBranch(Config, state, "leech") == true
+	)
+	t.equal("le palier 1 est atteint tout de suite", state.tier, 1)
+	t.equal("et il n'a rien coute", state.pointsSpent, 0)
+
+	-- Le verrou : la fiche dit que le choix tient jusqu'a la fin de la partie.
+	t.check(
+		"on ne change plus de branche ensuite",
+		SkillTree.chooseBranch(Config, state, "beast") == false
+	)
+	t.equal("la branche n'a pas bouge", state.branchId, "leech")
+
+	t.section("Monter les paliers")
+
+	t.check("sans point, on ne monte pas", SkillTree.canAdvance(Config, state) == false)
+	SkillTree.grantStartingPoints(Config, state)
+	t.equal("un point avant la premiere manche", SkillTree.availablePoints(state), 1)
+	t.check("et on peut monter", SkillTree.advance(Config, state) == true)
+	t.equal("palier 2", state.tier, 2)
+	t.equal("le point est depense", SkillTree.availablePoints(state), 0)
+
+	state.pointsEarned += 10
+	while SkillTree.advance(Config, state) do
+	end
+	t.equal("avec assez de points on va au bout", state.tier, tree.tiers)
+	t.check("et la branche est terminee", SkillTree.isComplete(Config, state) == true)
+	t.equal("il n'y a plus de palier suivant", SkillTree.costOfNextTier(Config, state), nil)
+	t.check("on ne monte plus", SkillTree.advance(Config, state) == false)
+	t.equal("le total depense fait bien six", state.pointsSpent, 6)
+
+	t.section("Le point de revanche")
+
+	local loser = SkillTree.create("colossus")
+	SkillTree.grantRoundEnd(Config, loser, false)
+	SkillTree.grantRoundEnd(Config, loser, false)
+	t.equal("deux defaites ne declenchent rien", loser.pointsEarned, tree.pointsPerRoundEnd * 2)
+	t.check("et rien n'est consomme", loser.comebackUsed == false)
+
+	local granted = SkillTree.grantRoundEnd(Config, loser, false)
+	t.equal(
+		"la troisieme defaite d'affilee donne un point de plus",
+		granted,
+		tree.pointsPerRoundEnd + tree.comebackPoint.points
+	)
+	t.check("le point de revanche est consomme", loser.comebackUsed == true)
+
+	SkillTree.grantRoundEnd(Config, loser, false)
+	local again = SkillTree.grantRoundEnd(Config, loser, false)
+	t.equal("il ne revient pas une seconde fois dans la partie", again, tree.pointsPerRoundEnd)
+
+	-- Une victoire remet le compteur a zero : la revanche recompense une serie
+	-- noire, pas un cumul de defaites eparpillees.
+	local mixed = SkillTree.create("vampire")
+	SkillTree.grantRoundEnd(Config, mixed, false)
+	SkillTree.grantRoundEnd(Config, mixed, false)
+	SkillTree.grantRoundEnd(Config, mixed, true)
+	t.equal("une victoire efface la serie", mixed.consecutiveLosses, 0)
+	SkillTree.grantRoundEnd(Config, mixed, false)
+	t.check("et la revanche n'est pas declenchee", mixed.comebackUsed == false)
+
+	t.section("Le sacrifice tombe une fois, les crans s'empilent")
+
+	local base = Config.classStats.vampire
+	local leech = SkillTree.findBranch(Config, "vampire", "leech")
+
+	local atOne = Modifiers.apply(Config, base, leech, 1)
+	local atFive = Modifiers.apply(Config, base, leech, 5)
+	local atSix = Modifiers.apply(Config, base, leech, 6)
+
+	t.equal(
+		"le sacrifice est le meme au palier 1 et au palier 5",
+		atOne.attackDamage,
+		atFive.attackDamage - 0
+	)
+	t.check("les degats ont bien baisse", atOne.attackDamage < base.attackDamage)
+	t.check("le vol de vie monte avec les paliers", atFive.lifestealRatio > atOne.lifestealRatio)
+	t.equal("le palier 6 n'ajoute pas de cran", atSix.lifestealRatio, atFive.lifestealRatio)
+	t.equal("les statistiques de base ne sont jamais ecrasees", base.lifestealRatio, 0.35)
+
+	t.section("Chaque branche fait vraiment ce qu'elle annonce")
+
+	local beast = SkillTree.findBranch(Config, "vampire", "beast")
+	local beastFive = Modifiers.apply(Config, base, beast, 5)
+	t.check("le Fauve va plus vite", beastFive.walkSpeed > base.walkSpeed)
+	t.check("il frappe plus fort", beastFive.attackDamage > base.attackDamage)
+	t.check("et son vol de vie est bien ampute", beastFive.lifestealRatio < base.lifestealRatio)
+
+	local plague = SkillTree.findBranch(Config, "vampire", "plague")
+	local plagueOne = Modifiers.apply(Config, base, plague, 1)
+	t.equal("la Peste supprime tout le vol de vie", plagueOne.lifestealRatio, 0)
+
+	local colossusBase = Config.classStats.colossus
+	local ram = SkillTree.findBranch(Config, "colossus", "ram")
+	local ramFive = Modifiers.apply(Config, colossusBase, ram, 5)
+	t.check("le Belier perd des PV", ramFive.maxHealth < colossusBase.maxHealth)
+	t.check("et pousse plus fort", ramFive.knockbackStuds > colossusBase.knockbackStuds)
+
+	local catapult = SkillTree.findBranch(Config, "colossus", "catapult")
+	local catapultOne = Modifiers.apply(Config, colossusBase, catapult, 1)
+	t.equal("la Catapulte perd sa poussee au contact", catapultOne.knockbackStuds, 0)
+
+	t.section("Les planchers tiennent")
+
+	local brutal = {
+		id = "test",
+		onUnlock = { maxHealth = -10000, walkSpeed = -10000, attackDamage = -10000 },
+	}
+	local floored = Modifiers.apply(Config, colossusBase, brutal, 3)
+	t.check("personne ne tombe a zero PV", floored.maxHealth > 0)
+	t.check("personne n'est immobilise par une branche", floored.walkSpeed > 0)
+	t.check("et tout le monde fait au moins un degat", floored.attackDamage > 0)
+
+	t.section("Le palier 6 ne ment pas")
+
+	local complete = SkillTree.create("vampire")
+	SkillTree.chooseBranch(Config, complete, "plague")
+	complete.pointsEarned = 20
+	while SkillTree.advance(Config, complete) do
+	end
+
+	-- La Peste du palier 6 ignore les armures, et il n'y a pas encore
+	-- d'armures : l'effet doit se declarer indisponible, pas ne rien faire.
+	t.equal(
+		"un effet decrit mais pas code ne s'active pas",
+		SkillTree.activeTier6Effect(Config, complete),
+		nil
+	)
+
+	local coded = SkillTree.create("vampire")
+	SkillTree.chooseBranch(Config, coded, "leech")
+	coded.pointsEarned = 20
+	while SkillTree.advance(Config, coded) do
+	end
+	t.equal("un effet code s'active", SkillTree.activeTier6Effect(Config, coded), "leechFromZone")
+
+	t.section("Les branches des deux classes du prototype sont bien formees")
+
+	for _, classId in { "vampire", "colossus" } do
+		local branches = SkillTree.branchesFor(Config, classId)
+		t.equal(string.format("%s a trois branches", classId), #branches, 3)
+
+		local kinds: { [string]: number } = {}
+		for _, branch in branches do
+			kinds[branch.kind] = (kinds[branch.kind] or 0) + 1
+			t.check(
+				string.format("%s / %s est complete", classId, branch.id),
+				branch.name ~= nil
+					and branch.summary ~= nil
+					and branch.sacrifice ~= nil
+					and branch.tier6 ~= nil
+					and branch.tier6.label ~= nil
+					and branch.tier6.effect ~= nil
+			)
+		end
+
+		-- Une branche d'identite, une de distance, une de resilience : trois
+		-- problemes differents, pas trois saveurs du meme pouvoir.
+		t.check(
+			string.format("%s couvre les trois questions", classId),
+			kinds.identity == 1 and kinds.range == 1 and kinds.resilience == 1
+		)
+	end
+end
