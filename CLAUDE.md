@@ -96,6 +96,17 @@ Ne jamais ajouter `Workspace` à `default.project.json` : Rojo écraserait le
 travail de construction. Les maps ne sont pas dans Git, et le fichier `.rbxl`
 non plus.
 
+**Les maps se sauvegardent en recette, pas en fichier.** Une map n'est ni dans
+Git ni dans Rojo : elle n'existe que dans la place, et une fausse manoeuvre la
+supprime sans trace. La parade est `tools/`, qui contient un script par map —
+`tools/BuildArenaMap.luau` pour l'arène de duel. On le colle dans la barre de
+commande de Studio et il reconstruit tout à l'identique, en détruisant d'abord
+la version précédente. `tools/` est hors du projet Rojo et hors de `selene src` :
+ce n'est pas du code de jeu, ça ne tourne jamais en partie.
+
+Donc : **toute map construite dans Studio doit repartir avec son script dans
+`tools/`**, sinon elle n'est pas sauvegardée.
+
 **Le contrat de nommage** est la seule interface entre le code et les maps.
 Chaque map doit contenir `SpawnsA` et `SpawnsB` (cinq points chacun), une part
 `ZoneCenter`, un dossier `Cover` et une part `MapBounds`. Les noms exacts sont
