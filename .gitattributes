@@ -1,0 +1,8 @@
+# Fins de ligne en LF partout, y compris dans la copie de travail Windows :
+# StyLua est configure en LF, et sans ca `stylua --check` echoue en local
+# alors qu'il passe sur le robot GitHub.
+* text=auto eol=lf
+
+# Fichiers de place Roblox : binaires, jamais a fusionner.
+*.rbxl binary
+*.rbxm binary

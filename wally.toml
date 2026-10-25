@@ -1,0 +1,10 @@
+[package]
+name = "denislapunaise/arena"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+license = "MIT"
+
+# Aucune dependance pour l'instant, et c'est voulu : on n'ajoute un paquet
+# que quand il remplace du code qu'on aurait ecrit soi-meme.
+[dependencies]

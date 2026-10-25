@@ -1,0 +1,4 @@
+std = "roblox"
+
+# Les definitions Roblox se regenerent avec `selene generate-roblox-std`
+# (le fichier roblox.yml produit n'est pas versionne).

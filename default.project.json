@@ -1,0 +1,26 @@
+{
+	"name": "Arena",
+	"tree": {
+		"$className": "DataModel",
+
+		"ReplicatedStorage": {
+			"Arena": {
+				"$path": "src/shared"
+			}
+		},
+
+		"ServerScriptService": {
+			"Arena": {
+				"$path": "src/server"
+			}
+		},
+
+		"StarterPlayer": {
+			"StarterPlayerScripts": {
+				"Arena": {
+					"$path": "src/client"
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  verifier:
+    name: Format, lint, tests et build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer Rokit
+        run: |
+          curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
+          echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+
+      - name: Installer les outils du projet
+        run: rokit install --no-trust-check
+
+      - name: Verifier le formatage (StyLua)
+        run: stylua --check .
+
+      - name: Generer les definitions Roblox pour Selene
+        run: selene generate-roblox-std
+
+      - name: Analyser le code (Selene)
+        run: selene src
+
+      - name: Lancer les tests de logique pure (Lune)
+        run: lune run tests/run
+
+      - name: Verifier que le projet Rojo se construit
+        run: rojo build --output /tmp/arena.rbxl

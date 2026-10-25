@@ -1,0 +1,10 @@
+# Rokit installe et verrouille la version de chaque outil du projet.
+# `rokit install` dans ce dossier suffit pour tout mettre en place.
+# Les versions sont volontairement figées : tout le monde travaille avec les memes.
+
+[tools]
+rojo = "rojo-rbx/rojo@7.7.1"
+wally = "UpliftGames/wally@0.3.2"
+stylua = "JohnnyMorganz/StyLua@2.6.0"
+selene = "Kampfkarren/selene@0.32.0"
+lune = "lune-org/lune@0.11.1"

@@ -1,0 +1,20 @@
+# Fichiers de place Roblox : la map vit dans Team Create, pas dans Git.
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxm
+*.rbxmx
+
+# Dependances installees par Wally
+/Packages/
+/ServerPackages/
+/DevPackages/
+
+# Definitions Roblox generees par Selene
+roblox.yml
+
+# Systeme / OneDrive
+desktop.ini
+Thumbs.db
+.DS_Store
