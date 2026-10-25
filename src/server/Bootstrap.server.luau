@@ -14,7 +14,9 @@ local Config = require(Arena:WaitForChild("Config"))
 local Classes = require(Arena:WaitForChild("Classes"))
 
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
+local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local MatchService = require(script.Parent:WaitForChild("MatchService"))
+local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
 local function count(list): number
 	local n = 0
@@ -50,7 +52,18 @@ print(
 		Config.prototype.roundsToWin
 	)
 )
+print(
+	string.format(
+		"[Arena] Zone %s · agonie %s",
+		if Config.round.zoneEnabled then "activée" else "coupée",
+		if Config.downed.enabled then "activée" else "coupée"
+	)
+)
 print("================================================")
 
+-- L'ordre compte : DownedService et ZoneService branchent leurs boucles avant
+-- que CombatService ne les interroge, et MatchService demarre en dernier.
+DownedService.init()
+ZoneService.init()
 CombatService.init()
 MatchService.start()

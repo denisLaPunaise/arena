@@ -18,7 +18,7 @@ local Config = {}
 -- Numero de version du reglage, affiche au demarrage. A incrementer quand on
 -- change un chiffre qui modifie l'equilibrage, pour savoir de quoi on parle
 -- quand on compare deux sessions de test.
-Config.version = 2
+Config.version = 3
 
 --------------------------------------------------------------------------------
 -- LE CADRE : formats de partie
@@ -61,6 +61,24 @@ Config.round = {
 	-- Compte a rebours avant le premier resserrement : la zone doit etre
 	-- lisible, sinon les joueurs trouvent le systeme injuste.
 	zoneWarningSeconds = 10,
+
+	-- La zone peut etre coupee pour comparer une manche avec et sans.
+	zoneEnabled = true,
+
+	-- Rayon de depart deduit de la largeur de MapBounds, pour qu'une petite
+	-- arene et une grande se referment toutes les deux correctement sans qu'on
+	-- touche a un chiffre. A 0.5, la zone couvre la map entiere au depart.
+	zoneStartRadiusMapRatio = 0.5,
+	-- Quand la map n'a pas de MapBounds exploitable.
+	zoneStartRadiusFallbackStuds = 140,
+	-- Rayon final : assez large pour que le duel final ait lieu, trop etroit
+	-- pour qu'on puisse encore fuir. C'est ce chiffre qui decide si la fin de
+	-- manche est un affrontement ou une course-poursuite.
+	zoneFinalRadiusStuds = 16,
+
+	-- Hauteur du cylindre affiche. Purement visuel : les degats ne regardent
+	-- que la distance horizontale au centre.
+	zoneHeightStuds = 200,
 }
 
 --------------------------------------------------------------------------------
@@ -71,11 +89,20 @@ Config.round = {
 -- Consequence : tant qu'un joueur est en agonie, son equipe n'est pas encore
 -- eliminee et la manche continue.
 Config.downed = {
+	-- L'agonie peut etre coupee : la manche revient alors a l'elimination
+	-- directe de l'etape 2, ce qui permet de comparer les deux.
+	enabled = true,
+
 	windowSeconds = 10,
 	-- Un joueur a terre rampe a environ un quart de sa vitesse normale.
 	crawlSpeedRatio = 0.25,
 	-- Le relevement doit laisser le temps d'arriver sans etre gratuit.
 	reviveSeconds = 4,
+	-- Il faut etre au contact : relever de loin annulerait le risque pris.
+	reviveRangeStuds = 8,
+	-- Un joueur releve repart diminue. Sinon tomber ne coute rien et la fenetre
+	-- d'agonie ne fait qu'allonger les manches.
+	reviveHealthRatio = 0.4,
 	-- Le moindre degat interrompt le relevement.
 	reviveInterruptedByDamage = true,
 	-- Un joueur a terre peut etre acheve : sans ca l'attaquant n'a aucun moyen
@@ -340,10 +367,11 @@ Config.camera = {
 -- LE PROTOTYPE
 --------------------------------------------------------------------------------
 
--- Etape 2 du plan de construction : deux joueurs, deux classes, une surface
--- plane, trois manches. Pas d'arbre, pas d'equipement, pas de zone qui se
--- referme, pas de fenetre d'agonie. Tout ca vient apres, et seulement si le
--- duel est deja amusant comme ca.
+-- Deux joueurs, deux classes, une surface plane, trois manches. L'etape 3 y a
+-- ajoute la zone qui se referme et la fenetre d'agonie : les deux se coupent
+-- depuis Config.round.zoneEnabled et Config.downed.enabled, pour pouvoir
+-- comparer une manche avec et une manche sans.
+-- Pas encore d'arbre, pas encore d'equipement.
 Config.prototype = {
 	enabled = true,
 	classes = { "vampire", "colossus" },

@@ -20,6 +20,8 @@ local suites = {
 	{ name = "Classes", run = require("./specs/classes") },
 	{ name = "Score de partie", run = require("./specs/matchstate") },
 	{ name = "Combat", run = require("./specs/combat") },
+	{ name = "Zone qui se referme", run = require("./specs/zone") },
+	{ name = "Agonie et relevement", run = require("./specs/downed") },
 }
 
 local t = harness.create()

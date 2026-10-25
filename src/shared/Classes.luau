@@ -11,6 +11,12 @@
 	Vampire contre le Colosse sur une map vide. Les douze autres ne se codent
 	qu'une fois ce duel amusant.
 
+	`needsAllies = true` marque les trois classes dont le pouvoir cible un
+	coequipier. Elles sont retirees du tirage en 1v1 : sans allie leurs trois
+	branches d'arbre sont vides, et comme le miroir donne la meme classe aux
+	deux joueurs, le duel se jouerait a pouvoirs eteints des deux cotes. La
+	raison du choix est dans docs/DECISIONS.md.
+
 	Ce module ne contient aucun chiffre d'equilibrage : ils vont dans Config.
 	Il ne requiert rien et ne touche a aucune API Roblox.
 ]]
@@ -61,6 +67,7 @@ Classes.all = {
 		power = "Partage ses PV avec un allie cible",
 		weakness = "Subit la moitie des degats de l'allie",
 		role = "Soutien",
+		needsAllies = true,
 	},
 	{
 		id = "duelist",
@@ -89,6 +96,7 @@ Classes.all = {
 		power = "Pilote un clone qui attire l'attention",
 		weakness = "Reste immobile et vulnerable pendant qu'il le pilote",
 		role = "Diversion",
+		needsAllies = true,
 	},
 	{
 		id = "seismic",
@@ -117,10 +125,24 @@ Classes.all = {
 		power = "Remet debout un allie pendant sa fenetre d'agonie",
 		weakness = "Relevement long, visible et interruptible",
 		role = "Anti-elimination",
+		needsAllies = true,
 	},
 }
 
 -- Acces par identifiant, construit une seule fois au chargement du module.
+-- Les classes qui peuvent sortir au tirage pour ce format. En 1v1 on retire
+-- celles qui ont besoin d'un coequipier ; partout ailleurs, les quatorze.
+function Classes.drawable(playersPerTeam: number): { any }
+	local list: { any } = {}
+	for _, class in Classes.all do
+		if playersPerTeam <= 1 and class.needsAllies then
+			continue
+		end
+		table.insert(list, class)
+	end
+	return list
+end
+
 local byId: { [string]: any } = {}
 for _, class in Classes.all do
 	byId[class.id] = class

@@ -3,15 +3,21 @@
 	Bootstrap — point d'entree client.
 
 	Deux responsabilites, et pas une de plus : envoyer l'intention d'attaque,
-	et afficher ce que le serveur annonce. Aucun calcul de degats, aucune
-	decision : le serveur est seul juge.
+	et afficher ce que le serveur annonce. Aucun calcul de degats, aucun compte
+	a rebours tenu ici, aucune decision : le serveur est seul juge et le client
+	ne fait que peindre ce qu'on lui dit.
 
 	L'attaque est sur le clic ET sur le tap, parce qu'une bonne partie des
 	joueurs Roblox sont sur telephone.
+
+	Le bandeau rouge en haut et en bas sert a une chose : rendre l'etat du
+	joueur lisible sans qu'il ait a lire. A terre, l'ecran bat. Hors de la zone,
+	il rougit. Un texte seul se rate au milieu d'un combat.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
@@ -21,6 +27,12 @@ local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+
+local DOWNED_COLOR = Color3.fromRGB(190, 40, 40)
+local ZONE_COLOR = Color3.fromRGB(200, 90, 40)
+local OUT_COLOR = Color3.fromRGB(10, 10, 14)
+
+local BAND_HEIGHT = 0.22
 
 local function makeLabel(name: string, size: UDim2, position: UDim2, textSize: number): TextLabel
 	local label = Instance.new("TextLabel")
@@ -35,7 +47,31 @@ local function makeLabel(name: string, size: UDim2, position: UDim2, textSize: n
 	label.TextSize = textSize
 	label.TextScaled = false
 	label.Text = ""
+	label.ZIndex = 5
 	return label
+end
+
+-- Un bandeau degrade, opaque sur le bord de l'ecran et transparent vers le
+-- centre : la vue reste degagee, mais le bord de l'ecran change de couleur.
+local function makeBand(name: string, atTop: boolean): Frame
+	local band = Instance.new("Frame")
+	band.Name = name
+	band.Size = UDim2.fromScale(1, BAND_HEIGHT)
+	band.Position = if atTop then UDim2.fromScale(0, 0) else UDim2.fromScale(0, 1 - BAND_HEIGHT)
+	band.BackgroundColor3 = DOWNED_COLOR
+	band.BackgroundTransparency = 1
+	band.BorderSizePixel = 0
+	band.ZIndex = 1
+
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = if atTop then 90 else 270
+	gradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	gradient.Parent = band
+
+	return band
 end
 
 local gui = Instance.new("ScreenGui")
@@ -44,24 +80,90 @@ gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.Parent = playerGui
 
+local topBand = makeBand("TopBand", true)
+topBand.Parent = gui
+
+local bottomBand = makeBand("BottomBand", false)
+bottomBand.Parent = gui
+
 local status = makeLabel("Status", UDim2.fromScale(1, 0.06), UDim2.fromScale(0.5, 0.06), 20)
 status.Parent = gui
 
 local title = makeLabel("Title", UDim2.fromScale(1, 0.14), UDim2.fromScale(0.5, 0.3), 44)
+title.Font = Enum.Font.GothamBold
 title.Parent = gui
+
+local zone = makeLabel("Zone", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.88), 18)
+zone.Parent = gui
 
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
 hint.Text = "Clic ou tap pour frapper"
 hint.TextTransparency = 0.35
 hint.Parent = gui
 
+--------------------------------------------------------------------------------
+-- L'ETAT AFFICHE
+--------------------------------------------------------------------------------
+
+-- "downed", "out", ou vide. Pilote la couleur et le battement des bandeaux.
+local alert = ""
+-- Vrai quand la ligne de zone annonce qu'on est dehors.
+local outsideZone = false
+
+local function setBandColor(color: Color3)
+	topBand.BackgroundColor3 = color
+	bottomBand.BackgroundColor3 = color
+end
+
+local function setBandTransparency(value: number)
+	topBand.BackgroundTransparency = value
+	bottomBand.BackgroundTransparency = value
+end
+
+local function onRenderStep()
+	if alert == "out" then
+		setBandColor(OUT_COLOR)
+		setBandTransparency(0.25)
+		return
+	end
+
+	if alert == "downed" then
+		-- Un battement lent : l'urgence se voit du coin de l'oeil.
+		setBandColor(DOWNED_COLOR)
+		setBandTransparency(0.45 + (0.25 * math.sin(os.clock() * 4)))
+		return
+	end
+
+	if outsideZone then
+		setBandColor(ZONE_COLOR)
+		setBandTransparency(0.6 + (0.15 * math.sin(os.clock() * 6)))
+		return
+	end
+
+	setBandTransparency(1)
+end
+
 hudRemote.OnClientEvent:Connect(function(payload)
 	if typeof(payload) ~= "table" then
 		return
 	end
+
 	title.Text = payload.title or ""
 	status.Text = payload.status or ""
+
+	local zoneText = payload.zone or ""
+	zone.Text = zoneText
+	outsideZone = string.find(zoneText, "HORS", 1, true) ~= nil
+
+	-- Le serveur envoie l'alerte a chaque rafraichissement : on la remplace,
+	-- on ne la cumule pas.
+	alert = payload.alert or ""
+
+	zone.TextColor3 = if outsideZone then ZONE_COLOR else Color3.fromRGB(255, 255, 255)
+	title.TextColor3 = if alert == "downed" then DOWNED_COLOR else Color3.fromRGB(255, 255, 255)
 end)
+
+RunService.RenderStepped:Connect(onRenderStep)
 
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 	if processed then

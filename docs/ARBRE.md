@@ -174,27 +174,23 @@ Les trois branches viennent de la fiche, inchangées.
 
 ---
 
-## Deux choses à trancher avant que je code
+## Les deux questions ouvertes sont tranchées
 
-**Le 1v1 miroir casse trois classes.** Le Lien, l'Infirmier et, à un moindre
-degré, le Leurre ont un pouvoir qui cible un allié. En 1v1 il n'y a pas d'allié :
-leurs trois branches deviennent inutiles, et comme le miroir donne la même classe
-aux deux joueurs, le duel se joue à pouvoirs éteints des deux côtés. C'est
-équilibré et c'est creux.
+Josh a validé cette liste le 25 octobre 2026 et m'a laissé trancher les deux
+points restants. Le raisonnement complet est dans [DECISIONS.md](DECISIONS.md) ;
+voici le résultat.
 
-Deux réponses possibles, et c'est toi qui choisis :
-- **Exclure ces classes du tirage en 1v1.** Simple, honnête, trois lignes de
-  code. Le 1v1 se joue sur onze classes au lieu de quatorze.
-- **Leur donner un effet de repli en 1v1** : le Lien se lie à lui-même et
-  convertit le partage en réduction de dégâts, l'Infirmier se relève lui-même une
-  fois par manche. Plus riche, mais c'est deux pouvoirs de plus à équilibrer, et
-  ça fait exister une classe qui n'est pas la même selon le format.
+**Le 1v1 se joue sur onze classes.** Le Lien, le Leurre et l'Infirmier ont un
+pouvoir qui cible un coéquipier : sans allié, leurs trois branches sont vides, et
+comme le 1v1 est miroir, le duel se jouerait à pouvoirs éteints des deux côtés.
+Elles sont retirées du tirage dans ce format. L'autre option — leur donner un
+effet de repli — violait le principe que deux exemplaires de la même chose sont
+identiques.
 
-Je penche pour l'exclusion : le 1v1 est un format annexe, et le second choix
-viole l'idée que deux exemplaires de la même chose sont identiques.
+C'est codé : le drapeau `needsAllies` dans `src/shared/Classes.luau`, et des
+tests qui cassent si quelqu'un déplace un drapeau.
 
-**Garrot retire le pouvoir de l'Infirmier.** C'est volontaire et c'est conforme
-au modèle de la fiche — Peste retire bien tout le vol de vie du Vampire. Mais
-l'Infirmier est la classe la plus délicate du jeu, et une branche qui le
-transforme en soigneur classique est peut-être la bonne soupape, ou peut-être
-une classe fantôme que personne ne prendra. À surveiller en premier.
+**Garrot reste tel quel.** Retirer complètement le relèvement à l'Infirmier est
+le même modèle que Peste chez le Vampire, et ce modèle ne souffre pas d'exception
+sans raison. Mais c'est la branche à surveiller en premier : si personne ne la
+prend jamais, il faudra la remplacer, pas l'adoucir.

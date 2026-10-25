@@ -3,11 +3,16 @@
 	CombatService — la couche mince qui applique le combat aux personnages.
 
 	Tout le calcul est dans Combat, qui est pur et teste hors de Studio. Ici on
-	ne fait que trois choses que seul Roblox sait faire : trouver la cible la
-	plus proche, poser les PV sur le Humanoid, et pousser un personnage.
+	ne fait que ce que seul Roblox sait faire : trouver la cible la plus proche,
+	poser les PV sur le Humanoid, et pousser un personnage.
 
 	Le serveur est seul juge : le client envoie une intention d'attaque, c'est
 	tout. La recharge est verifiee ici, jamais cote client.
+
+	Ce module est le SEUL endroit du jeu ou des PV sont retires. Les coups, la
+	zone qui se referme et le coup de grace passent tous par dealDamage. Deux
+	chemins differents vers les degats, ce serait deux occasions de laisser un
+	joueur mourir alors qu'il aurait du tomber a terre.
 ]]
 
 local CombatService = {}
@@ -22,6 +27,9 @@ local Combat = require(Arena:WaitForChild("Combat"))
 
 local Remotes = Arena:WaitForChild("Remotes")
 local attackRemote = Remotes:WaitForChild("Attack") :: RemoteEvent
+
+local DownedService = require(script.Parent:WaitForChild("DownedService"))
+local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
 export type Entry = {
 	player: Player,
@@ -76,35 +84,48 @@ local function stripDefaultRegen(character: Model)
 	character.ChildAdded:Connect(destroyHealthScript)
 end
 
--- La cible la plus proche dans une autre equipe, a portee et encore debout.
+-- La cible la plus proche dans une autre equipe, a portee.
+--
+-- Un adversaire debout passe toujours avant un adversaire a terre : sans cette
+-- priorite, on se retrouve a achever quelqu'un pendant que son coequipier vous
+-- frappe dans le dos, ce qui n'est jamais le coup qu'on voulait porter.
 local function findTarget(entry: Entry): Entry?
 	local attackerRoot = rootOf(entry.player)
 	if attackerRoot == nil then
 		return nil
 	end
 
-	local best: Entry? = nil
-	local bestDistance = math.huge
+	local bestStanding: Entry? = nil
+	local bestStandingDistance = math.huge
+	local bestDowned: Entry? = nil
+	local bestDownedDistance = math.huge
 
 	for _, other in roster do
 		if other.team == entry.team then
 			continue
 		end
 
-		local humanoid = humanoidOf(other.player)
 		local root = rootOf(other.player)
-		if humanoid == nil or root == nil or humanoid.Health <= 0 then
+		if root == nil then
 			continue
 		end
 
 		local distance = (root.Position - attackerRoot.Position).Magnitude
-		if distance <= entry.stats.attackRangeStuds and distance < bestDistance then
-			best = other
-			bestDistance = distance
+		if distance > entry.stats.attackRangeStuds then
+			continue
+		end
+
+		local status = DownedService.statusOf(other.player)
+		if status == "standing" and distance < bestStandingDistance then
+			bestStanding = other
+			bestStandingDistance = distance
+		elseif status == "downed" and distance < bestDownedDistance then
+			bestDowned = other
+			bestDownedDistance = distance
 		end
 	end
 
-	return best
+	return if bestStanding ~= nil then bestStanding else bestDowned
 end
 
 local function applyKnockback(attacker: Entry, target: Entry)
@@ -128,6 +149,39 @@ local function applyKnockback(attacker: Entry, target: Entry)
 		+ Vector3.new(0, attacker.stats.knockbackUpStuds, 0)
 end
 
+-- Le seul endroit du jeu ou des PV sont retires. Renvoie vrai si le coup a mis
+-- la cible a terre.
+local function dealDamage(target: Entry, amount: number): boolean
+	if amount <= 0 then
+		return false
+	end
+
+	local humanoid = humanoidOf(target.player)
+	if humanoid == nil then
+		return false
+	end
+
+	-- Un joueur deja a terre ne perd plus de PV : il perd du temps. C'est la
+	-- fenetre d'agonie qui le decompte, et le coup de grace qui l'arrete.
+	if not DownedService.isStanding(target.player) then
+		return false
+	end
+
+	-- Le moindre degat recu annule le relevement que la cible etait en train
+	-- de faire : on ne releve pas quelqu'un au milieu d'un echange de coups.
+	DownedService.interruptRevivesBy(target.player)
+	lastCombatAt[target.player] = os.clock()
+
+	local remaining = humanoid.Health - amount
+	if remaining > 0 then
+		humanoid.Health = remaining
+		return false
+	end
+
+	DownedService.knockDown(target.player)
+	return true
+end
+
 local function onAttack(player: Player)
 	if not active then
 		return
@@ -135,6 +189,11 @@ local function onAttack(player: Player)
 
 	local entry = roster[player]
 	if entry == nil then
+		return
+	end
+
+	-- A terre, on rampe : on ne frappe pas.
+	if not DownedService.isStanding(player) then
 		return
 	end
 
@@ -162,6 +221,16 @@ local function onAttack(player: Player)
 		return
 	end
 
+	lastCombatAt[player] = now
+
+	-- Le coup de grace : il ne rapporte ni degats ni vol de vie, il ferme une
+	-- fenetre. Un Vampire ne se soigne donc pas en achevant.
+	if DownedService.isDowned(target.player) then
+		DownedService.finish(target.player)
+		applyKnockback(entry, target)
+		return
+	end
+
 	local result = Combat.resolveHit({
 		attackerStats = entry.stats,
 		attackerHealth = attackerHumanoid.Health,
@@ -169,23 +238,40 @@ local function onAttack(player: Player)
 		defenderHealth = targetHumanoid.Health,
 	})
 
-	targetHumanoid.Health = result.defenderHealth
 	attackerHumanoid.Health = result.attackerHealth
-
-	lastCombatAt[player] = now
-	lastCombatAt[target.player] = now
+	dealDamage(target, result.damage)
 
 	applyKnockback(entry, target)
 end
 
--- Regeneration hors combat, pilotee par classe. Le Vampire a zero.
-local function onHeartbeat(deltaSeconds: number)
-	if not active then
+-- Les degats de la zone. Ils ne touchent que les joueurs debout : un blesse
+-- qui rampe dehors a deja son compte a rebours, en ajouter un deuxieme ne
+-- changerait rien a l'issue et rendrait l'affichage incomprehensible.
+local function applyZoneDamage(deltaSeconds: number)
+	if not ZoneService.isActive() then
 		return
 	end
 
+	local amount = ZoneService.damageFor(deltaSeconds)
+	for player, entry in roster do
+		if not DownedService.isStanding(player) then
+			continue
+		end
+		local root = rootOf(player)
+		if root ~= nil and ZoneService.isOutside(root.Position) then
+			dealDamage(entry, amount)
+		end
+	end
+end
+
+-- Regeneration hors combat, pilotee par classe. Le Vampire a zero.
+local function applyRegen(deltaSeconds: number)
 	local now = os.clock()
 	for player, entry in roster do
+		if not DownedService.isStanding(player) then
+			continue
+		end
+
 		local since = lastCombatAt[player]
 		if since ~= nil and (now - since) < Config.combat.outOfCombatSeconds then
 			continue
@@ -198,6 +284,15 @@ local function onHeartbeat(deltaSeconds: number)
 
 		humanoid.Health = Combat.applyRegen(entry.stats, humanoid.Health, deltaSeconds)
 	end
+end
+
+local function onHeartbeat(deltaSeconds: number)
+	if not active then
+		return
+	end
+
+	applyZoneDamage(deltaSeconds)
+	applyRegen(deltaSeconds)
 end
 
 function CombatService.init()

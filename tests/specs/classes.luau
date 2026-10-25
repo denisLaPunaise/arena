@@ -53,4 +53,34 @@ return function(t: harness.Harness)
 		end
 	end
 	t.check("l'index par identifiant est complet", indexComplete)
+
+	t.section("Le tirage selon le format")
+
+	local anyFormat = Classes.drawable(3)
+	local duel = Classes.drawable(1)
+
+	t.equal("a trois contre trois, les quatorze classes sortent", #anyFormat, #Classes.all)
+	t.check("en 1v1 il y en a moins", #duel < #anyFormat)
+
+	-- Sans coequipier, le Lien, le Leurre et l'Infirmier n'ont aucune cible
+	-- pour leur pouvoir, et le miroir les eteindrait des deux cotes.
+	local excluded = { link = true, decoy = true, medic = true }
+	local foundExcluded = false
+	for _, class in duel do
+		if excluded[class.id] then
+			foundExcluded = true
+		end
+	end
+	t.check("les classes qui ciblent un allie en sont retirees", foundExcluded == false)
+	t.equal("il en reste onze", #duel, #Classes.all - 3)
+
+	-- Un drapeau mal pose casserait le 1v1 sans qu'on s'en apercoive.
+	local flagged = 0
+	for _, class in Classes.all do
+		if class.needsAllies then
+			flagged += 1
+			t.check(string.format("%s cible bien un allie", class.name), excluded[class.id] == true)
+		end
+	end
+	t.equal("trois classes exactement portent le drapeau", flagged, 3)
 end
