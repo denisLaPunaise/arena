@@ -537,6 +537,88 @@ Ces six sons-là, autant les choisir quand tu pourras les écouter.
 
 ---
 
+## 13. Le bac a sable — **la reponse a ta question**
+
+Tu demandais si un bot ou un bac a sable etait simple. Le bac a sable l'etait,
+et il est fait. Un vrai bot ne l'est pas, et la raison est plus bas.
+
+**Ce que c'est.** Quand tu es **seul** en jeu — dans Studio ou en partie
+privee — la boucle de partie ne t'attend plus : elle ouvre une salle
+d'entrainement. Tu apparais, tu peux bouger, frapper, utiliser ton pouvoir et
+tes objets. La touche **B** ouvre un panneau a trois colonnes : ta classe, le
+mannequin, les actions.
+
+101. **Choisir n'importe laquelle des quatorze classes**, d'un clic, sans bans
+     ni tirage. Changer de classe remet l'arbre a zero — c'est la verite du
+     jeu, un arbre appartient a une classe.
+102. **T'offrir des points d'arbre**, un par clic. C'etait le seul moyen de
+     regarder un palier 6 : en partie il faut une serie de sept manches.
+     L'ecran de l'arbre (**T**) reste ouvert en permanence ici, meme en pleine
+     action.
+103. **Poser jusqu'a quatre mannequins**, et choisir **leur classe**. Un
+     mannequin a les statistiques d'une vraie classe, pas un sac de points de
+     vie invente : « combien de coups de machette pour un Colosse » est donc
+     une vraie reponse, que tu peux compter. Le Colosse par defaut, parce qu'il
+     encaisse le plus longtemps. Ils reviennent tout seuls quatre secondes
+     apres leur mort.
+104. **Allumer ou couper la zone**, te soigner a fond, reapparaitre.
+105. **Equiper ce que tu veux** : l'ecran d'equipement (**L**) reste modifiable
+     en pleine action, et le budget passe de douze a **soixante** points avec
+     dix objets au lieu de six. C'est pour pouvoir porter le marteau et le
+     fusil dans la meme minute et les comparer. Un bandeau le dit en haut de
+     l'ecran, pour que tu ne prennes pas ca pour un equilibrage.
+
+**Ce que le mannequin teste vraiment, et c'est important de le savoir :** la
+portee, la recharge, le passage automatique a l'arme secondaire quand il est
+trop loin, le chiffre des degats, le geste de l'arme, le son, et le vol de vie
+du Vampire. **Ce qu'il ne teste pas** : tout ce qui demande un vrai
+adversaire — la propagation de la Peste, la poussee, le partage du Lien, le
+clone du Leurre qui s'interpose. Ces pouvoirs-la ne se jugent qu'a deux, et le
+mannequin ne fait pas semblant de les declencher.
+
+**Pourquoi pas un bot.** Ce n'est pas l'intelligence qui coince. Faire courir
+un personnage vers toi et frapper a portee est faisable. Ce qui coince est
+structurel : **tout le jeu est indexe par joueur.** Chaque service garde ses
+tables rangees par `Player` — qui a quelle classe, quels points, quel
+equipement, qui est a terre. Un bot n'est pas un `Player` et on ne peut pas en
+fabriquer un. Il faudrait donc reecrire le combat, l'equipement, l'arbre, les
+pouvoirs et l'agonie pour qu'ils parlent de « combattants », ce qui met en
+risque tout l'equilibrage deja pose. Et meme construit, **il te dirait qu'une
+mecanique fonctionne, jamais qu'un duel est tendu.** C'est cher, et ca
+n'achete pas ce qui manque.
+
+**Les trois garde-fous**, parce que ce panneau donne des pouvoirs qui n'ont
+rien a faire en partie :
+
+106. Il faut etre **seul**. C'est le garde-fou qui porte vraiment : aucun
+     classement, aucune piece et aucune partie ne peut exister avec un seul
+     joueur, donc rien de ce qui se gagne n'est atteignable depuis le bac a
+     sable.
+107. Il faut etre en **partie privee ou dans Studio**. C'est de la prudence et
+     pas une necessite : un serveur public avec un seul joueur est une salle
+     d'attente, et y mettre un stand de tir serait sans doute mieux pour le
+     joueur que l'ecran « en attente ». **C'est une decision de conception, donc
+     elle est a toi** — un reglage a passer a `false` et c'est fait.
+108. **Un deuxieme joueur ferme tout** : les mannequins disparaissent, le
+     budget redevient douze points, l'arbre repart a zero, et la vraie partie
+     commence. A verifier en jouant : est-ce que ca se passe proprement quand
+     quelqu'un te rejoint au milieu d'un essai ?
+
+**Ce qui est verifie, en jeu, par instrumentation** : le bac a sable s'ouvre
+tout seul quand on est seul ; le changement de classe, les points d'arbre, le
+nombre et la classe des mannequins, la zone et le soin repondent ; un mannequin
+Colosse a bien 170 points de vie et en perd quand on le frappe ; un assemblage
+de 23 points et 8 objets, refuse par le jeu, est accepte ici ; le mannequin mort
+revient tout seul au meme endroit ; et le panneau tient dans l'ecran.
+
+**Ce qui n'est pas verifie** : si tout ca est agreable a utiliser. Le panneau
+n'a jamais ete regarde par un oeil — le rendu de Studio ne me rend plus
+d'image. Je l'ai mesure au lieu de le regarder : chaque plaque est a sa place et
+rien ne deborde. Mais « mesure » et « lisible » sont deux choses, et c'est la
+meme reserve qu'a la section 11.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -544,6 +626,15 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
 - **je n'ai pas pu écouter les sons** — je les ai choisis au nom, à la
   bibliothèque et à la durée, et vérifié en jeu qu'ils partent bien. Savoir
   s'ils sonnent juste demande une oreille. Section 12.
+- **les quatre autres panneaux sont decentres vers le haut** — l'arbre,
+  l'equipement, les pieces et les bans. Meme cause que celle que j'ai corrigee
+  sur le panneau du bac a sable, et je l'ai mesuree : avec `IgnoreGuiInset`,
+  l'espace de l'interface commence a moins la hauteur de la barre du haut, donc
+  un panneau centre tombe trop haut de la moitie de cet encart. Dans Studio ca
+  faisait 58 pixels ; sur un ecran de 1080p ca en fera 18, donc c'est visible
+  sans etre grave. La correction est une ligne par panneau. **Je ne l'ai pas
+  faite** parce que ce n'etait pas ce que tu m'avais demande, et que je ne peux
+  pas regarder le resultat — dis-moi si tu veux que je m'en occupe.
 - **six sons manquent encore** — le soin, le relèvement, la brûlure de la
   zone, les clics de l'interface, le début et la fin d'une manche, et
   l'ouverture d'une caisse. À choisir quand tu pourras les écouter.

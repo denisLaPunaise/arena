@@ -65,6 +65,31 @@ export type Entry = {
 
 local roster: { [Player]: Entry } = {}
 
+-- LE MANNEQUIN D'ENTRAINEMENT DU BAC A SABLE.
+--
+-- Un mannequin n'est pas un `Player`, et tout le combat est indexe par
+-- `Player` : il ne peut donc pas entrer dans le roster. Rendre le roster
+-- generique serait un chantier qui toucherait d'un seul coup le combat,
+-- l'equipement, l'arbre et l'agonie — pour une cible qui ne se bat meme pas.
+-- Le combat expose donc deux crochets, poses par SandboxService et par rien
+-- d'autre, et consultes a UN SEUL endroit : quand aucun adversaire joueur
+-- n'est a portee. En partie `practice` est nil, et le chemin d'attaque est
+-- exactement celui d'avant.
+--
+-- Ce que le mannequin teste vraiment : la portee, la recharge, le choix entre
+-- l'arme principale et la secondaire, le chiffre des degats, le geste, le son,
+-- et le vol de vie. Ce qu'il ne teste pas, et il faut le dire : tout ce qui
+-- demande un vrai adversaire — la propagation de la Peste, la poussee,
+-- l'agonie, le partage du Lien. Ces pouvoirs-la ne se jugent qu'a deux.
+export type Practice = {
+	-- Ou est le mannequin le plus proche a portee, s'il y en a un.
+	resolve: (attacker: Entry, range: number) -> BasePart?,
+	-- Lui applique le coup et renvoie les degats REELLEMENT passes.
+	strike: (part: BasePart, stats: Combat.Stats, attackerHealth: number) -> number,
+}
+
+local practice: Practice? = nil
+
 -- L'ARME DU COUP EN COURS.
 --
 -- entry.stats porte l'arme principale, et c'est elle que tout le jeu lit : PV
@@ -593,6 +618,13 @@ local function onAttack(player: Player)
 	local attackerRoot = rootOf(player)
 	local target = findTarget(entry)
 
+	-- Le mannequin n'est cherche que si aucun adversaire joueur n'est a portee.
+	-- En partie, `practice` est nil et ces trois lignes ne font rien.
+	local dummy: BasePart? = nil
+	if target == nil and practice ~= nil then
+		dummy = practice.resolve(entry, LoadoutService.searchRange(entry))
+	end
+
 	-- QUELLE ARME. On cherche la cible AVANT de verifier la recharge, parce que
 	-- c'est la distance a la cible qui decide de l'arme, et que c'est l'arme
 	-- qui porte la recharge. Un couteau a une demi-seconde de recharge, un
@@ -604,6 +636,11 @@ local function onAttack(player: Player)
 		if targetRoot ~= nil then
 			distance = (targetRoot.Position - attackerRoot.Position).Magnitude
 		end
+	elseif dummy ~= nil and attackerRoot ~= nil then
+		-- Le mannequin decide de l'arme comme un adversaire : sans ca, le stand
+		-- de tir ne permettrait jamais de voir la secondaire sortir, ce qui est
+		-- justement une des choses qu'on vient y regarder.
+		distance = (dummy.Position - attackerRoot.Position).Magnitude
 	end
 
 	local stats, pierce = LoadoutService.strikeWith(entry, distance)
@@ -636,11 +673,13 @@ local function onAttack(player: Player)
 			if targetRoot ~= nil then
 				reach = targetRoot.Position - attackerRoot.Position
 			end
+		elseif dummy ~= nil then
+			reach = dummy.Position - attackerRoot.Position
 		end
 		EffectsService.swing(
 			attackerRoot.Position + Vector3.new(0, 1.5, 0),
 			reach,
-			target ~= nil,
+			target ~= nil or dummy ~= nil,
 			voice
 		)
 	end
@@ -650,6 +689,31 @@ local function onAttack(player: Player)
 	AbilityService.noteAttack(player)
 
 	if target == nil then
+		local hooks = practice
+		if dummy ~= nil and hooks ~= nil then
+			-- Le mannequin traverse la MEME formule que n'importe qui :
+			-- `Combat.resolveHit` cote SandboxService, avec les statistiques
+			-- d'une vraie classe. C'est ce qui rend le chiffre utile — « combien
+			-- de coups de machette pour un Colosse » est une vraie reponse.
+			local passed = hooks.strike(dummy, stats, attackerHumanoid.Health)
+			if passed > 0 then
+				EffectsService.hit(dummy.Position + Vector3.new(0, 1.5, 0), passed, nil)
+
+				-- Le vol de vie compte sur le mannequin : c'est tout l'interet
+				-- pour le Vampire, dont la faiblesse ne se sent qu'en frappant.
+				local healed = Combat.lifestealFor(stats, attackerHumanoid.Health, passed)
+				healTo(player, healed)
+				if healed >= 1 and attackerRoot ~= nil then
+					EffectsService.heal(
+						attackerRoot.Position + Vector3.new(0, 1.5, 0),
+						healed,
+						player
+					)
+				end
+			end
+			return
+		end
+
 		-- Un coup dans le vide, c'est l'occasion du bond : le Fauve du palier 6
 		-- n'a pas de touche a lui, attaquer un adversaire trop loin suffit.
 		tryDash(entry)
@@ -863,6 +927,11 @@ function CombatService.init()
 
 	attackRemote.OnServerEvent:Connect(onAttack)
 	RunService.Heartbeat:Connect(onHeartbeat)
+end
+
+-- Branche ou debranche le stand de tir. Nil en partie.
+function CombatService.setPractice(hooks: Practice?)
+	practice = hooks
 end
 
 function CombatService.setRoster(entries: { Entry })

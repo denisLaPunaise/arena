@@ -564,7 +564,10 @@ local function render()
 		return
 	end
 
-	local visible = current.open or manuallyOpen
+	-- `pinned` et pas `open` : dans le bac a sable la depense est ouverte en
+	-- permanence, et un ecran plein qui ne se fermerait jamais cacherait tout
+	-- le reste.
+	local visible = current.pinned == true or manuallyOpen
 	gui.Enabled = visible
 	if not visible then
 		return
@@ -580,7 +583,9 @@ local function render()
 	header.Text = string.format("%s  ·  %d %s", current.className, current.points, plural)
 	header.TextColor3 = if current.points > 0 then POINTS else TEXT
 
-	if current.open then
+	if current.open and current.pinned ~= true then
+		subheader.Text = "Bac à sable — dépense ouverte en permanence. T pour fermer."
+	elseif current.open then
 		local seconds = current.seconds
 		subheader.Text = if seconds ~= nil
 			then string.format("Phase de dépense — %d s avant la manche", math.ceil(seconds))
@@ -661,7 +666,7 @@ function TreePanel.start()
 		-- Pendant la phase de depense, l'ecran ne se ferme pas : la manche
 		-- suivante part avec ou sans le choix, et le rater par inadvertance
 		-- serait une manche jouee avec une classe nue.
-		if view ~= nil and view.open then
+		if view ~= nil and view.pinned == true then
 			return
 		end
 

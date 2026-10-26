@@ -203,6 +203,52 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   virtuelle. `execute_luau` reste parfait pour inspecter le DataModel (les
   parts, les propriétés, l'arborescence), qui est partagé, lui.
 
+- **Le bac a sable ouvre TROIS PORTES, et elles doivent se refermer.**
+  `LoadoutService.setSandbox` releve le budget et rend l'equipement modifiable
+  en pleine manche, `SkillTreeService.grantSandboxPoint` distribue des points
+  hors manche, et `CombatService.setPractice` branche le mannequin. Les trois
+  sont inacceptables en partie, et les trois sont refermees par
+  `SandboxService.teardown`. En ajoutant une porte de ce genre : la nommer, la
+  mettre dans un seul service, et la refermer au meme endroit que les autres.
+  Une condition semee dans quatre fichiers ne se relit pas.
+
+  Le garde-fou qui porte vraiment est que le bac a sable ne s'ouvre que SEUL :
+  aucune piece ni aucun classement n'existe avec un joueur, donc rien de ce qui
+  se gagne n'est atteignable depuis lui. Ne jamais relever
+  `Config.sandbox.maxPlayers` ; un test le verifie.
+
+- **Un vrai bot n'est pas abordable, et la raison n'est pas l'intelligence.**
+  Tout le jeu est indexe par `Player` : chaque service range ses tables par
+  joueur, et un bot n'est pas un `Player`. Il faudrait rendre generiques les
+  rosters du combat, de l'equipement, de l'arbre, des pouvoirs et de l'agonie
+  d'un seul coup. Et ca n'acheterait pas ce qui manque : un bot dit qu'une
+  mecanique fonctionne, jamais qu'un duel est tendu. Le mannequin du bac a
+  sable est une cible, pas un adversaire, et il ne declenche volontairement
+  AUCUN pouvoir qui demande un vrai adversaire — mieux vaut ne rien faire que
+  faire croire que ca marche.
+
+- **Un `Humanoid` mort ne se soigne pas.** Des que ses PV touchent zero, Roblox
+  le passe en etat Dead, et lui rendre ses PV ne le releve pas : il reste mort,
+  a plein de vie. Un mannequin se RECONSTRUIT, au meme endroit. Vu le
+  26 octobre 2026, et seule la sonde en jeu pouvait le montrer.
+
+- **`IgnoreGuiInset` decale tous les panneaux vers le haut.** Avec ce reglage,
+  l'espace du `ScreenGui` commence a MOINS `GuiService:GetGuiInset().Y` alors
+  que son `AbsoluteSize` reste celle de la fenetre entiere : un panneau pose a
+  `Position = fromScale(0.5, 0.5)` avec `AnchorPoint` au centre tombe donc trop
+  haut de la moitie de cet encart. Mesure le 26 octobre 2026 dans Studio :
+  encart de 58 px, les CINQ panneaux centres a 135 au lieu de 193, et le titre
+  du plus grand sortait de l'ecran. Le remede est une ligne —
+  `UDim2.new(0.5, 0, 0.5, GuiService:GetGuiInset().Y)` — appliquee dans
+  `SandboxPanel.fit`. Les quatre autres panneaux ne sont pas corriges : c'est un
+  point d'`A-TESTER`, en attente de l'accord de Josh.
+
+- **La taille d'un panneau se DEDUIT de son contenu.** La colonne des actions du
+  bac a sable debordait de 42 pixels parce que la largeur etait ecrite en dur et
+  devait s'accorder avec quatre autres chiffres. Un chiffre de mise en page qui
+  depend d'autres chiffres se calcule, il ne se recopie pas — c'est la meme
+  regle que pour `Config.luau`, appliquee a l'interface.
+
 - **Un son Roblox modere, prive ou du mauvais type echoue en SILENCE.** Aucune
   erreur, le son ne sort pas, et le jeu devient muet sans que personne sache
   pourquoi. Le garde-fou est `Audio.verify`, qui recharge tout le catalogue au
@@ -351,7 +397,11 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 8. Le son — **fait** : cinq familles sonores greffées sur les annonces
    d'effets, quatorze pistes vérifiées, zéro message réseau de plus. Choisi au
    nom et à la durée, **jamais écouté** : section 12 d'`A-TESTER.md`
-9. Ce qui reste : le mouvement du corps, les quarante-neuf autres objets, les
+9. Le bac à sable solo et son mannequin d'entraînement — **fait** : seul en
+   jeu, choix de la classe, points d'arbre à la demande, budget relevé, jusqu'à
+   quatre mannequins aux statistiques d'une vraie classe. Pas un bot, et la
+   raison est dans les pièges ci-dessus
+10. Ce qui reste : le mouvement du corps, les quarante-neuf autres objets, les
    skins, l'achat de pièces en Robux, et six sons laissés vides (soin,
    relèvement, brûlure de zone, interface, début et fin de manche, caisse)
 

@@ -193,6 +193,48 @@ local function classOf(player: Player): string?
 	return entry.classId
 end
 
+--------------------------------------------------------------------------------
+-- LA PORTE DU BAC A SABLE
+--------------------------------------------------------------------------------
+
+-- UNE SEULE PORTE, ouverte par SandboxService et par rien d'autre. Elle fait
+-- deux choses, toutes deux inacceptables en partie : elle releve le budget, et
+-- elle rend l'assemblage modifiable PENDANT la manche. Le budget de douze
+-- points est le coeur de l'equipement, et changer d'armure en pleine fusillade
+-- le viderait de son sens. Mais les deux sont indispensables pour essayer une
+-- arme : on veut porter le marteau et le fusil dans la meme minute et basculer
+-- de l'un a l'autre sans attendre une fin de manche.
+--
+-- Elle est nil partout ailleurs, et SandboxService la referme en sortant.
+local sandbox: any = nil
+
+-- La configuration que lit la VALIDATION. C'est exactement le motif pour lequel
+-- la logique pure recoit sa configuration en argument : on recopie la seule
+-- table concernee, on y change les trois chiffres du budget, et `Loadout`
+-- valide contre celle-la sans savoir qu'elle a ete fabriquee. Config elle-meme
+-- n'est jamais touchee.
+local function budgetConfig(): any
+	if sandbox == nil then
+		return Config
+	end
+	local loadout = table.clone(Config.loadout)
+	loadout.budgetPoints = sandbox.budgetPoints
+	loadout.maxItems = sandbox.maxItems
+	loadout.maxPerCategory = sandbox.maxPerCategory
+	local copy = table.clone(Config)
+	copy.loadout = loadout
+	return copy
+end
+
+function LoadoutService.setSandbox(rules: any)
+	sandbox = rules
+	LoadoutService.pushAll()
+end
+
+--------------------------------------------------------------------------------
+-- L'ASSEMBLAGE CHOISI
+--------------------------------------------------------------------------------
+
 function LoadoutService.chosenFor(player: Player): { string }
 	local list = chosen[player]
 	if list == nil then
@@ -209,7 +251,7 @@ end
 -- l'assemblage est illegal : c'est la seule porte d'entree, donc un client qui
 -- raconte n'importe quoi ne peut pas la contourner.
 function LoadoutService.setChosen(player: Player, itemIds: { string }): boolean
-	if not Loadout.validate(Config, itemIds, classOf(player)).ok then
+	if not Loadout.validate(budgetConfig(), itemIds, classOf(player)).ok then
 		return false
 	end
 	chosen[player] = itemIds
@@ -217,9 +259,10 @@ function LoadoutService.setChosen(player: Player, itemIds: { string }): boolean
 	return true
 end
 
--- Vrai si l'assemblage peut encore se modifier : hors manche uniquement.
+-- Vrai si l'assemblage peut encore se modifier : hors manche uniquement, ou
+-- a tout moment dans le bac a sable.
 function LoadoutService.isEditable(): boolean
-	return not active
+	return sandbox ~= nil or not active
 end
 
 --------------------------------------------------------------------------------
@@ -709,7 +752,8 @@ end
 local function viewFor(player: Player): any
 	local classId = classOf(player)
 	local items = LoadoutService.chosenFor(player)
-	local check = Loadout.validate(Config, items, classId)
+	local rules = budgetConfig()
+	local check = Loadout.validate(rules, items, classId)
 
 	local catalogue: { any } = {}
 	for _, item in Config.items do
@@ -721,8 +765,8 @@ local function viewFor(player: Player): any
 			-- La vue doit dire la verite sur ce qui se passera au clic, donc
 			-- elle valide le MEME assemblage candidat que le clic : avec le
 			-- remplacement d'une arme ou d'une armure deja portee.
-			local candidate = Loadout.withSwap(Config, items, item.id)
-			addable, refusal = Loadout.canAdd(Config, candidate, classId, item.id)
+			local candidate = Loadout.withSwap(rules, items, item.id)
+			addable, refusal = Loadout.canAdd(rules, candidate, classId, item.id)
 			if #candidate < #items then
 				local dropped = Loadout.weaponOf(Config, items, item.category)
 				replaces = if dropped ~= nil then dropped.name else nil
@@ -766,13 +810,17 @@ local function viewFor(player: Player): any
 
 	return {
 		kind = "loadout",
-		budget = Config.loadout.budgetPoints,
+		budget = rules.loadout.budgetPoints,
 		spent = check.spent,
 		left = check.left,
 		ok = check.ok,
 		reason = check.reason,
 		editable = LoadoutService.isEditable(),
-		maxItems = Config.loadout.maxItems,
+		maxItems = rules.loadout.maxItems,
+		-- Le panneau d'equipement affiche un bandeau quand le budget n'est pas
+		-- celui du jeu : un ecran qui annonce soixante points sans dire pourquoi
+		-- se lirait comme un bug.
+		sandbox = sandbox ~= nil,
 		items = catalogue,
 		chosen = items,
 		slots = slots,
@@ -812,7 +860,7 @@ function LoadoutService.setRoster(entries: { Entry })
 	-- verifie, et on retombe sur le defaut si c'est le cas.
 	for _, entry in entries do
 		local items = chosen[entry.player]
-		if items ~= nil and not Loadout.validate(Config, items, entry.classId).ok then
+		if items ~= nil and not Loadout.validate(budgetConfig(), items, entry.classId).ok then
 			chosen[entry.player] = Loadout.defaultFor(Config, entry.classId)
 		end
 	end
@@ -871,8 +919,9 @@ local function onClientEvent(player: Player, payload: any)
 	if payload.reset == true then
 		LoadoutService.setChosen(player, Loadout.defaultFor(Config, classId))
 	elseif typeof(payload.add) == "string" then
-		local candidate = Loadout.withSwap(Config, items, payload.add)
-		LoadoutService.setChosen(player, Loadout.add(Config, candidate, classId, payload.add))
+		local rules = budgetConfig()
+		local candidate = Loadout.withSwap(rules, items, payload.add)
+		LoadoutService.setChosen(player, Loadout.add(rules, candidate, classId, payload.add))
 	elseif typeof(payload.remove) == "string" then
 		LoadoutService.setChosen(player, Loadout.remove(items, payload.remove))
 	else

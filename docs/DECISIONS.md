@@ -777,6 +777,114 @@ regarder.
 
 ---
 
+## 26 octobre 2026 — Le bac à sable, et pourquoi pas un bot
+
+Tu m'as demandé si un bot ou un bac à sable était simple à faire. Voilà ce que
+j'ai tranché, et pourquoi.
+
+### Le bac à sable, pas le bot
+
+Le bac à sable était simple parce que tout existait déjà : les services savent
+poser une classe, recalculer un arbre, valider un équipement et allumer une
+zone. Il ne fait que les appeler dans le bon ordre — celui de MatchService,
+classe puis arbre puis équipement — quand il n'y a qu'un joueur.
+
+Le bot ne l'était pas, et pas pour la raison qu'on imagine. Ce n'est pas
+l'intelligence : faire courir un personnage vers toi et frapper à portée est
+faisable. C'est que **tout le jeu est indexé par `Player`**. Chaque service
+garde ses tables rangées par joueur, et un bot n'est pas un joueur — on ne peut
+pas en fabriquer un. Il faudrait rendre génériques les rosters du combat, de
+l'équipement, de l'arbre, des pouvoirs et de l'agonie d'un seul coup, ce qui met
+en risque tout l'équilibrage déjà posé.
+
+Et il ne vaudrait pas ce prix : **un bot dit qu'une mécanique fonctionne, il ne
+dit jamais qu'un duel est tendu.** Le mannequin est une cible, pas un
+adversaire, et il ne fait pas semblant d'être autre chose — il ne déclenche
+aucun pouvoir qui demande un vrai adversaire, plutôt que de faire croire qu'ils
+marchent.
+
+### Trois portes nommées, et pas une de plus
+
+Le bac à sable demande des choses interdites en partie. Plutôt que de les
+disperser, chaque service en expose **une seule porte nommée**, que seul
+SandboxService ouvre et qu'il referme en sortant : `LoadoutService.setSandbox`
+pour le budget, `SkillTreeService.grantSandboxPoint` pour les points,
+`CombatService.setPractice` pour le mannequin. Une porte se relit et se ferme ;
+des conditions semées dans quatre fichiers, non.
+
+Le crochet du mannequin est consulté à **un seul endroit** du chemin d'attaque :
+quand aucun adversaire joueur n'est à portée. En partie il vaut `nil`, et le
+combat est exactement celui d'avant.
+
+### Le mannequin a les statistiques d'une vraie classe
+
+Pas un sac de points de vie inventé. Il traverse `Combat.resolveHit`, la même
+fonction que le combat réel, avec les statistiques du Colosse par défaut. C'est
+ce qui rend le chiffre utile : « combien de coups de machette pour un Colosse »
+devient une vraie réponse, comptable, et pas une approximation. Et tu peux
+changer sa classe pour mesurer ton arme contre une armure différente.
+
+### Le budget passe à soixante points
+
+C'est l'inverse d'un équilibrage, et c'est assumé : avec douze points on ne peut
+pas porter le marteau et le fusil, donc on ne peut pas les comparer dans la même
+minute. Un bandeau le dit en haut de l'écran d'équipement, parce qu'un écran qui
+annonce soixante points sans expliquer pourquoi se lit comme un bug.
+
+L'écran reste aussi **modifiable en pleine action**, ce qui est interdit en
+partie pour une bonne raison : changer d'armure en pleine fusillade viderait le
+budget de son sens. Ici c'est exactement ce qu'on veut.
+
+### Le bac à sable ne s'ouvre qu'en partie privée — et c'est à toi de trancher
+
+Trois garde-fous : coupable depuis Config, seul uniquement, et privé uniquement.
+Le deuxième est celui qui porte : rien de ce qui se gagne — pièces, classement —
+ne peut exister avec un seul joueur.
+
+Le troisième est de la prudence et pas une nécessité. Un serveur public avec un
+seul joueur est une salle d'attente, et y mettre un stand de tir serait
+probablement mieux pour le joueur que l'écran « en attente d'un deuxième
+joueur ». Mais ça change l'expérience publique, donc c'est une décision de
+conception : `Config.sandbox.privateOnly` à `false` et c'est fait. **Je ne l'ai
+pas fait seul.**
+
+### Ce que j'ai dû corriger, et comment
+
+Quatre choses, et aucune des quatre ne se voyait en relisant le code.
+
+**Un `Humanoid` mort ne se soigne pas.** Dès que ses points de vie touchent
+zéro, Roblox le fait entrer dans l'état Dead, et lui rendre ses PV ne le relève
+pas : il reste mort, à plein de vie. Le mannequin se **reconstruit** donc, au
+même endroit — vérifié en jeu, écart de 0,00 stud.
+
+**Et il ne revenait pas s'il mourait autrement qu'au corps-à-corps.** Je notais
+l'échéance de son retour dans le chemin du coup, donc une mort venue d'ailleurs
+ne la posait jamais. Corrigé en **constatant** son état à chaque tour de boucle
+plutôt qu'en l'annonçant au moment du coup : deux lignes de moins, et plus de cas
+oublié.
+
+**L'écran de l'arbre restait ouvert par-dessus tout**, avec le texte absurde
+« Phase de dépense — 3600 s avant la manche ». En partie, cet écran s'impose
+exprès : la manche suivante part avec ou sans le choix, et le rater serait une
+manche jouée avec une classe nue. Mais dans le bac à sable la dépense est
+ouverte en permanence, donc un écran plein qui ne se ferme jamais cache tout le
+reste. « On peut dépenser » et « l'écran s'impose » sont maintenant deux choses
+séparées. **Trouvé en regardant une capture d'écran**, pas autrement.
+
+**La colonne des actions débordait du panneau de 42 pixels.** La largeur était
+écrite en dur et devait s'accorder avec quatre autres chiffres ; elle ne
+s'accordait plus. Elle se **déduit** désormais de son contenu, donc elle ne peut
+plus mentir. Et le panneau sortait de l'écran par le haut, comme **les quatre
+autres panneaux du jeu** : avec `IgnoreGuiInset`, l'espace de l'interface ne
+commence pas à zéro mais à moins la hauteur de la barre du haut, alors que sa
+taille reste celle de la fenêtre entière — donc un panneau centré à 50 % tombe
+trop haut de la moitié de cet encart. Dans Studio, 58 pixels. J'ai corrigé **le
+mien seulement**, et je te le signale pour les autres : c'est une ligne par
+panneau, mais ce n'était pas ce que tu m'avais demandé et je ne peux pas
+regarder le résultat.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

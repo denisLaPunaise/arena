@@ -49,6 +49,18 @@ local lastRequestAt: { [Player]: number } = {}
 local spendingOpen = false
 local spendingEndsAt: number? = nil
 
+-- EN PARTIE, LA PHASE DE DEPENSE EST SUBIE : l'ecran de l'arbre s'ouvre tout
+-- seul et ne se ferme pas, parce que la manche suivante part avec ou sans le
+-- choix et que la rater par inadvertance serait une manche jouee avec une
+-- classe nue. Dans le bac a sable, la depense est ouverte en PERMANENCE, et un
+-- ecran plein qui ne se ferme jamais rendrait tout le reste inutilisable. Ce
+-- drapeau separe donc les deux : « on peut depenser » et « l'ecran s'impose ».
+local sandboxMode = false
+
+function SkillTreeService.setSandbox(on: boolean)
+	sandboxMode = on
+end
+
 -- Appele quand un joueur modifie son arbre, pour que MatchService recalcule les
 -- statistiques effectives sans que ce module connaisse CombatService.
 local onChanged: ((Player) -> ())? = nil
@@ -119,6 +131,28 @@ function SkillTreeService.grantRoundEnd(
 	end
 
 	return report
+end
+
+-- LES POINTS DU BAC A SABLE. En partie, un point arrive par manche et pas
+-- autrement : atteindre le palier 6 demande une serie de sept manches, et
+-- c'est voulu. Mais c'est aussi ce qui rendait le palier 6 impossible a
+-- regarder sans jouer une partie entiere a deux. Cette porte-la est ouverte par
+-- SandboxService, qui ne s'ouvre lui-meme que seul et en partie privee.
+--
+-- On passe par `SkillTree.grantRoundEnd` plutot que de toucher `pointsEarned` a
+-- la main : c'est la meme fonction que la partie, donc un point offert ici est
+-- un point ordinaire, et la logique du point de revanche n'est pas contournee.
+function SkillTreeService.grantSandboxPoint(player: Player): number
+	local state = states[player]
+	if state == nil or not SkillTreeService.isEnabled() then
+		return 0
+	end
+	local granted = SkillTree.grantRoundEnd(Config, state, true)
+	SkillTreeService.push(player)
+	if onChanged ~= nil then
+		onChanged(player)
+	end
+	return granted
 end
 
 --------------------------------------------------------------------------------
@@ -286,6 +320,8 @@ function SkillTreeService.viewFor(player: Player): any?
 
 	return {
 		open = spendingOpen,
+		-- `open` dit qu'on peut depenser, `pinned` que l'ecran s'impose.
+		pinned = spendingOpen and not sandboxMode,
 		seconds = SkillTreeService.secondsLeft(),
 		ready = ready[player] == true,
 

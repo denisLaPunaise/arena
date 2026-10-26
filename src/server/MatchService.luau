@@ -51,6 +51,7 @@ local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
 local ProgressService = require(script.Parent:WaitForChild("ProgressService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
+local SandboxService = require(script.Parent:WaitForChild("SandboxService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
@@ -536,9 +537,27 @@ local function loop()
 		local players = Players:GetPlayers()
 
 		if #players < PLAYERS_NEEDED then
+			-- SEUL : le bac a sable prend la place de l'attente. Il ne rend la
+			-- main que quand un deuxieme joueur arrive, et c'est tout ce que
+			-- cette boucle a besoin de savoir de lui — elle reprend alors son
+			-- cours exactement ici.
+			local ok, why = SandboxService.availability()
+			if ok then
+				SandboxService.run(map :: Instance, players[1])
+				CombatService.setRoster({})
+				DownedService.setRoster({})
+				roundEntries = {}
+				continue
+			end
+
 			tellAll(
 				"En attente d'un deuxieme joueur",
-				string.format("%d / %d joueurs", #players, PLAYERS_NEEDED)
+				string.format(
+					"%d / %d joueurs%s",
+					#players,
+					PLAYERS_NEEDED,
+					if why ~= "" then "  ·  bac à sable : " .. why else ""
+				)
 			)
 			task.wait(1)
 			continue

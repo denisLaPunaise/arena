@@ -37,6 +37,7 @@ local Audio = require(script.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local LoadoutPanel = require(script.Parent:WaitForChild("LoadoutPanel"))
 local ProgressPanel = require(script.Parent:WaitForChild("ProgressPanel"))
+local SandboxPanel = require(script.Parent:WaitForChild("SandboxPanel"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
 
 local player = Players.LocalPlayer
@@ -137,10 +138,13 @@ for index, name in Config.loadout.useKeys do
 	USE_KEYS[index] = (Enum.KeyCode :: any)[name]
 end
 local EDIT_KEY = (Enum.KeyCode :: any)[Config.loadout.editKey]
+local SANDBOX_KEY = (Enum.KeyCode :: any)[Config.sandbox.toggleKey]
 
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
-hint.Text =
-	"Clic frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement  ·  P pièces"
+hint.Text = string.format(
+	"Clic frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement  ·  P pièces  ·  %s bac à sable",
+	Config.sandbox.toggleKey
+)
 hint.TextTransparency = 0.35
 hint.Parent = gui
 
@@ -340,6 +344,10 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		LoadoutPanel.toggle()
 	elseif input.KeyCode == Enum.KeyCode.P then
 		ProgressPanel.toggle()
+	elseif input.KeyCode == SANDBOX_KEY then
+		-- Le panneau ne s'ouvre que si le serveur a dit que le bac a sable
+		-- tourne : en partie, cette touche ne fait rien du tout.
+		SandboxPanel.toggle()
 	end
 end)
 
@@ -348,6 +356,7 @@ Effects.start()
 DraftPanel.start()
 LoadoutPanel.start()
 ProgressPanel.start()
+SandboxPanel.start()
 TreePanel.start()
 
 print(string.format("[Arena] Client démarré pour %s", player.Name))

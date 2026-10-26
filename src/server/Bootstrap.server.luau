@@ -18,6 +18,7 @@ local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local DraftService = require(script.Parent:WaitForChild("DraftService"))
 local MatchService = require(script.Parent:WaitForChild("MatchService"))
 local ProgressService = require(script.Parent:WaitForChild("ProgressService"))
+local SandboxService = require(script.Parent:WaitForChild("SandboxService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
@@ -63,6 +64,14 @@ print(
 		if Config.skillTree.enabled then "activé" else "coupé"
 	)
 )
+if Config.sandbox.enabled then
+	print(
+		string.format(
+			"[Arena] Bac à sable : seul en jeu, panneau sur la touche %s. Pas en partie.",
+			Config.sandbox.toggleKey
+		)
+	)
+end
 if not Config.effects.enabled then
 	print("[Arena] Les effets visuels sont coupés : les coups seront invisibles.")
 end
@@ -86,4 +95,7 @@ SkillTreeService.init()
 CombatService.init()
 DraftService.init()
 ProgressService.init()
+-- Le bac a sable s'initialise avant MatchService, parce que c'est la boucle de
+-- partie qui lui passe la main quand il n'y a qu'un joueur.
+SandboxService.init()
 MatchService.start()

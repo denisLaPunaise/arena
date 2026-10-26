@@ -1659,6 +1659,118 @@ Config.sounds = {
 	hitDelaySeconds = 0.05,
 }
 
+-- LE BAC A SABLE.
+--
+-- Une partie a deux joueurs minimum, et Josh est souvent seul : la boucle de
+-- partie l'attendait indefiniment, donc il n'y avait aucun moyen d'essayer une
+-- classe, une arme ou un pouvoir sans trouver un deuxieme joueur. Le bac a
+-- sable est cette salle d'entrainement — il remplace la boucle de partie quand
+-- on est seul, et lui rend la main des qu'un deuxieme joueur arrive.
+--
+-- CE QU'IL N'EST PAS : un bot. Tout le combat est indexe par `Player`, et un
+-- adversaire qui se bat vraiment demanderait de rendre generique le roster du
+-- combat, de l'equipement, de l'arbre et de l'agonie d'un seul coup. Et il ne
+-- repondrait pas a la question qui compte : un bot dit qu'une mecanique
+-- fonctionne, il ne dit jamais qu'un duel est tendu. Le mannequin ci-dessous
+-- est une cible, pas un adversaire.
+--
+-- CE BLOC DONNE DES POUVOIRS QUI N'ONT RIEN A FAIRE EN PARTIE : choisir sa
+-- classe, s'offrir des points d'arbre, depasser le budget de douze points.
+-- Trois garde-fous, et ils se verifient a chaque ouverture :
+--   1. `enabled` ici,
+--   2. on est SEUL (`maxPlayers`),
+--   3. on est en partie privee ou dans Studio (`privateOnly`).
+-- Le deuxieme est le plus solide : aucun classement, aucune piece et aucune
+-- partie ne peut exister avec un seul joueur, donc rien de ce qui se gagne
+-- n'est atteignable depuis ici.
+Config.sandbox = {
+	enabled = true,
+
+	-- Seul, et seulement seul. Un deuxieme joueur rend la main a la vraie
+	-- boucle de partie, sans rien demander a personne.
+	maxPlayers = 1,
+
+	-- En partie publique, non — par prudence et pas par necessite. Un serveur
+	-- public avec un seul joueur est une salle d'attente, et y mettre un stand
+	-- de tir a la place de l'ecran « en attente » serait sans doute mieux pour
+	-- le joueur. C'est une decision de conception, donc elle revient a Josh :
+	-- passer ce reglage a false suffit.
+	privateOnly = true,
+
+	-- La classe au demarrage. Le Vampire parce que c'est la classe de
+	-- reference du prototype : sa faiblesse se sent tout de suite.
+	startingClassId = "vampire",
+
+	-- Combien de points d'arbre un clic donne. Un par clic plutot qu'un gros
+	-- paquet : monter l'arbre palier par palier est justement ce qu'on veut
+	-- pouvoir refaire a la main.
+	treePointsPerGrant = 1,
+
+	-- LE BUDGET RELEVE. Soixante points au lieu de douze, et dix objets au lieu
+	-- de six. Ce n'est pas un equilibrage, c'est l'inverse : le but est de
+	-- pouvoir porter le marteau ET le fusil pour les comparer dans la meme
+	-- minute, ce que douze points interdisent. Rien de ce qui se decide ici ne
+	-- sort du bac a sable.
+	budgetPoints = 60,
+	maxItems = 10,
+
+	-- Les limites par categorie restent presque les memes, et pas par
+	-- timidite : une deuxieme arme principale ne servirait a rien de plus,
+	-- puisque la secondaire ne sort que quand la cible est hors de portee de la
+	-- principale. Seuls les soins s'empilent davantage, pour tester une rafale
+	-- de trousses.
+	maxPerCategory = {
+		primary = 1,
+		secondary = 1,
+		armor = 1,
+		heal = 4,
+	},
+
+	-- Combien de temps on reste au sol avant d'etre remis debout. Personne ne
+	-- peut relever personne quand on est seul, donc l'agonie se termine
+	-- toujours ainsi — mais elle a bien lieu, et c'est le seul moyen de la
+	-- regarder sans un deuxieme joueur.
+	reviveSeconds = 3,
+
+	-- La zone est coupee au depart. Elle se rallume d'un clic, mais commencer
+	-- par elle serait absurde : on vient tester une arme, pas courir.
+	zoneOnByDefault = false,
+
+	-- La fenetre de depense reste ouverte en permanence, re-ouverte par la
+	-- boucle quand elle expire. Consequence assumee : acheter des PV maximum
+	-- SOIGNE, ce qui est interdit en partie (Config.skillTree.spendingDuringRound
+	-- existe pour ca). Dans un bac a sable c'est exactement ce qu'on veut.
+	spendWindowSeconds = 3600,
+
+	-- LE MANNEQUIN D'ENTRAINEMENT.
+	dummy = {
+		-- Les statistiques d'une vraie classe, pas un sac de PV invente. C'est
+		-- ce qui rend le chiffre utile : « combien de coups de machette pour un
+		-- Colosse » est une vraie reponse, pas une approximation. Le Colosse
+		-- par defaut parce qu'il encaisse le plus longtemps.
+		classId = "colossus",
+
+		-- Quatre au maximum. Au-dela on ne sait plus lequel on frappe, et la
+		-- recherche de cible prend le plus proche.
+		maxCount = 4,
+		startingCount = 1,
+
+		-- Ou ils apparaissent : devant le joueur, alignes. Seize studs parce
+		-- que c'est au-dela de la portee du couteau (10) et en dessous de celle
+		-- de l'arc (60) : on doit avoir a avancer pour le corps-a-corps et pas
+		-- pour le tir.
+		distanceStuds = 16,
+		spacingStuds = 7,
+
+		-- Il revient tout seul apres sa mort. Sans ca, la premiere serie de
+		-- coups vide le stand de tir.
+		respawnSeconds = 4,
+	},
+
+	-- La touche qui ouvre le panneau. B pour « bac a sable ».
+	toggleKey = "B",
+}
+
 Config.classStats = {
 	-- Quatre statistiques valent zero pour tout le monde au depart : seules des
 	-- branches d'arbre les font monter. Elles sont declarees partout quand

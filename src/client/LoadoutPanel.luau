@@ -428,12 +428,24 @@ local function redraw(view: any)
 	local counter = pointsLabel
 	if counter ~= nil then
 		counter.Text = string.format("%d / %d points", view.spent, view.budget)
-		counter.TextColor3 = if view.ok then ACCENT else DANGER
+		counter.TextColor3 = if not view.ok
+			then DANGER
+			elseif view.sandbox == true then GOOD
+			else ACCENT
 	end
 
 	local foot = footer
 	if foot ~= nil then
 		local lines = {}
+		-- Un budget de soixante points sans explication se lit comme un bug.
+		-- C'est la meme regle que partout : un ecran qui « marche » et un ecran
+		-- lisible sont deux choses.
+		if view.sandbox == true then
+			table.insert(
+				lines,
+				"BAC À SABLE : budget relevé pour comparer les armes. Rien d'équilibré ici."
+			)
+		end
 		if not view.editable then
 			table.insert(
 				lines,
