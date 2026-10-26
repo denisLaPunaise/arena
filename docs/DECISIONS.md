@@ -684,6 +684,99 @@ regarder en premier.
 
 ---
 
+## 26 octobre 2026 — Le son
+
+Tu m'as dit d'attaquer le son et de te dire ce dont j'ai besoin de toi. Voilà
+ce que j'ai tranché seul en attendant ta réponse, pour que le travail ne reste
+pas bloqué.
+
+### Des pistes de la bibliothèque Roblox, pas des fichiers à toi
+
+J'ai pris quatorze sons dans la bibliothèque Roblox, tous gratuits et tous
+chargés avec succès dans Studio. C'est **réversible et sans coût** : chaque son
+est une ligne d'identifiant dans `Config.sounds.events`, donc remplacer une
+piste par une des tiennes, c'est changer un nombre. Si tu préfères téléverser
+tes propres fichiers, rien n'est à défaire.
+
+Je l'ai fait dans cet ordre parce que l'alternative était d'attendre. Mais il
+faut dire la chose comme elle est : **je ne peux pas écouter.** Je choisis une
+piste sur son nom, sur la bibliothèque d'où elle vient, et sur sa durée — c'est
+d'ailleurs la durée qui a éliminé le plus de candidats, un « impact » d'une
+seconde et demie étant une portière de voiture et pas un coup de poing. C'est
+une sélection raisonnée, ce n'est pas un jugement d'oreille.
+
+### Cinq familles sonores, pas un son par objet
+
+`blade`, `blunt`, `gun`, `bow`, `fist`. Chaque arme déclare la sienne dans son
+bloc `look`. C'est la même logique que les quatre gestes : à soixante-deux
+objets, une liste de soixante-deux sons serait illisible, et cinq familles
+disent déjà ce qu'il faut savoir — est-ce que ça coupe, ça écrase, ça tire ou ça
+décoche.
+
+La masse est la seule à avoir un impact **métallique** plutôt que charnel. Pas
+par réalisme : parce qu'il faut pouvoir reconnaître à l'oreille qu'on vient de
+se faire toucher par le gros dégât, et c'est le seul moyen gratuit de le dire.
+
+### Aucun message réseau de plus
+
+Le client recevait déjà chaque coup, chaque chute et chaque explosion avec sa
+position, par le remote des effets. Le son se greffe sur ces mêmes annonces.
+La seule chose ajoutée au protocole est `voice`, le nom de la famille de l'arme
+— une chaîne de cinq lettres. **C'est aussi ce qui garantit que l'image et le
+son partent ensemble** : ils lisent le même message.
+
+### Le son du coup se décide sur l'annonce du coup, pas sur celle du dégât
+
+Il y avait deux endroits possibles. L'annonce du dégât sait combien on a pris,
+mais pas avec quoi ; l'annonce du coup sait avec quoi, et **elle part aussi
+quand le coup rate**. C'est décisif : un coup dans le vide doit s'entendre,
+c'est ce qui apprend la portée de sa classe. Donc les deux sons — le départ et
+l'impact — partent de l'annonce du coup, l'impact décalé de 0,05 s. Superposés,
+ils ne font qu'une bouillie.
+
+### L'explosion a enfin son propre message
+
+Une grenade envoyait jusqu'ici un « coup à zéro dégât ». Ça suffisait pour
+l'image et ça ne suffit pas pour le son : une grenade qui ne touche personne
+doit quand même s'entendre. C'est un nouveau genre d'annonce, `blast`.
+
+### Je coupe deux pistes, et c'est le seul réglage qui vient d'une mesure
+
+L'impact métallique dure 2 s et la corde de l'arc aussi, alors que la recharge
+du marteau est d'environ une seconde. Sans coupe, chaque coup sonne encore
+quand le suivant part, et trois coups de marteau font un bourdon continu. Je
+les coupe à 0,9 s et 0,7 s. **Mais une coupe nette peut faire un « clac »**, et
+ça, je ne peux pas l'entendre : point 99 d'`A-TESTER`. Si tu l'entends, le
+remède est un fondu, et je ne l'ai pas mis d'avance parce que ça aurait été
+ajouter du code contre un problème supposé.
+
+### Six sons laissés vides exprès
+
+Le soin, le relèvement, la brûlure de la zone, les clics de l'interface, le
+début et la fin d'une manche, l'ouverture d'une caisse. J'ai cherché, et ce que
+la bibliothèque m'a rendu pour ces cas-là ne valait pas d'être branché à
+l'aveugle. Autant les choisir quand quelqu'un pourra les écouter.
+
+### Ce que j'ai dû corriger, et comment
+
+**Un son modéré ou retiré échoue en silence.** Aucune erreur, le son ne sort
+simplement pas, et le jeu devient muet sans que personne sache pourquoi. Le
+garde-fou est `Audio.verify`, qui recharge tout le catalogue au démarrage du
+client et nomme ce qui manque dans la console. Tu verras maintenant une ligne
+« Son : 9 évènements, toutes les pistes chargées » quand tout va bien.
+
+**Et le nettoyage était faux, ce que seule la sonde en jeu a montré.** Je
+calculais la durée de vie de chaque son sur sa durée réelle — sauf que
+`TimeLength` vaut 0 à l'instant où le son est posé, même pour une piste déjà
+préchargée, parce qu'elle arrive de façon asynchrone. Mon calcul retombait donc
+toujours sur son repli de trois secondes, et les sons s'empilaient : à la
+deuxième annonce il y en avait quatre dans le monde au lieu de deux. Corrigé en
+écoutant la fin réelle du son. **Ça ne s'entendait probablement pas et ça ne se
+voyait pas du tout** — c'est le genre de chose qui n'apparaît que si on va
+regarder.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

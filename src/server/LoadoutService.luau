@@ -353,17 +353,19 @@ local function weaponAt(entry: Entry, distance: number?): any
 	return profile.primaryItem
 end
 
--- Le coup est accepte : on montre l'arme qui le porte et on la fait bouger.
--- Appele par CombatService apres la recharge, jamais avant — un coup refuse
--- ne doit pas s'animer, sinon la recharge devient invisible et le joueur
+-- Le coup est accepte : on montre l'arme qui le porte, on la fait bouger, et
+-- on renvoie SA VOIX pour que le client sache quoi jouer. Appele par
+-- CombatService apres la recharge, jamais avant — un coup refuse ne doit ni
+-- s'animer ni s'entendre, sinon la recharge devient invisible et le joueur
 -- croit que ses coups partent dans le vide.
-function LoadoutService.swingWeapon(entry: Entry, distance: number?)
+function LoadoutService.swingWeapon(entry: Entry, distance: number?): string?
 	local item = weaponAt(entry, distance)
 	if item == nil then
-		return
+		return nil
 	end
 	WeaponService.show(entry.player, item)
 	WeaponService.swing(entry.player, item)
+	return item.look and item.look.voice or nil
 end
 
 --------------------------------------------------------------------------------
@@ -620,7 +622,7 @@ local function blast(
 	knockbackStuds: number,
 	knockbackUpStuds: number
 )
-	EffectsService.hit(position + Vector3.new(0, 1.5, 0), 0, nil)
+	EffectsService.blast(position + Vector3.new(0, 1.5, 0))
 
 	for _, victim in enemiesNear(team, position, radius) do
 		local passed = dealTo(victim, damage)

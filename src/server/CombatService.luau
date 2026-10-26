@@ -618,8 +618,9 @@ local function onAttack(player: Player)
 	lastAttackAt[player] = now
 
 	-- Le geste de l'arme, une fois le coup accepte et pas avant. Il part meme
-	-- sans cible, comme le trait : c'est le meme principe, rater doit se voir.
-	LoadoutService.swingWeapon(entry, distance)
+	-- sans cible, comme le trait : c'est le meme principe, rater doit se voir
+	-- et s'entendre. La voix renvoyee dit au client quel son jouer.
+	local voice = LoadoutService.swingWeapon(entry, distance)
 
 	-- Le trait part AVANT de savoir si on a touche, et il part meme dans le
 	-- vide : rater doit se voir, sinon on n'apprend jamais la portee de sa
@@ -636,7 +637,12 @@ local function onAttack(player: Player)
 				reach = targetRoot.Position - attackerRoot.Position
 			end
 		end
-		EffectsService.swing(attackerRoot.Position + Vector3.new(0, 1.5, 0), reach, target ~= nil)
+		EffectsService.swing(
+			attackerRoot.Position + Vector3.new(0, 1.5, 0),
+			reach,
+			target ~= nil,
+			voice
+		)
 	end
 
 	-- Frapper revele le Cameleon : son camouflage tient tant qu'il ne fait

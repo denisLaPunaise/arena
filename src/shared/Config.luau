@@ -1058,6 +1058,7 @@ Config.items = {
 			color = { 172, 179, 192 },
 			grip = { 0, -0.9, -1.1 },
 			swing = "slash",
+			voice = "blade",
 			head = { size = { 0.2, 0.26, 0.8 }, color = { 68, 50, 38 }, atStuds = 1.3 },
 		},
 	},
@@ -1076,6 +1077,7 @@ Config.items = {
 			color = { 96, 78, 62 },
 			grip = { 0, -0.7, -1.1 },
 			swing = "recoil",
+			voice = "gun",
 			head = { size = { 0.22, 0.22, 2.1 }, color = { 54, 58, 66 }, atStuds = -2 },
 		},
 	},
@@ -1097,6 +1099,7 @@ Config.items = {
 			color = { 138, 100, 62 },
 			grip = { 0, -0.6, -0.9 },
 			swing = "draw",
+			voice = "bow",
 			head = { size = { 0.07, 4.1, 0.07 }, color = { 232, 230, 220 }, atStuds = 0.5 },
 		},
 	},
@@ -1113,6 +1116,7 @@ Config.items = {
 			color = { 92, 70, 52 },
 			grip = { 0, -1, -1.2 },
 			swing = "overhead",
+			voice = "blunt",
 			head = { size = { 0.9, 0.9, 0.85 }, color = { 84, 88, 98 }, atStuds = -1.4 },
 		},
 	},
@@ -1130,6 +1134,7 @@ Config.items = {
 			color = { 198, 204, 214 },
 			grip = { 0, -0.9, -0.7 },
 			swing = "slash",
+			voice = "blade",
 			head = { size = { 0.16, 0.22, 0.5 }, color = { 54, 56, 62 }, atStuds = 0.65 },
 		},
 	},
@@ -1145,6 +1150,7 @@ Config.items = {
 			color = { 52, 56, 64 },
 			grip = { 0, -0.7, -0.7 },
 			swing = "recoil",
+			voice = "gun",
 			head = { size = { 0.17, 0.17, 1.2 }, color = { 86, 90, 98 }, atStuds = -1.2 },
 		},
 	},
@@ -1546,6 +1552,113 @@ Config.tier6 = {
 -- neuf secondes de contact continu, le Vampire met le meme temps a entamer les
 -- 170 PV du Colosse. Le repoussement est l'outil du Colosse pour casser le vol
 -- de vie, la vitesse est l'outil du Vampire pour revenir au contact.
+-- LE SON.
+--
+-- Il n'y en avait aucun jusqu'au 26 octobre 2026, et c'etait le plus gros
+-- manque du jeu : un coup qui touche et un coup qui rate se ressemblaient
+-- exactement, alors que c'est l'information la plus urgente d'un duel.
+--
+-- TROIS CHOSES A SAVOIR AVANT DE TOUCHER A CE BLOC :
+--
+-- 1. LE SON NE COUTE AUCUN MESSAGE RESEAU. Le client recevait deja chaque
+--    coup, chaque soin et chaque chute avec sa position, par le remote des
+--    effets. Le son se greffe sur ces memes annonces : aucun nouveau remote,
+--    aucun octet de plus. La seule chose ajoutee au message est `voice`, le
+--    nom de la famille sonore de l'arme.
+--
+-- 2. CES IDENTIFIANTS SONT VERIFIES, PAS DEVINES. Chacun a ete charge dans
+--    Studio par `ContentProvider:PreloadAsync` et sa duree relevee : un son
+--    modere ou prive echoue en SILENCE, sans erreur, et le jeu devient muet
+--    sans que personne sache pourquoi. Un test de demarrage refait cette
+--    verification. Avant d'ajouter un identifiant ici, le charger.
+--
+-- 3. JE N'AI PAS PU LES ECOUTER. Je choisis sur le nom, sur la bibliotheque
+--    d'origine et sur la DUREE — un « impact » d'une seconde et demie est une
+--    portiere de voiture, pas un coup de poing. C'est une selection
+--    raisonnee, pas un jugement d'oreille. Celui-la revient a Josh, et c'est
+--    la section 12 de docs/A-TESTER.md.
+Config.sounds = {
+	enabled = true,
+
+	-- Le volume d'ensemble. Tout passe par lui, donc baisser ce seul chiffre
+	-- calme tout le jeu d'un coup.
+	masterVolume = 0.5,
+
+	-- La portee d'un son dans le monde. Au-dela de `maxDistanceStuds` on
+	-- n'entend plus rien : c'est ce qui empeche d'entendre un duel a l'autre
+	-- bout de l'arene, et donc ce qui fait que le son RENSEIGNE au lieu de
+	-- saturer. La zone de depart fait environ 90 studs de rayon.
+	minDistanceStuds = 12,
+	maxDistanceStuds = 110,
+
+	-- La famille sonore d'une arme sans arme. Les poings d'une classe qui n'a
+	-- rien equipe font quand meme du bruit.
+	defaultVoice = "fist",
+
+	-- Ce que chaque famille joue : au depart du coup, et a l'impact.
+	-- L'arme a feu tire au depart ; la masse cogne du metal a l'arrivee.
+	voices = {
+		blade = { swing = "swingBlade", hit = "hitBody" },
+		blunt = { swing = "swingBlunt", hit = "hitMetal" },
+		gun = { swing = "swingGun", hit = "hitBody" },
+		bow = { swing = "swingBow", hit = "hitBody" },
+		fist = { swing = "swingFist", hit = "hitBody" },
+	},
+
+	-- Chaque evenement porte UNE OU PLUSIEURS pistes, tirees au sort, et une
+	-- plage de hauteur. Les deux servent la meme chose : eviter l'effet
+	-- mitraillette. Un son identique repete trois fois par seconde cesse
+	-- d'etre un coup et devient un bruit de machine.
+	events = {
+		swingBlade = { assets = { "7118966167" }, volume = 0.45, pitch = { 0.92, 1.12 } },
+		swingBlunt = {
+			assets = { "9120972444", "9120972321", "9120972323" },
+			volume = 0.55,
+			pitch = { 0.72, 0.88 },
+		},
+		swingGun = { assets = { "6506930532" }, volume = 0.4, pitch = { 0.95, 1.06 } },
+		-- Deux secondes pour un geste qui dure 0,07 s : la piste contient la
+		-- tension de la corde ET la detente. On ne garde que le depart.
+		swingBow = {
+			assets = { "9113160887" },
+			volume = 0.45,
+			pitch = { 0.95, 1.05 },
+			maxSeconds = 0.7,
+		},
+		swingFist = {
+			assets = { "9120972321", "9120972323" },
+			volume = 0.32,
+			pitch = { 1.05, 1.2 },
+		},
+
+		hitBody = {
+			assets = { "111982142063703", "136209410462169" },
+			volume = 0.6,
+			pitch = { 0.9, 1.12 },
+		},
+		-- `maxSeconds` COUPE la piste. C'est le seul reglage sonore qui vient
+		-- d'une mesure et pas d'une oreille : ces deux pistes durent 1,3 et
+		-- 2,0 secondes, et la recharge du marteau est d'environ une seconde.
+		-- Sans la coupe, chaque coup sonne encore quand le suivant part, et
+		-- trois coups de marteau font un bourdon continu. Un impact dit
+		-- « maintenant » ; il n'a pas besoin de durer.
+		hitMetal = {
+			assets = { "93864237211566", "133511054265823" },
+			volume = 0.62,
+			pitch = { 0.85, 1 },
+			maxSeconds = 0.9,
+		},
+
+		down = { assets = { "9113480915" }, volume = 0.65, pitch = { 0.95, 1.05 } },
+		blast = { assets = { "3444652484" }, volume = 0.75, pitch = { 0.9, 1.06 } },
+	},
+
+	-- L'impact arrive JUSTE APRES le depart du coup, pas en meme temps. Sans
+	-- ce decalage les deux sons se superposent et on n'entend qu'une bouillie ;
+	-- avec, l'oreille entend un geste puis sa consequence.
+	hitDelaySeconds = 0.05,
+}
+
 Config.classStats = {
 	-- Quatre statistiques valent zero pour tout le monde au depart : seules des
 	-- branches d'arbre les font monter. Elles sont declarees partout quand

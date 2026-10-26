@@ -203,6 +203,34 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   virtuelle. `execute_luau` reste parfait pour inspecter le DataModel (les
   parts, les propriétés, l'arborescence), qui est partagé, lui.
 
+- **Un son Roblox modere, prive ou du mauvais type echoue en SILENCE.** Aucune
+  erreur, le son ne sort pas, et le jeu devient muet sans que personne sache
+  pourquoi. Le garde-fou est `Audio.verify`, qui recharge tout le catalogue au
+  demarrage du client par `ContentProvider:PreloadAsync` avec un rappel de
+  statut, et nomme dans la console ce qui n'est pas arrive : ne pas le retirer.
+  Avant d'ajouter un identifiant dans `Config.sounds.events`, le charger dans
+  Studio et relever sa duree.
+
+- **`Sound.TimeLength` vaut 0 a l'instant ou on pose le son**, meme pour une
+  piste deja prechargee : elle arrive de facon asynchrone cote client. Vu le
+  26 octobre 2026 — un nettoyage calcule sur `TimeLength` retombait donc
+  TOUJOURS sur son repli, et les sons s'empilaient dans le Workspace sans que
+  ca s'entende ni se voie. La bonne facon est `sound.Ended`, plus un `Debris`
+  en filet.
+
+- **Je ne peux pas ecouter un son.** Le choix se fait sur le nom, la
+  bibliotheque d'origine et la DUREE — un « impact » d'une seconde et demie est
+  une portiere de voiture. C'est une selection raisonnee, et il faut le dire
+  comme tel a Josh : le jugement d'oreille n'existe pas tant qu'il ne l'a pas
+  fait. Meme regle que pour l'allure des armes.
+
+- **Le son ne coute aucun message reseau, et ca doit rester vrai.** Le client
+  recoit deja chaque coup, chaque chute et chaque explosion avec sa position
+  par le remote des effets ; `Audio` se greffe sur ces memes annonces. La seule
+  chose que le son a ajoutee au protocole est `voice`, cinq lettres. Un nouveau
+  remote pour du son serait une erreur : c'est aussi ce qui garantit que
+  l'image et le son partent ensemble, puisqu'ils lisent le meme message.
+
 - **`screen_capture` peut cesser de rendre la 3D, sans la moindre erreur.**
   Vu le 26 octobre 2026 : toutes les captures sont revenues avec l'interface
   intacte et la vue 3D vide, en mode jeu comme en mode edition, et deux
@@ -320,8 +348,12 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    d'équipement, l'économie, l'Elo, et les cotes conformes à Roblox
 7. L'arme visible dans la main et son geste — **fait**, en géométrie pure,
    sans une seule animation téléversée ; l'arme bouge, le bras non
-8. Ce qui reste : le son (aucun), le mouvement du corps, les quarante-neuf
-   autres objets, les skins, et l'achat de pièces en Robux
+8. Le son — **fait** : cinq familles sonores greffées sur les annonces
+   d'effets, quatorze pistes vérifiées, zéro message réseau de plus. Choisi au
+   nom et à la durée, **jamais écouté** : section 12 d'`A-TESTER.md`
+9. Ce qui reste : le mouvement du corps, les quarante-neuf autres objets, les
+   skins, l'achat de pièces en Robux, et six sons laissés vides (soin,
+   relèvement, brûlure de zone, interface, début et fin de manche, caisse)
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans

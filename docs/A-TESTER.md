@@ -473,11 +473,80 @@ Reste donc à juger **en jouant**, ce que je ne peux pas faire :
 
 ---
 
+## 12. Le son — **vérifié par instrumentation, jamais écouté**
+
+Il n'y avait aucun son. Il y en a maintenant, et il faut que tu saches
+exactement ce que j'ai vérifié et ce que je n'ai pas pu vérifier, parce que
+l'écart est important.
+
+**Ce qui est vérifié, en jeu, dans Studio.** J'ai fait partir de vraies
+annonces de coup depuis le serveur, une par famille d'arme, et j'ai regardé ce
+que le client en faisait. Les quatorze pistes chargent, chaque famille déclenche
+le bon son de départ et le bon son d'impact, un coup raté ne joue que le départ,
+le volume et la hauteur sont ceux qui sont écrits dans la configuration, et rien
+ne s'empile derrière. La chaîne fonctionne, de bout en bout.
+
+**Ce que je n'ai pas pu faire : écouter.** Je choisis une piste sur son nom, sur
+la bibliothèque d'où elle vient et sur sa **durée** — un « impact » d'une
+seconde et demie est une portière de voiture, pas un coup de poing. C'est une
+sélection raisonnée, ce n'est pas un jugement d'oreille. **Celui-là n'existe
+pas tant que tu ne l'as pas fait.**
+
+94. **Est-ce qu'un coup qui touche et un coup qui rate s'entendent
+    différemment ?** C'est toute la raison d'être de ce travail. Quand on rate,
+    on n'entend que le sifflement de l'arme ; quand on touche, le sifflement
+    puis l'impact, 0,05 s après. Si tu n'entends pas la différence sans regarder
+    l'écran, c'est raté et il faut me le dire.
+95. **Est-ce que chaque arme sonne comme ce qu'elle est ?** Cinq familles :
+    - la **machette** et le **couteau** sifflent (lame) ;
+    - le **marteau** fait un bruit sourd et grave, et son impact est métallique ;
+    - le **fusil à pompe** et le **pistolet-mitrailleur** tirent ;
+    - l'**arc** fait une corde ;
+    - les **poings** d'une classe sans arme font un bruit d'air, plus aigu et
+      plus discret.
+
+    Si une de ces cinq sonne faux, dis-moi **laquelle** et **ce qu'elle devrait
+    faire** : c'est une ligne d'identifiant à changer dans
+    `Config.sounds.events`, rien de plus.
+96. **Est-ce que c'est trop fort, ou pas assez ?** Un seul chiffre commande
+    tout : `Config.sounds.masterVolume`, à 0,5 aujourd'hui. Dis-moi « deux fois
+    trop fort » et c'est réglé en une ligne.
+97. **Est-ce qu'on entend les duels des autres ?** Un son porte à 110 studs et
+    commence à faiblir à 12. L'arène fait environ 90 studs de rayon. Si en 5v5
+    on n'entend plus son propre combat sous le bruit des autres, il faut baisser
+    les 110 — c'est le réglage qui fait qu'un son **renseigne** au lieu de
+    saturer.
+98. **Est-ce que la rafale devient un bruit de machine ?** Chaque son tire sa
+    piste et sa hauteur au sort, précisément pour éviter ça. Le
+    pistolet-mitrailleur est le cas limite : il frappe vite.
+99. **Est-ce qu'on entend une coupure sèche ?** Deux pistes sont trop longues
+    pour leur usage et je les coupe volontairement — l'impact métallique à 0,9 s
+    (elle dure 2 s) et la corde de l'arc à 0,7 s (2 s aussi). Sans la coupe, un
+    coup de marteau sonne encore quand le suivant part. Mais une coupe nette
+    peut faire un « clac » ; si tu l'entends, ça se règle avec un fondu, et je
+    ne l'ai pas mis parce que je ne pouvais pas juger s'il était nécessaire.
+100. **La chute et l'explosion.** Tomber en agonie a son propre son, et une
+     grenade aussi — avant, une grenade qui ne touchait personne était
+     silencieuse. Est-ce que l'explosion s'entend assez pour qu'on recule ?
+
+**Ce qui n'a aucun son, et c'est volontaire pour l'instant** : le soin, le
+relèvement, la brûlure de la zone, les clics de l'interface, le début et la fin
+d'une manche, l'ouverture d'une caisse. J'ai cherché, et ce que la bibliothèque
+m'a rendu pour ces cas-là ne valait pas la peine d'être branché à l'aveugle.
+Ces six sons-là, autant les choisir quand tu pourras les écouter.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
 
-- **le son** — il n'y en a aucun. C'est maintenant le plus gros manque.
+- **je n'ai pas pu écouter les sons** — je les ai choisis au nom, à la
+  bibliothèque et à la durée, et vérifié en jeu qu'ils partent bien. Savoir
+  s'ils sonnent juste demande une oreille. Section 12.
+- **six sons manquent encore** — le soin, le relèvement, la brûlure de la
+  zone, les clics de l'interface, le début et la fin d'une manche, et
+  l'ouverture d'une caisse. À choisir quand tu pourras les écouter.
 - **les quarante-neuf autres objets** — treize sur soixante-deux sont codés.
   Les autres attendent de savoir si le budget est bon à treize.
 - **les skins** — les fragments s'accumulent et ne servent encore à rien.

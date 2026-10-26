@@ -38,6 +38,7 @@ export type Kind =
 	| "revive"
 	| "dash"
 	| "footprint"
+	| "blast"
 
 -- Un evenement d'affichage. `amount` n'est rempli que quand il y a un nombre a
 -- montrer, et `target` quand l'effet se joue sur un personnage precis.
@@ -50,19 +51,32 @@ local function send(kind: Kind, position: Vector3, amount: number?, target: Play
 	})
 end
 
--- Un coup part, qu'il touche ou non. Frapper dans le vide doit se voir : c'est
--- ce qui apprend la portee de sa classe.
-function EffectsService.swing(from: Vector3, direction: Vector3, hit: boolean)
+-- Un coup part, qu'il touche ou non. Frapper dans le vide doit se voir ET
+-- s'entendre : c'est ce qui apprend la portee de sa classe.
+--
+-- `voice` est la famille sonore de l'arme qui porte le coup — "blade", "gun",
+-- "bow", "blunt", ou rien du tout pour les poings. C'est la SEULE chose que le
+-- son a ajoutee au protocole : tout le reste, le client le savait deja.
+function EffectsService.swing(from: Vector3, direction: Vector3, hit: boolean, voice: string?)
 	effectsRemote:FireAllClients({
 		kind = "swing" :: Kind,
 		position = from,
 		direction = direction,
 		hit = hit,
+		voice = voice,
 	})
 end
 
 function EffectsService.hit(position: Vector3, amount: number, target: Player?)
 	send("hit", position, amount, target)
+end
+
+-- Une explosion. Elle avait jusqu'ici le meme message qu'un coup a zero
+-- degat, ce qui marchait pour l'image mais ne disait pas au client que
+-- c'etait une explosion : une grenade qui ne touche personne doit quand meme
+-- s'entendre.
+function EffectsService.blast(position: Vector3)
+	send("blast", position, nil, nil)
 end
 
 function EffectsService.spread(position: Vector3, amount: number, target: Player?)

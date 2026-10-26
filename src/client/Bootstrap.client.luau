@@ -33,6 +33,7 @@ local abilityRemote = Remotes:WaitForChild("Ability") :: RemoteEvent
 local Config = require(Arena:WaitForChild("Config"))
 
 local DraftPanel = require(script.Parent:WaitForChild("DraftPanel"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local LoadoutPanel = require(script.Parent:WaitForChild("LoadoutPanel"))
 local ProgressPanel = require(script.Parent:WaitForChild("ProgressPanel"))
@@ -342,6 +343,7 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 	end
 end)
 
+Audio.start()
 Effects.start()
 DraftPanel.start()
 LoadoutPanel.start()

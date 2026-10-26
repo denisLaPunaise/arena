@@ -28,6 +28,8 @@ local Workspace = game:GetService("Workspace")
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Config = require(Arena:WaitForChild("Config"))
 
+local Audio = require(script.Parent:WaitForChild("Audio"))
+
 local Remotes = Arena:WaitForChild("Remotes")
 local effectsRemote = Remotes:WaitForChild("Effects") :: UnreliableRemoteEvent
 
@@ -272,10 +274,29 @@ local function onEffect(payload: any)
 		footprint(payload.position, payload.seconds or 4, payload.amount)
 	elseif kind == "swing" then
 		swing(payload.position, payload.direction, payload.hit == true)
+
+		-- LE SON DU COUP SE DECIDE ICI, et pas sur l'annonce « hit ». Cette
+		-- annonce-la est la seule qui sache AVEC QUOI on a frappe, et elle
+		-- part aussi quand le coup rate : un coup dans le vide doit s'entendre,
+		-- c'est ce qui apprend la portee de sa classe.
+		local voice = Audio.voice(payload.voice)
+		Audio.playAt(voice.swing, payload.position)
+		if payload.hit == true then
+			-- L'impact juste APRES le depart, jamais en meme temps : superposes,
+			-- les deux sons ne font qu'une bouillie.
+			local at = payload.position
+			task.delay(Config.sounds.hitDelaySeconds, function()
+				Audio.playAt(voice.hit, at)
+			end)
+		end
+	elseif kind == "blast" then
+		flash(payload.position, TAKEN)
+		Audio.playAt("blast", payload.position)
 	elseif kind == "dash" then
 		dash(payload.position, payload.direction)
 	elseif kind == "down" then
 		flash(payload.position, TAKEN)
+		Audio.playAt("down", payload.position)
 	elseif kind == "revive" then
 		flash(payload.position, HEAL)
 	elseif typeof(payload.amount) == "number" then
