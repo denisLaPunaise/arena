@@ -409,19 +409,28 @@ c'est le budget qu'on teste maintenant.
 
 ---
 
-## 11. L'arme se voit dans la main — **jamais regardée en vrai**
+## 11. L'arme se voit dans la main — **regardée, jamais jouée**
 
-C'est le point le plus incertain de la session, et il faut que tu saches
-pourquoi : **je n'ai pas pu voir ces armes.** La capture d'écran de Studio ne
-m'a rendu que du noir à partir du moment où je suis passé en mode jeu, et j'ai
-vérifié que ce n'était pas une illusion — une part néon rouge de douze studs,
-posée à dix studs devant la caméra et confirmée à l'écran par le calcul, n'est
-pas apparue sur l'image. Même les `ViewportFrame`, qui sont pourtant de
-l'interface, sont sortis vides.
+J'ai fini par les voir, une fois Studio ramené au premier plan : le rendu se
+fige dès que la fenêtre passe derrière, et aucune capture ne le dit. Ce que
+j'ai vu m'a fait corriger cinq armes sur six, et rien de tout ça n'apparaissait
+dans les mille tests.
 
-Donc : la géométrie est vérifiée par le calcul, et elle est juste. L'allure,
-elle, n'a jamais été jugée par un oeil. **C'est exactement ce que tu dois
-regarder en premier.**
+Ce qui était faux, et que seul l'oeil pouvait dire :
+
+- **les lames étaient des fils de fer.** Une section carrée de 0,22 stud
+  disparaît complètement à distance de combat. La machette et le couteau sont
+  devenus des lames plates, et les deux ont reçu une poignée sombre — sans
+  elle, une lame claire flotte à côté de la main au lieu d'être tenue par elle.
+- **l'arc était un bâton.** Un barreau de section carrée ne se lit pas comme un
+  arc : c'est maintenant une branche plate avec une corde claire.
+- **le pistolet-mitrailleur était un moignon sombre.** Il a reçu un canon,
+  comme le fusil.
+- **le manche du marteau tenait du cure-dent** sous une tête de 0,9.
+
+Ce qui marchait déjà : le marteau se lit parfaitement, le fusil à pompe aussi.
+
+Reste donc à juger **en jouant**, ce que je ne peux pas faire :
 
 86. **Est-ce qu'on voit l'arme ?** Chaque arme est un objet tenu dans la main
     droite, visible par tout le monde. C'est la raison d'être de tout ce
@@ -482,9 +491,14 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   mais le **bras ne bouge pas**. Un vrai mouvement de personnage demande une
   animation téléversée sur un compte Roblox, donc un identifiant d'asset que
   personne ne peut vérifier en lisant le dépôt. C'est à décider ensemble.
-- **je n'ai pas pu voir les armes** — la capture d'écran de Studio ne me rend
-  plus la 3D (vérifié par un témoin néon qui n'apparaît pas). La géométrie est
-  juste au calcul ; l'allure n'a jamais été jugée par un oeil. Section 11.
+- **le couteau reste à peine visible** — 1,6 stud de lame sur un personnage de
+  5, c'est honnête pour un objet à 2 points dont la portée est réduite de 30 %,
+  mais si ça gêne en jouant, c'est un choix à faire : l'agrandir mentirait sur
+  sa portée. Section 11, point 87.
+- **le rendu de Studio se fige quand la fenêtre passe en arrière-plan** — donc
+  si tu veux que je regarde quelque chose à l'écran, il faut que Studio soit
+  devant. Aucune erreur ne le signale, les captures reviennent simplement
+  identiques.
 - **deux paliers 6 sur quarante-deux** attendent un système qui n'existe pas :
   « immunisé aux projectiles » (Monolithe) et « la propagation traverse les
   armures » (Peste). Ils s'affichent comme indisponibles, c'est voulu.

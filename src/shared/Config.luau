@@ -1054,10 +1054,11 @@ Config.items = {
 		-- 30 % de degats par seconde en plus, paye par une portee reduite.
 		scale = { attackDamage = 0.85, attackCooldownSeconds = 0.65, attackRangeStuds = 0.8 },
 		look = {
-			size = { 0.22, 0.22, 3 },
-			color = { 198, 202, 210 },
+			size = { 0.14, 0.52, 3 },
+			color = { 172, 179, 192 },
 			grip = { 0, -0.9, -1.1 },
 			swing = "slash",
+			head = { size = { 0.2, 0.26, 0.8 }, color = { 68, 50, 38 }, atStuds = 1.3 },
 		},
 	},
 	{
@@ -1092,10 +1093,11 @@ Config.items = {
 		-- lui, l'armure a cinq points n'a aucune reponse.
 		armorPierceRatio = 0.5,
 		look = {
-			size = { 0.2, 4.2, 0.2 },
-			color = { 150, 110, 70 },
+			size = { 0.16, 4.4, 0.46 },
+			color = { 138, 100, 62 },
 			grip = { 0, -0.6, -0.9 },
 			swing = "draw",
+			head = { size = { 0.07, 4.1, 0.07 }, color = { 232, 230, 220 }, atStuds = 0.5 },
 		},
 	},
 	{
@@ -1107,7 +1109,7 @@ Config.items = {
 		scale = { attackDamage = 2.4, attackCooldownSeconds = 1.9, attackRangeStuds = 1 },
 		offset = { knockbackStuds = 35, knockbackUpStuds = 10 },
 		look = {
-			size = { 0.25, 0.25, 3.4 },
+			size = { 0.3, 0.3, 3.4 },
 			color = { 92, 70, 52 },
 			grip = { 0, -1, -1.2 },
 			swing = "overhead",
@@ -1124,10 +1126,11 @@ Config.items = {
 		summary = "Rapide et faible, pour quand on n'a plus rien",
 		scale = { attackDamage = 0.5, attackCooldownSeconds = 0.5, attackRangeStuds = 0.7 },
 		look = {
-			size = { 0.16, 0.16, 1.5 },
-			color = { 210, 214, 222 },
+			size = { 0.1, 0.38, 1.6 },
+			color = { 198, 204, 214 },
 			grip = { 0, -0.9, -0.7 },
 			swing = "slash",
+			head = { size = { 0.16, 0.22, 0.5 }, color = { 54, 56, 62 }, atStuds = 0.65 },
 		},
 	},
 	{
@@ -1138,10 +1141,11 @@ Config.items = {
 		summary = "Rafale courte, bonne à mi-distance",
 		scale = { attackDamage = 0.8, attackCooldownSeconds = 0.55, attackRangeStuds = 1.8 },
 		look = {
-			size = { 0.28, 0.5, 2 },
+			size = { 0.3, 0.56, 1.5 },
 			color = { 52, 56, 64 },
-			grip = { 0, -0.7, -0.9 },
+			grip = { 0, -0.7, -0.7 },
 			swing = "recoil",
+			head = { size = { 0.17, 0.17, 1.2 }, color = { 86, 90, 98 }, atStuds = -1.2 },
 		},
 	},
 
