@@ -409,6 +409,61 @@ c'est le budget qu'on teste maintenant.
 
 ---
 
+## 11. L'arme se voit dans la main — **jamais regardée en vrai**
+
+C'est le point le plus incertain de la session, et il faut que tu saches
+pourquoi : **je n'ai pas pu voir ces armes.** La capture d'écran de Studio ne
+m'a rendu que du noir à partir du moment où je suis passé en mode jeu, et j'ai
+vérifié que ce n'était pas une illusion — une part néon rouge de douze studs,
+posée à dix studs devant la caméra et confirmée à l'écran par le calcul, n'est
+pas apparue sur l'image. Même les `ViewportFrame`, qui sont pourtant de
+l'interface, sont sortis vides.
+
+Donc : la géométrie est vérifiée par le calcul, et elle est juste. L'allure,
+elle, n'a jamais été jugée par un oeil. **C'est exactement ce que tu dois
+regarder en premier.**
+
+86. **Est-ce qu'on voit l'arme ?** Chaque arme est un objet tenu dans la main
+    droite, visible par tout le monde. C'est la raison d'être de tout ce
+    morceau : avec treize objets, savoir que l'adversaire porte un fusil à
+    pompe plutôt qu'un arc change ce qu'on fait de la seconde suivante.
+87. **Est-ce que les tailles sont crédibles ?** La machette fait 3 studs, le
+    marteau 3,4 avec une tête de 0,9, le couteau 1,5, l'arc 4,2 de haut. Un
+    personnage Roblox fait environ 5 studs. Si quelque chose a l'air d'un
+    mât ou d'un cure-dent, c'est une ligne de `Config.items` à changer, rien
+    d'autre — `look.size`.
+88. **Est-ce que l'arme est bien dans la main**, et pas plantée dans le bras ou
+    flottant à côté ? Le réglage est `look.grip`, trois chiffres.
+89. **Les quatre gestes.** Chacun dit ce que l'arme fait :
+    - la **machette** et le **couteau** fauchent vers la gauche, en travers du
+      corps, parce que la main est la droite ;
+    - le **marteau** s'abat vers le bas ;
+    - le **fusil à pompe** et le **pistolet-mitrailleur** lèvent le canon, comme
+      un recul ;
+    - l'**arc** recule dans la main, comme une corde qu'on tend.
+
+    **Deux de ces quatre partaient à l'envers** au premier jet — le marteau se
+    relevait, les armes à feu plongeaient du canon. Rien dans les mille tests
+    ne le voyait. Ce qui l'a attrapé est un calcul de la position de la pointe
+    avant et après le geste, fait avec de vrais `CFrame` dans Studio, et ce
+    calcul est maintenant figé dans la suite de tests. Mais **un geste juste au
+    calcul peut quand même être laid**, et ça, seul ton oeil le dira.
+90. **Le geste part vite et revient lentement** (0,07 s puis 0,16 s). Est-ce que
+    ça donne du poids au coup, ou est-ce que ça traîne ? C'est
+    `Config.loadout.weaponMotion.outSeconds` et `backSeconds`.
+91. **L'arme secondaire sort toute seule** quand la cible est trop loin pour la
+    principale — et depuis cette session, **elle se voit changer dans la main**.
+    Est-ce que ce changement se comprend, ou est-ce qu'il surprend ?
+92. **L'arme survit à la mort.** Elle est reconstruite à chaque réapparition.
+    Si tu meurs et que tu reviens les mains vides, c'est un vrai bug, dis-le.
+93. **Le bras ne bouge pas.** Seule l'arme tourne dans la main. C'est assumé :
+    une animation de bras demande un fichier téléversé sur un compte, donc
+    quelque chose que personne ne peut relire dans le dépôt. Si ça te paraît
+    trop pauvre une fois en jeu, c'est une décision à prendre ensemble — elle
+    a un coût.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -423,9 +478,13 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   payant. L'écran des cotes est déjà conforme pour le jour où.
 - **les objets débloqués ne verrouillent pas l'équipement** — tout le monde a
   accès aux treize. À rebrancher quand le catalogue sera plus grand.
-- **les animations d'attaque** — le coup se voit (trait, éclair, nombre) mais le
-  personnage ne bouge pas. C'est sans doute le manque que tu vas sentir le
-  plus, maintenant que le reste existe.
+- **les animations d'attaque du corps** — l'arme bouge maintenant dans la main,
+  mais le **bras ne bouge pas**. Un vrai mouvement de personnage demande une
+  animation téléversée sur un compte Roblox, donc un identifiant d'asset que
+  personne ne peut vérifier en lisant le dépôt. C'est à décider ensemble.
+- **je n'ai pas pu voir les armes** — la capture d'écran de Studio ne me rend
+  plus la 3D (vérifié par un témoin néon qui n'apparaît pas). La géométrie est
+  juste au calcul ; l'allure n'a jamais été jugée par un oeil. Section 11.
 - **deux paliers 6 sur quarante-deux** attendent un système qui n'existe pas :
   « immunisé aux projectiles » (Monolithe) et « la propagation traverse les
   armures » (Peste). Ils s'affichent comme indisponibles, c'est voulu.

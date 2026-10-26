@@ -203,6 +203,38 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   virtuelle. `execute_luau` reste parfait pour inspecter le DataModel (les
   parts, les propriétés, l'arborescence), qui est partagé, lui.
 
+- **`screen_capture` peut cesser de rendre la 3D, sans la moindre erreur.**
+  Vu le 26 octobre 2026 : toutes les captures sont revenues avec l'interface
+  intacte et la vue 3D vide, en mode jeu comme en mode edition, et deux
+  captures de scenes differentes etaient rigoureusement identiques au pixel.
+  Verifie par un temoin plutot que suppose — une part neon rouge de douze
+  studs, posee a dix studs devant la camera et confirmee a l'ecran par
+  `WorldToViewportPoint`, n'apparait pas sur l'image. Les `ViewportFrame` non
+  plus, alors qu'ils sont de l'interface : c'est tout le moteur de rendu qui
+  ne produit plus d'image, probablement parce que la fenetre de Studio est
+  passee en arriere-plan.
+
+  Donc : **avant de conclure qu'un objet 3D ne s'affiche pas, poser un
+  temoin.** Et quand le rendu est gele, il n'y a pas de contournement par
+  l'interface — il faut demander a Josh de ramener Studio au premier plan, ou
+  verifier par le calcul en le disant comme tel.
+
+- **Un geste anime ne se verifie pas en le relisant.** Deux des quatre
+  mouvements d'arme partaient a l'envers le 26 octobre 2026, et les mille
+  tests passaient. Le moyen est de calculer ou va la POINTE de l'arme entre le
+  repos et le bout du geste, avec de vrais `CFrame`, et de regarder le signe de
+  chaque axe : dans Roblox l'avant est -Z, donc un `pitch` positif LEVE la
+  pointe et un `yaw` positif la fauche vers la gauche. Ce calcul est fige dans
+  `tests/specs/loadout.luau`, et il verifie d'abord qu'il reproduit Roblox
+  avant de juger des signes : ne pas retirer cette premiere moitie, c'est elle
+  qui rend la seconde credible.
+
+- **Rien de visuel ne touche a l'equilibrage.** Le bloc `look` d'un objet ne
+  contient que des tailles, des couleurs et des angles, et aucun de ses
+  chiffres n'entre dans un calcul de degats, de portee ou de budget. C'est le
+  premier des six principes. Une arme plus grosse n'est pas une arme plus
+  forte.
+
 - **`screen_capture` ne photographie pas les `BillboardGui`.** La scène 3D, les
   parts et les `ScreenGui` apparaissent normalement ; tout ce qui est accroché à
   un `BillboardGui` est absent de l'image, sans la moindre erreur. On peut donc
@@ -286,7 +318,9 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 6. L'équipement et son budget de douze points, les pièces, les tirages et le
    classement — **fait** : treize objets sur soixante-deux, l'écran
    d'équipement, l'économie, l'Elo, et les cotes conformes à Roblox
-7. Ce qui reste : le son (aucun), les animations d'attaque, les quarante-neuf
+7. L'arme visible dans la main et son geste — **fait**, en géométrie pure,
+   sans une seule animation téléversée ; l'arme bouge, le bras non
+8. Ce qui reste : le son (aucun), le mouvement du corps, les quarante-neuf
    autres objets, les skins, et l'achat de pièces en Robux
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans

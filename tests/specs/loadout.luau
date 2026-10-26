@@ -490,4 +490,182 @@ return function(t: harness.Harness)
 		end
 	end
 	t.equal("aucun consommable sans effet", broken, nil)
+
+	-- Le catalogue decrit aussi ce qu'on TIENT, pas seulement ce que ca change.
+	-- Une arme sans allure est invisible dans la main, et un mouvement mal nomme
+	-- ne fait rien : les deux passent les autres tests sans rien signaler.
+	t.section("Toute arme a une allure")
+
+	local motion = Config.loadout.weaponMotion
+
+	local missing: string? = nil
+	local unknownSwing: string? = nil
+	local badHead: string? = nil
+
+	for _, item in Config.items do
+		-- Seules les armes se tiennent. Une armure ou une trousse de soin n'a
+		-- rien a montrer dans la main.
+		if item.category ~= "primary" and item.category ~= "secondary" then
+			continue
+		end
+
+		local look = item.look
+		if look == nil then
+			missing = item.id
+			continue
+		end
+
+		if #look.size ~= 3 or #look.color ~= 3 or #look.grip ~= 3 then
+			missing = item.id .. " : taille, couleur ou prise incomplete"
+		end
+
+		if motion[look.swing] == nil then
+			unknownSwing = item.id .. " : " .. tostring(look.swing)
+		end
+
+		local head = look.head
+		if head ~= nil and (#head.size ~= 3 or #head.color ~= 3 or head.atStuds == nil) then
+			badHead = item.id
+		end
+	end
+
+	t.equal("aucune arme sans allure", missing, nil)
+	t.equal("aucun mouvement inconnu", unknownSwing, nil)
+	t.equal("aucune piece rapportee incomplete", badHead, nil)
+
+	t.section("Chaque mouvement est complet")
+
+	-- Les quatre angles doivent exister sur chacun : un `nil` dans un
+	-- CFrame.Angles leve une erreur au premier coup porte, en pleine manche.
+	local incomplete: string? = nil
+	for _, name in { "slash", "overhead", "recoil", "draw" } do
+		local kind = motion[name]
+		if kind == nil then
+			incomplete = name .. " : absent"
+			continue
+		end
+		if kind.pitch == nil or kind.yaw == nil or kind.roll == nil or kind.pullStuds == nil then
+			incomplete = name .. " : angle manquant"
+		end
+	end
+	t.equal("les quatre mouvements sont complets", incomplete, nil)
+
+	t.equal("le coup part plus vite qu'il ne revient", motion.outSeconds < motion.backSeconds, true)
+
+	t.section("Le geste tient dans la recharge")
+
+	-- Un geste plus long que la recharge de l'arme ne se repose jamais : le
+	-- coup suivant repart d'une position intermediaire et l'arme derive. Le
+	-- couteau est le cas serre, avec une demi-seconde de recharge.
+	local gesture = motion.outSeconds + motion.backSeconds
+	local tooSlow: string? = nil
+	local tightest = math.huge
+	for _, item in Config.items do
+		if item.category ~= "primary" and item.category ~= "secondary" then
+			continue
+		end
+		local factor = 1
+		if item.scale ~= nil and item.scale.attackCooldownSeconds ~= nil then
+			factor = item.scale.attackCooldownSeconds
+		end
+		for classId, stats in Config.classStats do
+			local cooldown = stats.attackCooldownSeconds * factor
+			if cooldown < tightest then
+				tightest = cooldown
+			end
+			if gesture > cooldown then
+				tooSlow = item.id .. " sur " .. classId
+			end
+		end
+	end
+	t.equal("aucune arme ne frappe plus vite que son geste", tooSlow, nil)
+
+	-- Le cas le plus serre du jeu, note ici pour qu'une baisse de recharge
+	-- dans Config se fasse les yeux ouverts : passer sous la duree du geste
+	-- ne leve aucune erreur, l'arme derive simplement de sa position de repos.
+	t.equal("et il reste de la marge sur le cas le plus serre", tightest > gesture, true)
+
+	-- OU VA LA POINTE DE L'ARME. C'est le seul test du depot qui refait un
+	-- calcul de Roblox a la main, et c'est delibere : la capture d'ecran de
+	-- Studio ne montre pas la 3D, donc personne ne peut REGARDER un geste.
+	-- Deux des quatre signes etaient inverses au premier jet, et aucun test
+	-- ne le voyait.
+	--
+	-- Les chiffres attendus ci-dessous ont ete mesures dans Studio avec de
+	-- vrais CFrame, le 26 octobre 2026. Si ce calcul-ci s'en ecarte, c'est
+	-- que la reimplementation est fausse, et le test le dit avant de parler
+	-- des signes.
+	t.section("Le geste part dans le bon sens")
+
+	-- CFrame.Angles(x, y, z) applique Rx * Ry * Rz, dans cet ordre.
+	local function rotate(v: { number }, pitch: number, yaw: number, roll: number): { number }
+		local a, b, c = math.rad(pitch), math.rad(yaw), math.rad(roll)
+		local x, y, z = v[1], v[2], v[3]
+
+		-- Rz
+		local x1 = x * math.cos(c) - y * math.sin(c)
+		local y1 = x * math.sin(c) + y * math.cos(c)
+		local z1 = z
+		-- Ry
+		local x2 = x1 * math.cos(b) + z1 * math.sin(b)
+		local y2 = y1
+		local z2 = -x1 * math.sin(b) + z1 * math.cos(b)
+		-- Rx
+		local x3 = x2
+		local y3 = y2 * math.cos(a) - z2 * math.sin(a)
+		local z3 = y2 * math.sin(a) + z2 * math.cos(a)
+
+		return { x3, y3, z3 }
+	end
+
+	-- Le deplacement de la pointe entre le repos et le bout du geste.
+	local function tipTravel(itemId: string): { number }
+		local item = Loadout.find(Config, itemId)
+		local look = item.look
+		local kind = Config.loadout.weaponMotion[look.swing]
+
+		-- La pointe : le bout de la lame, ou le haut de l'arc quand l'arme
+		-- est plus longue en hauteur qu'en profondeur.
+		local axis = { 0, 0, -look.size[3] / 2 }
+		if look.size[2] > look.size[3] then
+			axis = { 0, look.size[2] / 2, 0 }
+		end
+
+		local turned = rotate(axis, kind.pitch, kind.yaw, kind.roll)
+		return {
+			turned[1] - axis[1],
+			turned[2] - axis[2],
+			turned[3] + kind.pullStuds - axis[3],
+		}
+	end
+
+	local function near(actual: number, expected: number): boolean
+		return math.abs(actual - expected) < 0.02
+	end
+
+	-- D'abord : ce calcul donne-t-il la meme chose que Roblox ?
+	local hammer = tipTravel("warhammer")
+	t.equal("le calcul reproduit celui de Studio (marteau, y)", near(hammer[2], -1.64), true)
+	t.equal("le calcul reproduit celui de Studio (marteau, z)", near(hammer[3], 1.26), true)
+	local bow = tipTravel("compositeBow")
+	t.equal("le calcul reproduit celui de Studio (arc, z)", near(bow[3], 1.4), true)
+	local blade = tipTravel("machete")
+	t.equal("le calcul reproduit celui de Studio (machette, x)", near(blade[1], -1.48), true)
+
+	-- Ensuite seulement : les gestes vont-ils ou on veut ?
+	t.equal("le marteau s'abat vers le bas", hammer[2] < -1, true)
+	t.equal("l'arc recule dans la main", bow[3] > 1, true)
+	t.equal(
+		"et il ne part ni en haut ni de cote",
+		math.abs(bow[1]) < 0.01 and math.abs(bow[2]) < 0.01,
+		true
+	)
+
+	-- La main est la droite : la frappe traverse le corps vers la gauche.
+	t.equal("la machette fauche vers la gauche", blade[1] < -0.5, true)
+	t.equal("le couteau aussi", tipTravel("knife")[1] < -0.3, true)
+
+	-- Une arme a feu leve le canon, elle ne le plonge pas.
+	t.equal("le fusil leve son canon", tipTravel("shotgun")[2] > 0.2, true)
+	t.equal("le pistolet-mitrailleur aussi", tipTravel("smg")[2] > 0.2, true)
 end

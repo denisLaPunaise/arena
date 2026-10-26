@@ -617,6 +617,10 @@ local function onAttack(player: Player)
 	-- hasard doit couter quelque chose.
 	lastAttackAt[player] = now
 
+	-- Le geste de l'arme, une fois le coup accepte et pas avant. Il part meme
+	-- sans cible, comme le trait : c'est le meme principe, rater doit se voir.
+	LoadoutService.swingWeapon(entry, distance)
+
 	-- Le trait part AVANT de savoir si on a touche, et il part meme dans le
 	-- vide : rater doit se voir, sinon on n'apprend jamais la portee de sa
 	-- classe.

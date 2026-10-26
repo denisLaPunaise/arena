@@ -963,6 +963,47 @@ Config.loadout = {
 	-- Les charges reviennent entre deux manches, comme les mines de
 	-- l'Artificier. Une manche est l'unite de reserve du jeu.
 	chargesRefillBetweenRounds = true,
+
+	-- L'ARME SE VOIT DANS LA MAIN, et elle bouge quand on frappe.
+	--
+	-- Ce n'est pas de la decoration : avec treize objets, savoir qu'on a en
+	-- face un fusil a pompe plutot qu'un arc change ce qu'on fait de la
+	-- seconde suivante. Sans arme visible, l'equipement est une feuille de
+	-- calcul que personne ne voit.
+	--
+	-- Les quatre mouvements disent ce que l'arme fait : `slash` fauche de
+	-- cote, `overhead` s'abat de haut en bas, `recoil` recule sous le depart
+	-- du coup, `draw` tire en arriere puis relache. Chacun est decrit par un
+	-- angle et deux durees, jamais par une animation televersee : une
+	-- animation demande un identifiant d'asset, donc un televersement, donc
+	-- quelque chose que personne ne peut verifier en lisant le depot.
+	weaponMotion = {
+		-- La duree de depart et de retour, en secondes. La montee est plus
+		-- rapide que la descente : un coup part sec et se repose.
+		outSeconds = 0.07,
+		backSeconds = 0.16,
+
+		-- `pitch` LEVE la pointe quand il est positif, `yaw` la fauche vers la
+		-- gauche quand il est positif, `roll` la fait tourner sur son axe, le
+		-- tout en degres. `pullStuds` recule l'arme dans la main, et c'est ce
+		-- qui fait un arc qu'on bande.
+		--
+		-- CES SIGNES ONT ETE MESURES, PAS DEVINES. Deux des quatre gestes
+		-- partaient a l'envers au premier jet : le marteau se relevait au lieu
+		-- de s'abattre et le fusil plongeait du canon au lieu de le lever.
+		-- Rien dans les tests ne pouvait le dire, et la capture d'ecran de
+		-- Studio ne montre pas la 3D. La verification est le calcul de la
+		-- position de la pointe avant et apres le geste : elle est dans
+		-- docs/A-TESTER.md. Avant de retoucher un signe ici, refaire ce calcul.
+		--
+		-- La machette fauche VERS LA GAUCHE parce que la main est la droite :
+		-- un coup qui part vers l'exterieur est un elan, celui qui traverse le
+		-- corps est la frappe, et c'est la frappe qui doit etre rapide.
+		slash = { pitch = 10, yaw = 100, roll = -25, pullStuds = 0 },
+		overhead = { pitch = -75, yaw = 0, roll = 0, pullStuds = 0 },
+		recoil = { pitch = 26, yaw = 0, roll = 0, pullStuds = 0.45 },
+		draw = { pitch = 0, yaw = 0, roll = 0, pullStuds = 1.4 },
+	},
 }
 
 --------------------------------------------------------------------------------
@@ -1012,6 +1053,12 @@ Config.items = {
 		-- Moins de degats par coup mais une cadence bien plus elevee : environ
 		-- 30 % de degats par seconde en plus, paye par une portee reduite.
 		scale = { attackDamage = 0.85, attackCooldownSeconds = 0.65, attackRangeStuds = 0.8 },
+		look = {
+			size = { 0.22, 0.22, 3 },
+			color = { 198, 202, 210 },
+			grip = { 0, -0.9, -1.1 },
+			swing = "slash",
+		},
 	},
 	{
 		id = "shotgun",
@@ -1023,6 +1070,13 @@ Config.items = {
 		-- quatre studs : il faut etre colle a sa cible. C'est l'arme qui
 		-- demande le plus de courage du catalogue.
 		scale = { attackDamage = 2, attackCooldownSeconds = 1.45, attackRangeStuds = 0.55 },
+		look = {
+			size = { 0.3, 0.38, 2.2 },
+			color = { 96, 78, 62 },
+			grip = { 0, -0.7, -1.1 },
+			swing = "recoil",
+			head = { size = { 0.22, 0.22, 2.1 }, color = { 54, 58, 66 }, atStuds = -2 },
+		},
 	},
 	{
 		id = "compositeBow",
@@ -1037,6 +1091,12 @@ Config.items = {
 		-- seul contre aux armures lourdes du catalogue, et c'est voulu : sans
 		-- lui, l'armure a cinq points n'a aucune reponse.
 		armorPierceRatio = 0.5,
+		look = {
+			size = { 0.2, 4.2, 0.2 },
+			color = { 150, 110, 70 },
+			grip = { 0, -0.6, -0.9 },
+			swing = "draw",
+		},
 	},
 	{
 		id = "warhammer",
@@ -1046,6 +1106,13 @@ Config.items = {
 		summary = "Dégâts énormes, très lent, repousse fort",
 		scale = { attackDamage = 2.4, attackCooldownSeconds = 1.9, attackRangeStuds = 1 },
 		offset = { knockbackStuds = 35, knockbackUpStuds = 10 },
+		look = {
+			size = { 0.25, 0.25, 3.4 },
+			color = { 92, 70, 52 },
+			grip = { 0, -1, -1.2 },
+			swing = "overhead",
+			head = { size = { 0.9, 0.9, 0.85 }, color = { 84, 88, 98 }, atStuds = -1.4 },
+		},
 	},
 
 	------------------------------------------------------------------ secondaires
@@ -1056,6 +1123,12 @@ Config.items = {
 		name = "Couteau",
 		summary = "Rapide et faible, pour quand on n'a plus rien",
 		scale = { attackDamage = 0.5, attackCooldownSeconds = 0.5, attackRangeStuds = 0.7 },
+		look = {
+			size = { 0.16, 0.16, 1.5 },
+			color = { 210, 214, 222 },
+			grip = { 0, -0.9, -0.7 },
+			swing = "slash",
+		},
 	},
 	{
 		id = "smg",
@@ -1064,6 +1137,12 @@ Config.items = {
 		name = "Pistolet-mitrailleur",
 		summary = "Rafale courte, bonne à mi-distance",
 		scale = { attackDamage = 0.8, attackCooldownSeconds = 0.55, attackRangeStuds = 1.8 },
+		look = {
+			size = { 0.28, 0.5, 2 },
+			color = { 52, 56, 64 },
+			grip = { 0, -0.7, -0.9 },
+			swing = "recoil",
+		},
 	},
 
 	---------------------------------------------------------------------- armures

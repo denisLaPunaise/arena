@@ -48,6 +48,7 @@ local loadoutRemote = Remotes:WaitForChild("Loadout") :: RemoteEvent
 local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
+local WeaponService = require(script.Parent:WaitForChild("WeaponService"))
 
 export type Entry = {
 	player: Player,
@@ -61,6 +62,12 @@ type Profile = {
 	secondary: Combat.Stats?,
 	primaryPierce: number,
 	secondaryPierce: number,
+
+	-- Les objets eux-memes, et pas seulement leurs deltas : c'est ce qui
+	-- permet de mettre la bonne arme dans la main. Les chiffres suffisaient
+	-- tant que l'equipement etait invisible.
+	primaryItem: any,
+	secondaryItem: any,
 }
 
 type Mine = {
@@ -252,11 +259,14 @@ function LoadoutService.refreshStats(entries: { Entry })
 		-- deux armes, donc elle s'applique avant de les separer.
 		local withPassive = Modifiers.applyDeltas(entry.stats, Loadout.passiveDeltas(Config, items))
 
+		local primaryItem = Loadout.weaponOf(Config, items, "primary")
+		local secondaryItem = Loadout.weaponOf(Config, items, "secondary")
+
 		local primary =
 			Modifiers.applyDeltas(withPassive, Loadout.weaponDeltas(Config, items, "primary"))
 
 		local secondary: Combat.Stats? = nil
-		if Loadout.weaponOf(Config, items, "secondary") ~= nil then
+		if secondaryItem ~= nil then
 			secondary =
 				Modifiers.applyDeltas(withPassive, Loadout.weaponDeltas(Config, items, "secondary"))
 		end
@@ -266,7 +276,14 @@ function LoadoutService.refreshStats(entries: { Entry })
 			secondary = secondary,
 			primaryPierce = Loadout.armorPierceOf(Config, items, "primary"),
 			secondaryPierce = Loadout.armorPierceOf(Config, items, "secondary"),
+			primaryItem = primaryItem,
+			secondaryItem = secondaryItem,
 		}
+
+		-- L'arme principale passe dans la main des maintenant. La secondaire
+		-- n'y viendra qu'au moment ou elle sortira : on porte ce qu'on compte
+		-- utiliser, pas tout son budget a la fois.
+		WeaponService.show(entry.player, primaryItem)
 
 		-- entry.stats porte l'arme PRINCIPALE : c'est le profil par defaut, et
 		-- c'est lui que tout le reste du jeu lit (PV maximum, vitesse,
@@ -312,6 +329,41 @@ function LoadoutService.strikeWith(entry: Entry, distance: number?): (Combat.Sta
 	end
 
 	return profile.primary, profile.primaryPierce
+end
+
+-- L'objet qui porte ce coup. La meme regle de distance que `strikeWith`,
+-- separee parce que les deux ne sont pas appelees au meme moment : l'arme est
+-- choisie AVANT la verification de recharge, le geste ne part qu'APRES.
+local function weaponAt(entry: Entry, distance: number?): any
+	local profile = profiles[entry.player]
+	if profile == nil then
+		return nil
+	end
+
+	local secondary = profile.secondary
+	if
+		distance ~= nil
+		and secondary ~= nil
+		and distance > profile.primary.attackRangeStuds
+		and distance <= secondary.attackRangeStuds
+	then
+		return profile.secondaryItem
+	end
+
+	return profile.primaryItem
+end
+
+-- Le coup est accepte : on montre l'arme qui le porte et on la fait bouger.
+-- Appele par CombatService apres la recharge, jamais avant — un coup refuse
+-- ne doit pas s'animer, sinon la recharge devient invisible et le joueur
+-- croit que ses coups partent dans le vide.
+function LoadoutService.swingWeapon(entry: Entry, distance: number?)
+	local item = weaponAt(entry, distance)
+	if item == nil then
+		return
+	end
+	WeaponService.show(entry.player, item)
+	WeaponService.swing(entry.player, item)
 end
 
 --------------------------------------------------------------------------------
@@ -828,6 +880,8 @@ local function onClientEvent(player: Player, payload: any)
 end
 
 function LoadoutService.init()
+	WeaponService.init()
+
 	loadoutRemote.OnServerEvent:Connect(onClientEvent)
 
 	Players.PlayerRemoving:Connect(function(player)

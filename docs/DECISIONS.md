@@ -613,6 +613,77 @@ les tests.
 
 ---
 
+## 26 octobre 2026 — L'arme visible et son geste
+
+Tu m'avais dit de continuer tout ce qui était possible. Voilà ce que j'ai
+tranché seul sur ce morceau.
+
+### Rendre l'arme visible, plutôt que d'attaquer le son
+
+C'était le choix de départ : la liste disait « le son, puis les animations ».
+J'ai pris les armes d'abord, pour une raison que je crois solide. Un son
+demande un fichier audio téléversé sur un compte Roblox — donc un identifiant
+d'asset que je ne peux ni créer ni vérifier, et que tu devrais contrôler à
+l'oreille de toute façon. L'arme visible, elle, se décrit entièrement en six
+chiffres dans `Config.items`, se relit dans le dépôt, et répond à un problème
+de jeu réel : **avec treize objets, on ne voyait pas ce que portait
+l'adversaire.** Un budget de douze points qu'on ne voit pas sur l'autre n'est
+pas une mécanique, c'est une feuille de calcul.
+
+Si tu préfères que je prenne le son d'abord malgré ça, dis-le — il faudra
+juste que tu me donnes des identifiants d'assets audio, ou que tu valides
+ceux de la bibliothèque Roblox.
+
+### Aucune animation téléversée, rien que de la géométrie
+
+Le geste est un `Motor6D` entre la main et l'arme, dont on anime le `C0`. Pas
+une seule `Animation` Roblox. Conséquence assumée : **seule l'arme bouge, pas
+le bras.** C'est plus pauvre qu'une vraie animation, et c'est le prix d'un
+système entièrement relisible dans le dépôt, où une arme neuve se décrit en
+six chiffres sans sortir de l'éditeur. Point 93 d'`A-TESTER`.
+
+### Quatre mouvements, pas un par arme
+
+`slash`, `overhead`, `recoil`, `draw`. Une arme choisit le sien. J'aurais pu
+donner à chacune son mouvement propre ; quatre familles suffisent à dire ce
+que l'arme fait, et elles resteront lisibles à soixante-deux objets, ce qu'une
+liste de soixante-deux mouvements ne serait pas.
+
+### Le marteau et le fusil ont deux morceaux, les autres un seul
+
+Un bloc de 0,9 × 0,9 × 3,4 n'est pas un marteau, c'est une poutre. Le marteau
+a donc un manche fin et une tête, et le fusil un corps et un canon. Les quatre
+autres armes se lisent avec une seule pièce. C'est un réglage facultatif
+(`look.head`) et pas une règle : si une autre arme en a besoin, c'est trois
+lignes.
+
+### Le coût de l'arme ne change pas
+
+Rien de visuel ne touche à l'équilibrage. `look` ne contient que des tailles,
+des couleurs et des angles ; aucun chiffre de `look` n'entre dans un calcul de
+dégâts, de portée ou de budget. C'est le premier des six principes : la
+puissance est portée par le coût en points, et rien d'autre.
+
+### Ce que j'ai dû corriger, et comment
+
+**Deux des quatre gestes partaient à l'envers** : le marteau se relevait au
+lieu de s'abattre, les armes à feu plongeaient du canon au lieu de le lever.
+Les mille tests du dépôt passaient tous. Ce qui l'a attrapé, c'est un calcul
+de la position de la pointe de l'arme avant et après le geste, fait avec de
+vrais `CFrame` dans Studio — et ce calcul est maintenant un test, qui vérifie
+d'abord qu'il reproduit bien Roblox avant de juger des signes.
+
+**Et une chose que je dois te dire franchement : je n'ai pas vu ces armes.**
+La capture d'écran de Studio ne me rend plus la vue 3D. Je l'ai vérifié plutôt
+que de le supposer : une part néon rouge de douze studs, posée à dix studs
+devant la caméra et confirmée à l'écran par `WorldToViewportPoint`, n'apparaît
+pas sur l'image. Les `ViewportFrame` non plus, alors qu'ils sont de
+l'interface. Donc la géométrie est juste au calcul, et l'allure n'a jamais été
+jugée par un oeil — c'est la section 11 d'`A-TESTER`, et c'est ce que tu dois
+regarder en premier.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si
