@@ -917,13 +917,9 @@ classements.** C'est branché maintenant, et voilà ce qu'il faut confirmer.
      d'attente doit afficher « Partie privée · aucune pièce, aucun
      classement ». Vérifié par instrumentation de mon côté, lu à l'écran :
      c'est exactement ce texte.
-151. **La touche `C` change ton camp.** Pendant l'attente et entre deux
-     parties, la ligne du bas dit « Ton camp : auto · C pour changer ». Appuie :
-     elle doit passer à A, puis B, puis revenir à auto. **Je n'ai pas pu
-     appuyer dessus** — ma frappe part dans la fenêtre de Studio et pas dans le
-     jeu — donc c'est le seul maillon que personne n'a testé. Le reste du
-     chemin, oui : en envoyant la demande directement, l'écran est bien passé à
-     « Ton camp : B ».
+151. **La touche `C` ouvre le salon.** Le camp se choisit maintenant dedans,
+     avec le format et le mode des équipes : c'est la section 20. Vérifie
+     seulement ici qu'elle répond en partie privée.
 152. **Arrange un 3v3.** Trois d'un côté demandent A, trois demandent B. Les
      six doivent avoir ce qu'ils ont demandé. Puis essaie l'inverse : que
      **quatre** demandent A. Le quatrième doit partir en face, et c'est celui
@@ -937,10 +933,56 @@ classements.** C'est branché maintenant, et voilà ce qu'il faut confirmer.
      publique doit payer les pièces et bouger le classement exactement comme
      avant aujourd'hui. Si ça ne marche plus, c'est moi qui ai cassé quelque
      chose en branchant le privé.
-155. **Personne ne choisit son camp en public.** La ligne « Ton camp » ne doit
-     **pas** apparaître sur un serveur public, et la touche `C` ne doit rien
-     faire. Si elle apparaît, c'est grave : deux amis pourraient empiler un
-     côté et fausser le classement de tous les autres.
+155. **Personne ne choisit son camp en public.** Sur un serveur public, la
+     touche `C` ne doit **rien** faire du tout, et la ligne des touches en bas
+     ne doit pas dire « C salon ». Si le panneau s'ouvre, c'est grave : deux
+     amis pourraient empiler un côté et fausser le classement de tous les
+     autres.
+
+---
+
+## 20. Le salon — le format et les équipes
+
+La touche `C`, en partie privée. Trois rangées : FORMAT, ÉQUIPES, TON CAMP.
+Rien d'autre n'est réglable, et c'est ta décision : le jeu reste le jeu.
+
+Tout ce qui suit a été vérifié dans Studio, **sauf le clic et la frappe
+eux-mêmes** : mes frappes partent dans la fenêtre de Studio et pas dans le jeu,
+donc j'ai appelé directement ce que la touche appelle et envoyé exactement ce
+que les boutons envoient. Le premier centimètre du chemin n'a jamais été
+parcouru par personne.
+
+156. **La touche ouvre et referme.** Une pression ouvre, une deuxième ferme.
+     C'est le maillon que je n'ai pas pu tester, et il commande tout le reste
+     de cette section.
+157. **Les cinq boutons de format.** Clique sur 3v3 : il s'allume en jaune, et
+     le bandeau annonce le changement pendant trois secondes pour les autres.
+     Le pied du panneau doit dire combien il manque de monde.
+158. **Un format trop grand fait attendre, exprès.** À deux joueurs en 3v3,
+     la partie ne part pas et le pied dit « 2 joueurs sur les 6 que ce format
+     demande ». Ce n'est pas une panne : retomber en 1v1 sans vous le dire
+     serait pire.
+159. **Un format trop petit fait asseoir du monde, exprès aussi.** À six en
+     1v1, deux jouent et quatre regardent. C'est fait pour juger une classe à
+     deux pendant que les autres regardent — dis-moi si c'est pénible plutôt
+     qu'utile, c'est une décision qui se change.
+160. **« Au hasard » fait disparaître TON CAMP.** La rangée doit s'en aller :
+     un bouton qui ne ferait rien se lirait comme un bug. Elle revient avec
+     « chacun choisit ».
+161. **Le tirage au sort est refait à chaque partie.** Lancez-en trois d'affilée
+     en « au hasard » : les camps doivent bouger. Et les deux camps doivent
+     toujours avoir le même effectif — c'est la seule chose qui ne cède jamais.
+162. **Le tirage ne change pas qui joue.** À cinq joueurs en « au hasard »,
+     celui qui vient d'attendre doit quand même jouer. Le hasard porte sur les
+     équipes, pas sur le droit de jouer.
+163. **Deux personnes règlent en même temps.** Que l'un prenne 2v2 pendant que
+     l'autre prend « au hasard » : le dernier mot revient au dernier qui a
+     cliqué, et les deux panneaux doivent montrer la même chose. Si vous voyez
+     deux états différents, dis-le-moi.
+164. **Ce que le salon ne doit PAS pouvoir faire.** Il n'y a aucun réglage de
+     zone, d'agonie, d'arbre ou de bans, et il ne doit jamais y en avoir sans
+     que tu le décides. Si un jour tu en veux un, c'est une conversation, pas
+     un bouton.
 
 ---
 

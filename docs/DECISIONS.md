@@ -1368,19 +1368,105 @@ choisissent le même camp sur un serveur public empileraient un côté, et le
 classement de tous les autres paierait l'addition. Le serveur refuse la demande
 au lieu de compter sur le client pour ne pas l'envoyer.
 
-**Une seule touche, `C`, qui fait tourner A puis B puis auto.** Trois touches
-auraient été plus directes, mais 1 à 4 servent déjà aux objets. Un test vérifie
-maintenant qu'aucun réglage ne réclame la même touche qu'un autre — les touches
-sont à trois endroits différents de `Config`, et le camp a failli prendre « 1 ».
+**Une seule touche, `C`.** Trois touches auraient été plus directes, mais 1 à 4
+servent déjà aux objets. Un test vérifie maintenant qu'aucun réglage ne réclame
+la même touche qu'un autre — les touches sont à trois endroits différents de
+`Config`, et le camp a failli prendre « 1 ».
 
-### Ce que je n'ai pas pu vérifier
+Cette touche faisait d'abord tourner A, puis B, puis auto, sans rien afficher.
+Elle ouvre maintenant le salon, décrit juste en dessous : le camp y est une
+rangée de boutons parmi trois.
 
-La touche `C` elle-même. J'ai confirmé que `Config.seating.sideKey` se résout
-bien en `Enum.KeyCode.C` et que le cycle donne A, B, auto — et surtout que le
-chemin complet marche, en envoyant la demande directement : l'écran est passé à
-« Ton camp : B ». Mais ma frappe synthétique part dans la fenêtre de Studio et
-pas dans le jeu, donc **je n'ai pas appuyé sur C pour de vrai**. C'est le point
-151 d'`A-TESTER.md`.
+---
+
+## 27 octobre 2026 — Le salon : le format et les équipes, et rien d'autre
+
+Tu as demandé de pouvoir lancer le jeu avec tes amis et de gérer vous-mêmes le
+mode de jeu et les équipes, avec le choix entre composer les camps vous-mêmes et
+les tirer au sort. Puis tu as fermé la porte au reste : « sinon le jeu reste le
+jeu, on doit pas pouvoir le modifier ».
+
+C'est cette deuxième phrase qui a décidé de la forme. Un panneau qui réglerait
+aussi la zone, l'agonie ou l'arbre serait un éditeur de règles : chaque partie
+privée deviendrait un jeu différent, et plus aucune ne dirait quoi que ce soit
+sur le jeu qu'on est en train de construire. Le salon ne touche donc qu'à deux
+choses, et les deux ne changent pas les règles : combien on est par camp, et
+qui est avec qui.
+
+### Ce que le salon fait
+
+**La touche `C`, en partie privée seulement.** Trois rangées de boutons :
+FORMAT (auto, 1v1, 2v2, 3v3, 4v4), ÉQUIPES (chacun choisit, au hasard), et TON
+CAMP (peu importe, équipe A, équipe B). Chaque réglage s'annonce dans le bandeau
+pendant trois secondes, pour que les autres le voient sans avoir le panneau
+ouvert.
+
+**La rangée TON CAMP disparaît quand les équipes sont tirées au sort.** Un
+bouton qui ne fait rien se lit comme une panne. C'est la même règle que les
+armes verrouillées sans explication du panneau d'équipement.
+
+**La liste des formats est déduite de `Config.formats`.** Un cinquième format
+ajouté à la table apparaîtrait tout seul à l'écran. Rien n'est recopié côté
+client — c'est la même raison que les chiffres de `Config` : une liste recopiée
+est une liste qui se désaccorde.
+
+### Les trois décisions que j'ai prises seul
+
+**Un format imposé ne change pas qui joue.** Six joueurs qui demandent du 1v1
+font jouer deux personnes et en asseoir quatre. J'aurais pu refuser le réglage,
+ou faire tourner plusieurs duels : le premier vous enlève un outil utile — se
+mettre à deux pour regarder un duel est exactement ce qu'on veut pour juger une
+classe — et le second est un autre jeu. Qui joue reste décidé par l'ordre du
+banc, qui est une question d'équité entre les personnes, pas d'équilibre entre
+les camps.
+
+**Un format trop grand ne retombe pas au format du dessous.** Demander du 3v3 à
+deux et se retrouver en 1v1 sans l'avoir vu passer serait pire qu'attendre :
+personne ne saurait pourquoi les camps sont petits. Le pied du panneau dit
+alors « 1 joueur sur les 6 que ce format demande ».
+
+**Le tirage au sort ignore les vœux de camp, et ne touche pas au banc.** Il
+mélange l'ordre dans lequel les camps se remplissent, pas l'ordre dans lequel
+on s'assoit : mélanger les places serait une loterie sur le droit de jouer,
+alors que tu as demandé un tirage sur les équipes. Et il est refait à chaque
+partie, donc deux amis qui tombent ensemble ne le restent pas.
+
+### Deux garde-fous, et pourquoi il en faut deux
+
+Le serveur refuse toute modification hors partie privée, et le panneau refuse
+de s'ouvrir quand le serveur a répondu non. Le deuxième ne sert à rien contre
+un tricheur — il est là pour que la touche ne fasse rien du tout en partie
+classée, au lieu d'ouvrir un panneau dont chaque bouton serait ignoré.
+
+Pour la même raison, **la ligne des touches en bas de l'écran ne mentionne `C`
+que là où elle sert**. Annoncer une touche inerte est pire que de la taire.
+
+### Ce que la vérification en jeu a attrapé
+
+Deux choses, et aucune des deux n'apparaît dans les 1386 tests.
+
+**Le panneau restait ouvert pour toujours** si le salon lui était retiré
+pendant qu'il était affiché : la touche refusait de le rouvrir, donc elle
+refusait aussi de le fermer. Un refus doit laisser l'écran dans l'état le plus
+sûr, qui est fermé.
+
+**« 1 joueurs sur les 2 »**, et c'est le cas qu'on voit le plus : celui qui
+ouvre le salon en premier est tout seul.
+
+### Ce que j'ai pu vérifier, et ce que je n'ai pas pu
+
+Vérifié en jeu, dans Studio : le panneau s'ouvre et se ferme, les cinq formats
+et les deux modes s'allument quand on les choisit, la rangée TON CAMP
+disparaît et revient avec le mode, le pied compte juste, le serveur annonce
+chaque changement dans la console, le panneau est centré à 0,0 pixel près, et
+la ligne des touches gagne puis perd « C salon » selon ce que le serveur
+répond.
+
+**Je n'ai toujours pas appuyé sur `C` ni cliqué sur un bouton.** Mes frappes
+synthétiques partent dans la fenêtre de Studio et pas dans le jeu. J'ai piloté
+le panneau en appelant directement ce que la touche appelle, et les boutons en
+envoyant exactement ce qu'ils envoient — donc tout le chemin est vérifié sauf
+son premier centimètre. C'est le point 156 d'`A-TESTER.md`.
 
 ---
 

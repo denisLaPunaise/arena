@@ -52,26 +52,40 @@ Config.seating = {
 	-- suffit a ce que le compteur ait l'air vivant, et ne coute qu'un texte.
 	waitRefreshSeconds = 1,
 
-	-- EN PARTIE PRIVEE SEULEMENT, chacun peut demander son camp. C'est ce qui
-	-- permet d'arranger un 3v3 entre amis — « nous trois contre vous trois » —
-	-- au lieu de se faire repartir par ordre d'attente.
+	-- LE SALON, EN PARTIE PRIVEE SEULEMENT. Des amis qui jouent ensemble
+	-- reglent deux choses avant de lancer : le format, et la facon de composer
+	-- les camps. RIEN D'AUTRE. Les regles du jeu — la zone, l'agonie, l'arbre,
+	-- les bans — ne sont pas reglables en jeu, et c'est une decision de Josh du
+	-- 27 octobre 2026, dite dans ces mots : « le jeu reste le jeu, on doit pas
+	-- pouvoir le modifier ». Les interrupteurs de comparaison restent donc dans
+	-- Config, cote developpeur.
 	--
 	-- Jamais en public, et ce n'est pas de la prudence : deux amis qui
 	-- choisissent le meme camp sur un serveur classe empilent un cote, et le
 	-- classement de tous les autres paie l'addition. Le serveur refuse donc la
 	-- demande au lieu de compter sur le client pour ne pas l'envoyer.
-	sideChoiceInPrivate = true,
+	lobbyInPrivate = true,
 
-	-- UNE SEULE touche, qui fait tourner A puis B puis auto. Trois touches
-	-- separees auraient ete plus directes, mais 1 a 4 servent deja aux objets
+	-- La touche qui ouvre le salon. 1 a 4 servent deja aux objets
 	-- (Config.loadout.useKeys) : une touche qui fait deux choses selon le
 	-- moment est le genre de detail qui coute une manche. Libres au 27 octobre
-	-- 2026 : tout sauf 1-4, E, T, L, P, B et le clic.
-	--
-	-- Le camp demande reste une PREFERENCE : les deux camps doivent rester
-	-- egaux, donc le quatrieme a demander un camp de trois places part en face,
-	-- et c'est l'ordre du banc qui tranche.
-	sideKey = "C",
+	-- 2026 : tout sauf 1-4, E, T, L, P, B et le clic. Un test refuse une
+	-- collision.
+	lobbyKey = "C",
+
+	-- Les reglages de depart, et ceux auxquels on revient en public. « auto »
+	-- veut dire « le plus grand format que l'effectif remplit », et c'est le
+	-- comportement qu'avait la boucle avant le salon.
+	defaultFormat = "auto",
+	-- « chosen » : chacun demande son camp, et le voeu est tenu si la place
+	-- existe. « random » : tirage au sort, refait a chaque partie.
+	defaultTeamMode = "chosen",
+
+	-- Combien de temps un changement de reglage reste affiche. L'annonce du
+	-- salon est ECRASEE par le rafraichissement, qui part toutes les secondes :
+	-- sans ce delai, « Josh a choisi 2v2 » clignote moins d'une seconde et
+	-- personne ne le lit. Meme parade que l'annonce du bac a sable.
+	noticeSeconds = 3,
 }
 
 --------------------------------------------------------------------------------

@@ -38,7 +38,7 @@
 			"className": "RemoteEvent"
 		},
 		{
-			"name": "Side",
+			"name": "Lobby",
 			"className": "RemoteEvent"
 		}
 	]

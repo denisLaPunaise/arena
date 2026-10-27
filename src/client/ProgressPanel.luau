@@ -354,15 +354,23 @@ function ProgressPanel.start()
 			-- Ce message arrive meme panneau ferme : c'est la recompense de la
 			-- partie, et elle ne doit pas attendre qu'on pense a ouvrir un
 			-- ecran pour exister.
-			say(
-				string.format(
-					"%+d pièces  ·  classement %d (%+d)",
-					payload.coins,
-					payload.rating,
-					payload.ratingDelta
-				),
-				if payload.won then GOOD else MUTED
-			)
+			--
+			-- UNE PARTIE QUI NE COMPTE PAS LE DIT. Sans ce cas, une partie
+			-- privee affichait « +0 pièces · classement 1000 (+0) », ce qui se
+			-- lit comme une panne et pas comme une regle.
+			if payload.counted == false then
+				say(tostring(payload.note), MUTED)
+			else
+				say(
+					string.format(
+						"%+d pièces  ·  classement %d (%+d)",
+						payload.coins,
+						payload.rating,
+						payload.ratingDelta
+					),
+					if payload.won then GOOD else MUTED
+				)
+			end
 		end
 	end)
 end

@@ -29,7 +29,6 @@ local Remotes = Arena:WaitForChild("Remotes")
 local attackRemote = Remotes:WaitForChild("Attack") :: RemoteEvent
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 local abilityRemote = Remotes:WaitForChild("Ability") :: RemoteEvent
-local sideRemote = Remotes:WaitForChild("Side") :: RemoteEvent
 
 local Config = require(Arena:WaitForChild("Config"))
 
@@ -37,6 +36,7 @@ local DraftPanel = require(script.Parent:WaitForChild("DraftPanel"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local LoadoutPanel = require(script.Parent:WaitForChild("LoadoutPanel"))
+local LobbyPanel = require(script.Parent:WaitForChild("LobbyPanel"))
 local ProgressPanel = require(script.Parent:WaitForChild("ProgressPanel"))
 local SandboxPanel = require(script.Parent:WaitForChild("SandboxPanel"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
@@ -147,28 +147,29 @@ end
 local EDIT_KEY = (Enum.KeyCode :: any)[Config.loadout.editKey]
 local SANDBOX_KEY = (Enum.KeyCode :: any)[Config.sandbox.toggleKey]
 
--- LE CAMP DEMANDE, en partie privee. Une seule touche, qui fait tourner A, B,
--- puis auto : 1 a 4 servent deja aux objets, et une touche qui fait deux choses
--- selon le moment coute une manche.
+-- LE SALON, en partie privee. Le panneau porte les trois reglages — format,
+-- equipes, camp — parce qu'ils vivent au meme moment. Une touche par reglage
+-- aurait ete plus direct, mais 1 a 4 servent deja aux objets.
 --
--- Le serveur a le dernier mot — il ignore la demande hors partie privee — et
--- c'est LUI qui affiche le camp retenu, dans la ligne du bas. Donc cette touche
--- appuyee en partie classee ne change rien et n'affiche rien : elle ne peut pas
--- mentir sur un camp qu'on n'aurait pas.
-local SIDE_KEY = (Enum.KeyCode :: any)[Config.seating.sideKey]
-local sideStep = 0
-
-local function cycleSide()
-	-- Un cran de plus que le nombre de camps, et le dernier est « auto ».
-	sideStep = (sideStep + 1) % (#Config.seating.teams + 1)
-	sideRemote:FireServer({ side = Config.seating.teams[sideStep] })
-end
+-- Le serveur a le dernier mot : il repond `allowed = false` en partie classee,
+-- et le panneau refuse alors de s'ouvrir. Cette touche ne peut donc pas
+-- laisser croire a un reglage qu'on n'a pas.
+local LOBBY_KEY = (Enum.KeyCode :: any)[Config.seating.lobbyKey]
 
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
-hint.Text = string.format(
+local HINT = string.format(
 	"Clic frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement  ·  P pièces  ·  %s bac à sable",
 	Config.sandbox.toggleKey
 )
+hint.Text = HINT
+
+-- La touche du salon n'apparait que la ou elle sert. C'est le serveur qui
+-- tranche, donc la ligne s'allonge a sa reponse et pas au demarrage.
+LobbyPanel.onAllowed(function(allowed: boolean)
+	hint.Text = if allowed
+		then string.format("%s  ·  %s salon", HINT, Config.seating.lobbyKey)
+		else HINT
+end)
 hint.TextTransparency = 0.35
 hint.Parent = gui
 
@@ -375,8 +376,8 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		LoadoutPanel.toggle()
 	elseif input.KeyCode == Enum.KeyCode.P then
 		ProgressPanel.toggle()
-	elseif input.KeyCode == SIDE_KEY then
-		cycleSide()
+	elseif input.KeyCode == LOBBY_KEY then
+		LobbyPanel.toggle()
 	elseif input.KeyCode == SANDBOX_KEY then
 		-- Le panneau ne s'ouvre que si le serveur a dit que le bac a sable
 		-- tourne : en partie, cette touche ne fait rien du tout.
@@ -388,6 +389,7 @@ Audio.start()
 Effects.start()
 DraftPanel.start()
 LoadoutPanel.start()
+LobbyPanel.start()
 ProgressPanel.start()
 SandboxPanel.start()
 TreePanel.start()

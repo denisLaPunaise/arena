@@ -180,7 +180,15 @@ return function(t: harness.Harness)
 	local taken: { [string]: string } = {}
 	local collisions: { string } = {}
 
-	local function claim(key: string, who: string)
+	local function claim(key: string?, who: string)
+		-- Une touche absente de Config arrivait ici en nil et faisait PLANTER
+		-- le test au lieu de l'echouer : vu en renommant sideKey en lobbyKey.
+		-- Un test qui plante ne dit pas ce qui ne va pas.
+		if key == nil then
+			table.insert(collisions, string.format("%s n'a aucune touche dans Config", who))
+			return
+		end
+
 		local already = taken[key]
 		if already ~= nil then
 			table.insert(collisions, string.format("%s et %s veulent « %s »", already, who, key))
@@ -194,7 +202,7 @@ return function(t: harness.Harness)
 	end
 	claim(Config.loadout.editKey, "l'écran d'équipement")
 	claim(Config.sandbox.toggleKey, "le bac à sable")
-	claim(Config.seating.sideKey, "le camp demandé")
+	claim(Config.seating.lobbyKey, "le salon")
 
 	t.equal(if #collisions > 0 then collisions[1] else "aucune collision", #collisions, 0)
 

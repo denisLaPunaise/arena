@@ -25,6 +25,16 @@
 	Un 3v2 est injouable a juger : on ne saurait jamais si une classe est forte
 	ou si elle etait simplement une de plus.
 
+	LE SALON, en partie privee seulement. Les amis qui jouent ensemble reglent
+	deux choses, et DEUX SEULEMENT : le format, et la facon de composer les
+	camps. Les regles du jeu — la zone, l'agonie, l'arbre, les bans — ne sont
+	pas reglables, et c'est une decision de Josh : le jeu reste le jeu.
+
+	Le format impose ne change PAS qui joue. L'ordre du banc decide toujours de
+	ca, parce que c'est une question d'equite entre les personnes, pas
+	d'equilibre entre les camps. Six joueurs qui demandent du 1v1 font donc
+	jouer deux personnes et en asseoir quatre, et c'est voulu.
+
 	QUI ATTEND, ET POURQUOI CA COMPTE. Celui qui vient d'attendre passe devant.
 	Sans ca, a cinq joueurs, le dernier arrive regarde les autres jouer toute la
 	soiree — et le jeu n'a aucun moyen de le lui dire. C'est tout le role de
@@ -47,6 +57,18 @@ export type Candidate = {
 	side: string?,
 }
 
+-- Une fonction qui rend un entier entre 1 et n, comme celle du tirage des
+-- classes. Elle arrive par argument : ce module ne connait pas `Random`.
+export type Rng = (number) -> number
+
+export type Lobby = {
+	-- Le format impose, ou AUTO pour « le plus grand qui tienne ».
+	formatId: string,
+	-- Comment les camps se composent : CHOSEN (chacun demande le sien) ou
+	-- RANDOM (tirage au sort, refait a chaque partie).
+	teamMode: string,
+}
+
 export type Plan = {
 	formatId: string,
 	-- Les identifiants assis, dans l'ordre ou ils ont ete places.
@@ -56,6 +78,14 @@ export type Plan = {
 	-- L'equipe de chaque identifiant assis.
 	teams: { [string]: string },
 }
+
+-- « Pas de format impose ». Ce n'est pas un format : un test verifie
+-- qu'aucun identifiant de Config.formats ne porte ce nom.
+Seating.AUTO = "auto"
+
+-- Les deux facons de composer les camps.
+Seating.CHOSEN = "chosen"
+Seating.RANDOM = "random"
 
 -- Les deux camps, tels que Config les nomme. Renvoyes tels quels : l'appelant
 -- lit, il ne modifie pas.
@@ -80,15 +110,54 @@ function Seating.playersNeeded(config): number
 	return smallest
 end
 
--- Le plus grand format que cet effectif remplit entierement. Nil quand il n'y
--- a pas assez de monde pour le plus petit.
-function Seating.formatFor(config, present: number)
-	local teams = #Seating.teamNames(config)
+-- Les identifiants de format, AUTO en tete. C'est la liste que le salon
+-- affiche : un format ajoute a Config.formats apparait donc tout seul a
+-- l'ecran, sans qu'on ait a le recopier cote client.
+function Seating.formatIds(config): { string }
+	local ids = { Seating.AUTO }
+	for _, format in config.formats do
+		table.insert(ids, format.id)
+	end
+	return ids
+end
+
+function Seating.formatById(config, id: string)
+	for _, format in config.formats do
+		if format.id == id then
+			return format
+		end
+	end
+	return nil
+end
+
+-- Combien de joueurs ce format demande en tout.
+function Seating.seatsFor(config, format): number
+	return format.playersPerTeam * #Seating.teamNames(config)
+end
+
+-- Le format a jouer. Avec un format impose, c'est celui-la ou rien : on ne
+-- retombe PAS en silence sur le format du dessous. Demander du 3v3 et se
+-- retrouver en 2v2 sans l'avoir vu passer serait pire que d'attendre — et
+-- l'ecran dit alors combien il manque de monde.
+--
+-- Sans format impose (AUTO), c'est le plus grand que l'effectif remplit.
+function Seating.formatFor(config, present: number, wanted: string?)
+	if wanted ~= nil and wanted ~= Seating.AUTO then
+		local format = Seating.formatById(config, wanted)
+		if format == nil then
+			return nil
+		end
+		if Seating.seatsFor(config, format) <= present then
+			return format
+		end
+		return nil
+	end
+
 	local best = nil
 	local bestTotal = 0
 
 	for _, format in config.formats do
-		local total = format.playersPerTeam * teams
+		local total = Seating.seatsFor(config, format)
 		if total <= present and total > bestTotal then
 			best = format
 			bestTotal = total
@@ -98,14 +167,14 @@ function Seating.formatFor(config, present: number)
 	return best
 end
 
-function Seating.plan(config, candidates: { Candidate }): Plan?
-	local format = Seating.formatFor(config, #candidates)
+function Seating.plan(config, candidates: { Candidate }, lobby: Lobby?, rng: Rng?): Plan?
+	local format = Seating.formatFor(config, #candidates, if lobby then lobby.formatId else nil)
 	if format == nil then
 		return nil
 	end
 
 	local teams = Seating.teamNames(config)
-	local seats = format.playersPerTeam * #teams
+	local seats = Seating.seatsFor(config, format)
 
 	-- L'ordre de passage : le plus longtemps sur le banc d'abord, puis l'ordre
 	-- d'arrivee. On trie sur une cle a DEUX niveaux plutot que de se fier a
@@ -138,6 +207,33 @@ function Seating.plan(config, candidates: { Candidate }): Plan?
 		end
 	end
 
+	local wishOf: { [string]: string } = {}
+	for position = 1, seats do
+		local candidate = ranked[position].candidate
+		if candidate.side ~= nil then
+			wishOf[candidate.id] = candidate.side
+		end
+	end
+
+	-- L'ORDRE DANS LEQUEL LES CAMPS SE REMPLISSENT, et c'est tout ce que le
+	-- tirage au sort change. Qui JOUE reste decide par l'ordre du banc dans les
+	-- deux cas : melanger les places serait une loterie sur le droit de jouer,
+	-- alors que le tirage au sort ne porte que sur le camp.
+	local order = table.clone(plan.seated)
+	local honourWishes = true
+
+	if lobby ~= nil and lobby.teamMode == Seating.RANDOM and rng ~= nil then
+		honourWishes = false
+
+		-- Melange de Fisher-Yates, avec le meme `rng(n)` que le tirage des
+		-- classes : un entier entre 1 et n, fourni par l'appelant, donc un test
+		-- peut le rendre previsible.
+		for index = #order, 2, -1 do
+			local pick = rng(index)
+			order[index], order[pick] = order[pick], order[index]
+		end
+	end
+
 	local perTeam: { [string]: number } = {}
 	for _, team in teams do
 		perTeam[team] = 0
@@ -146,20 +242,22 @@ function Seating.plan(config, candidates: { Candidate }): Plan?
 	-- PREMIERE PASSE : les voeux qu'on peut tenir, dans l'ordre du banc. C'est
 	-- ce qui permet d'arranger un 3v3 entre amis — trois qui demandent A sont
 	-- tous les trois en A — et l'ordre du banc tranche quand un camp est
-	-- sur-demande : celui qui a le moins attendu passe en face.
-	for position = 1, seats do
-		local candidate = ranked[position].candidate
-		local wish = candidate.side
+	-- sur-demande : celui qui a le moins attendu passe en face. Sautee
+	-- entierement au tirage au sort, sinon ce ne serait pas un tirage.
+	if honourWishes then
+		for _, id in order do
+			local wish = wishOf[id]
 
-		if wish == nil or perTeam[wish] == nil then
-			continue
-		end
-		if perTeam[wish] >= format.playersPerTeam then
-			continue
-		end
+			if wish == nil or perTeam[wish] == nil then
+				continue
+			end
+			if perTeam[wish] >= format.playersPerTeam then
+				continue
+			end
 
-		plan.teams[candidate.id] = wish
-		perTeam[wish] += 1
+			plan.teams[id] = wish
+			perTeam[wish] += 1
+		end
 	end
 
 	-- DEUXIEME PASSE : tout le monde d'autre va dans le camp le moins rempli.
@@ -167,10 +265,10 @@ function Seating.plan(config, candidates: { Candidate }): Plan?
 	-- tour et ca ALTERNE — ce qui est exactement ce qu'on veut, parce que les
 	-- deux joueurs qui ont le plus attendu se retrouvent dans des camps
 	-- opposes, et le banc ne fabrique pas une equipe entiere de joueurs frais
-	-- contre une equipe fatiguee.
-	for position = 1, seats do
-		local candidate = ranked[position].candidate
-		if plan.teams[candidate.id] ~= nil then
+	-- contre une equipe fatiguee. C'est aussi cette passe qui, sur l'ordre
+	-- melange, compose les camps du tirage au sort.
+	for _, id in order do
+		if plan.teams[id] ~= nil then
 			continue
 		end
 
@@ -181,7 +279,7 @@ function Seating.plan(config, candidates: { Candidate }): Plan?
 			end
 		end
 
-		plan.teams[candidate.id] = chosen
+		plan.teams[id] = chosen
 		perTeam[chosen] += 1
 	end
 

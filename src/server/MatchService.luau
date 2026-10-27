@@ -55,7 +55,7 @@ local Seating = require(Arena:WaitForChild("Seating"))
 
 local Remotes = Arena:WaitForChild("Remotes")
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
-local sideRemote = Remotes:WaitForChild("Side") :: RemoteEvent
+local lobbyRemote = Remotes:WaitForChild("Lobby") :: RemoteEvent
 
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
@@ -92,12 +92,83 @@ local currentFormat = ""
 -- importe », et ce n'est jamais qu'un voeu : Seating garde les camps egaux.
 local wantedSide: { [Player]: string } = {}
 
+-- LE SALON : le format et la facon de composer les camps, regles par les
+-- joueurs en partie privee. Rien d'autre n'est reglable en jeu.
+local lobby: Seating.Lobby = {
+	formatId = Config.seating.defaultFormat,
+	teamMode = Config.seating.defaultTeamMode,
+}
+
+-- Le tirage des camps. Un seul generateur pour toute la vie du serveur : en
+-- creer un par partie le re-sèmerait sur l'horloge, et deux parties lancees
+-- dans la meme seconde composeraient les memes camps.
+local shuffle = Random.new()
+
+-- L'annonce d'un changement de reglage, et jusqu'a quand elle tient. Le
+-- rafraichissement du salon part toutes les secondes et ecraserait le message
+-- aussitot : il faut donc qu'il le PORTE, au lieu de le poser une fois.
+local notice = ""
+local noticeUntil = 0
+
+-- Qui a le salon ouvert. L'etat ne part qu'a ceux qui le regardent : un
+-- panneau ferme n'a rien a rafraichir, et le reste du temps ce remote ne coute
+-- rien du tout.
+local watchingLobby: { [Player]: boolean } = {}
+
+local function rng(n: number): number
+	return shuffle:NextInteger(1, n)
+end
+
 -- EN PARTIE PRIVEE SEULEMENT. Le serveur tranche, pas le client : en partie
 -- classee, deux amis qui demandent le meme camp empileraient un cote, et le
 -- classement de tous les autres paierait l'addition. Un client modifie qui
 -- envoie quand meme sa demande se fait donc ignorer ici.
-local function sideChoiceAllowed(): boolean
-	return Config.seating.sideChoiceInPrivate and Venue.isPrivate()
+local function lobbyAllowed(): boolean
+	return Config.seating.lobbyInPrivate and Venue.isPrivate()
+end
+
+-- Les reglages en vigueur. En public, ce sont ceux de Config et pas ceux que
+-- quelqu'un aurait reussi a poser : c'est la deuxieme barriere, apres le refus
+-- de la demande elle-meme.
+local function lobbyNow(): Seating.Lobby
+	if not lobbyAllowed() then
+		return {
+			formatId = Config.seating.defaultFormat,
+			teamMode = Config.seating.defaultTeamMode,
+		}
+	end
+	return lobby
+end
+
+-- Le libelle d'un format pour l'affichage. « auto » n'est pas un format, donc
+-- il se dit en toutes lettres.
+local function formatLabel(id: string): string
+	if id == Seating.AUTO then
+		return "auto"
+	end
+	return id
+end
+
+local function teamModeLabel(mode: string): string
+	if mode == Seating.RANDOM then
+		return "au hasard"
+	end
+	return "chacun choisit"
+end
+
+-- Combien de joueurs il faut MAINTENANT. Avec un format impose, c'est le sien
+-- et pas le minimum du jeu : sinon l'ecran annonce « 2 / 2 joueurs » alors que
+-- le 4v4 demande en attend huit, et personne ne comprend pourquoi ca ne part
+-- pas.
+local function neededNow(): number
+	local current = lobbyNow()
+	if current.formatId ~= Seating.AUTO then
+		local format = Seating.formatById(Config, current.formatId)
+		if format ~= nil then
+			return Seating.seatsFor(Config, format)
+		end
+	end
+	return Seating.playersNeeded(Config)
 end
 
 local function className(classId: string): string
@@ -156,17 +227,23 @@ local function tell(
 	})
 end
 
--- La ligne du camp demande. Vide hors partie privee : en classe personne ne
--- choisit son camp, donc rien a l'ecran ne doit le suggerer.
-local function sideLineFor(player: Player): string
-	if not sideChoiceAllowed() then
+-- La ligne du salon. Vide hors partie privee : en classe personne ne regle
+-- quoi que ce soit, donc rien a l'ecran ne doit le suggerer.
+local function lobbyLineFor(player: Player): string
+	if not lobbyAllowed() then
 		return ""
 	end
 
+	local current = lobbyNow()
+	local mine = if current.teamMode == Seating.RANDOM
+		then "tirage au sort"
+		else "ton camp : " .. (wantedSide[player] or "auto")
+
 	return string.format(
-		"Ton camp : %s  ·  %s pour changer",
-		wantedSide[player] or "auto",
-		Config.seating.sideKey
+		"Salon : %s  ·  %s  ·  %s pour régler",
+		formatLabel(current.formatId),
+		mine,
+		Config.seating.lobbyKey
 	)
 end
 
@@ -176,14 +253,51 @@ local function tellAll(title: string, status: string)
 	end
 end
 
+-- L'etat du salon, tel que ce joueur doit le voir.
+local function pushLobby(player: Player)
+	local current = lobbyNow()
+	lobbyRemote:FireClient(player, {
+		kind = "lobby",
+		allowed = lobbyAllowed(),
+		formatId = current.formatId,
+		teamMode = current.teamMode,
+		side = wantedSide[player] or Seating.AUTO,
+		present = #Players:GetPlayers(),
+		needed = neededNow(),
+		-- Les formats possibles viennent du serveur : le panneau ne les
+		-- invente pas, et une entree ajoutee a Config.formats apparait toute
+		-- seule a l'ecran.
+		formats = Seating.formatIds(Config),
+	})
+end
+
+local function pushLobbyToWatchers()
+	for player in watchingLobby do
+		if player.Parent ~= nil then
+			pushLobby(player)
+		end
+	end
+end
+
 -- L'annonce hors partie. Meme titre pour tout le monde, mais la ligne du bas
 -- est PERSONNELLE : le camp demande l'est. Elle voyage dans le champ `zone`,
 -- qui ne sert a rien tant qu'aucune manche ne tourne — un champ de plus dans le
 -- protocole pour une ligne de texte serait du gaspillage.
 local function tellLobby(title: string, status: string)
+	local showing = if os.clock() < noticeUntil then notice else title
 	for _, player in Players:GetPlayers() do
-		tell(player, title, status, sideLineFor(player))
+		tell(player, showing, status, lobbyLineFor(player))
 	end
+	pushLobbyToWatchers()
+end
+
+-- Un changement de reglage, dit a tout le monde. Il remplace le titre du salon
+-- le temps qu'on le lise, et le rafraichissement le reconduit tout seul.
+local function announce(text: string)
+	notice = text
+	noticeUntil = os.clock() + Config.seating.noticeSeconds
+	print("[Arena] " .. text)
+	pushLobbyToWatchers()
 end
 
 -- La largeur de MapBounds, d'ou la zone deduit son rayon de depart. Nil quand
@@ -247,7 +361,7 @@ local function candidatesFor(players: { Player }): { Seating.Candidate }
 		table.insert(candidates, {
 			id = idOf(player),
 			satOut = benched[player] or 0,
-			side = if sideChoiceAllowed() then wantedSide[player] else nil,
+			side = if lobbyAllowed() then wantedSide[player] else nil,
 		})
 	end
 	return candidates
@@ -736,7 +850,7 @@ end
 local function loop()
 	while true do
 		local players = Players:GetPlayers()
-		local plan = Seating.plan(Config, candidatesFor(players))
+		local plan = Seating.plan(Config, candidatesFor(players), lobbyNow(), rng)
 
 		if plan == nil then
 			-- SEUL : le bac a sable prend la place de l'attente. Il ne rend la
@@ -758,7 +872,7 @@ local function loop()
 				string.format(
 					"%d / %d joueurs%s%s",
 					#players,
-					Seating.playersNeeded(Config),
+					neededNow(),
 					if note ~= "" then "  ·  " .. note else "",
 					if why ~= "" then "  ·  bac à sable : " .. why else ""
 				)
@@ -854,32 +968,91 @@ function MatchService.start()
 	Players.PlayerRemoving:Connect(function(player)
 		benched[player] = nil
 		wantedSide[player] = nil
+		watchingLobby[player] = nil
 	end)
 
-	-- LA DEMANDE DE CAMP. Le client n'envoie qu'un nom de camp, ou rien pour
-	-- revenir a « auto ». Tout le reste est jete, et la demande entiere est
-	-- ignoree hors partie privee : c'est le serveur qui tranche, pas le client.
-	sideRemote.OnServerEvent:Connect(function(player: Player, payload: any)
-		if not sideChoiceAllowed() then
-			return
-		end
+	-- LE SALON. Trois reglages sur un seul remote, parce qu'ils vivent au meme
+	-- moment et au meme endroit de l'ecran : le format, la facon de composer
+	-- les camps, et le camp qu'on demande. Tout ce qui n'est pas reconnu est
+	-- jete, et la demande entiere est ignoree hors partie privee — c'est le
+	-- serveur qui tranche, pas le client.
+	--
+	-- N'IMPORTE QUI PEUT REGLER, et le changement s'annonce. Pas de « chef de
+	-- partie » : entre amis dans leur propre serveur, un systeme d'hote serait
+	-- de la complexite pour rien, et quelqu'un qui embete les autres est un
+	-- probleme d'amis, pas de code.
+	lobbyRemote.OnServerEvent:Connect(function(player: Player, payload: any)
 		if typeof(payload) ~= "table" then
 			return
 		end
 
-		local asked = payload.side
-		if asked == nil then
-			wantedSide[player] = nil
+		-- Ouvrir, fermer et demander l'etat repondent TOUJOURS, meme en partie
+		-- classee : la reponse dit alors `allowed = false`, et le panneau sait
+		-- qu'il ne doit pas s'ouvrir. Sans reponse, il ne saurait pas faire la
+		-- difference entre « interdit » et « le serveur n'a pas encore parle ».
+		if payload.query == true then
+			pushLobby(player)
 			return
 		end
-		if typeof(asked) ~= "string" then
+		if payload.open == true then
+			watchingLobby[player] = lobbyAllowed() or nil
+			pushLobby(player)
+			return
+		end
+		if payload.close == true then
+			watchingLobby[player] = nil
 			return
 		end
 
-		for _, team in Seating.teamNames(Config) do
-			if asked == team then
-				wantedSide[player] = asked
-				return
+		-- Tout ce qui MODIFIE un reglage s'arrete ici en partie classee.
+		if not lobbyAllowed() then
+			return
+		end
+
+		-- LE CAMP. Nil ramene a « auto ».
+		if payload.side ~= nil or payload.clearSide == true then
+			local asked = payload.side
+			if asked == nil or asked == Seating.AUTO then
+				wantedSide[player] = nil
+			elseif typeof(asked) == "string" then
+				for _, team in Seating.teamNames(Config) do
+					if asked == team then
+						wantedSide[player] = asked
+						break
+					end
+				end
+			end
+			pushLobby(player)
+		end
+
+		-- LE FORMAT. « auto » est accepte, et c'est le seul nom qui ne soit pas
+		-- celui d'un format.
+		if typeof(payload.formatId) == "string" then
+			local asked = payload.formatId
+			if asked == Seating.AUTO or Seating.formatById(Config, asked) ~= nil then
+				if lobby.formatId ~= asked then
+					lobby.formatId = asked
+					announce(
+						string.format("%s a choisi le format : %s", player.Name, formatLabel(asked))
+					)
+				end
+			end
+		end
+
+		-- LA FACON DE COMPOSER LES CAMPS.
+		if typeof(payload.teamMode) == "string" then
+			local asked = payload.teamMode
+			if asked == Seating.CHOSEN or asked == Seating.RANDOM then
+				if lobby.teamMode ~= asked then
+					lobby.teamMode = asked
+					announce(
+						string.format(
+							"%s a choisi les équipes : %s",
+							player.Name,
+							teamModeLabel(asked)
+						)
+					)
+				end
 			end
 		end
 	end)

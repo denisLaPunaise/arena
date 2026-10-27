@@ -344,4 +344,119 @@ return function(t: harness.Harness)
 		split.teams["p5"] ~= split.teams["p6"],
 		true
 	)
+
+	t.section("Le format impose par le salon")
+
+	-- AUTO n'est pas un format. Si un jour quelqu'un nommait un format « auto »,
+	-- il deviendrait impossible a imposer : formatFor le lirait comme « pas de
+	-- format impose » et choisirait tout seul.
+	t.equal(
+		"« auto » n'est pas un identifiant de format",
+		Seating.formatById(Config, Seating.AUTO),
+		nil
+	)
+
+	-- La liste affichee par le salon est DEDUITE de Config.formats : un format
+	-- ajoute a la table apparait a l'ecran sans qu'on recopie rien.
+	local ids = Seating.formatIds(Config)
+	t.equal("le salon propose auto plus chaque format", #ids, #Config.formats + 1)
+	t.equal("et auto vient en tête", ids[1], Seating.AUTO)
+
+	local chosenMode = { formatId = Seating.AUTO, teamMode = Seating.CHOSEN }
+
+	-- Six joueurs qui demandent du 1v1 : DEUX jouent, quatre attendent. C'est
+	-- le point le moins evident du salon, et c'est voulu — le format dit la
+	-- taille des camps, pas qui a le droit de jouer.
+	local small = Seating.plan(Config, roster(6), { formatId = "1v1", teamMode = Seating.CHOSEN })
+	assert(small ~= nil, "un plan etait attendu")
+	t.equal("six joueurs en 1v1 : c'est bien un 1v1", small.formatId, "1v1")
+	t.equal("deux jouent", #small.seated, 2)
+	t.equal("et quatre attendent", #small.waiting, 4)
+
+	-- L'INVERSE NE CEDE PAS. Demander du 3v3 a deux ne doit pas lancer un 1v1 :
+	-- un format impose qu'on obtient sans l'avoir vu passer est pire qu'une
+	-- attente, parce que personne ne saurait pourquoi les camps sont petits.
+	t.equal(
+		"du 3v3 à deux joueurs : on attend, on ne retombe pas en 1v1",
+		Seating.plan(Config, roster(2), { formatId = "3v3", teamMode = Seating.CHOSEN }),
+		nil
+	)
+	t.equal(
+		"un format inconnu ne lance rien",
+		Seating.plan(Config, roster(4), { formatId = "9v9", teamMode = Seating.CHOSEN }),
+		nil
+	)
+
+	-- Et le salon en auto doit se comporter EXACTEMENT comme pas de salon du
+	-- tout, sinon la partie classee changerait de comportement en silence.
+	local autoPlan = Seating.plan(Config, roster(5), chosenMode)
+	local noLobby = Seating.plan(Config, roster(5))
+	assert(autoPlan ~= nil and noLobby ~= nil, "deux plans etaient attendus")
+	t.equal("en auto, le salon ne change rien", autoPlan.formatId, noLobby.formatId)
+	t.equal(
+		"ni les camps",
+		sidesOf(autoPlan, { "p1", "p2", "p3", "p4" }),
+		sidesOf(noLobby, { "p1", "p2", "p3", "p4" })
+	)
+
+	t.section("Le tirage au sort des camps")
+
+	local randomMode = { formatId = Seating.AUTO, teamMode = Seating.RANDOM }
+
+	-- Un rng previsible : toujours 1. Le melange de Fisher-Yates devient donc
+	-- un calcul verifiable a la main, et ce test attrape une inversion de
+	-- boucle que « les camps sont egaux » laisserait passer.
+	local function always(_: number): number
+		return 1
+	end
+
+	local drawn = Seating.plan(Config, roster(4), randomMode, always)
+	assert(drawn ~= nil, "un plan etait attendu")
+	t.equal("le tirage ne change pas qui joue", table.concat(drawn.seated, " "), "p1 p2 p3 p4")
+	t.equal("mais il change les camps", sidesOf(drawn, { "p1", "p2", "p3", "p4" }), "B A B A")
+
+	-- LE VOEU NE COMPTE PLUS. C'est toute la difference entre les deux modes :
+	-- en tirage au sort, un camp demande est ignore, sinon ce ne serait pas un
+	-- tirage. Quatre voeux identiques, et les camps restent coupes en deux.
+	local wishing = roster(4)
+	for _, candidate in wishing do
+		candidate.side = "A"
+	end
+
+	local ignored = Seating.plan(Config, wishing, randomMode, always)
+	assert(ignored ~= nil, "un plan etait attendu")
+
+	local drawnPerTeam: { [string]: number } = { A = 0, B = 0 }
+	for _, id in ignored.seated do
+		drawnPerTeam[ignored.teams[id]] += 1
+	end
+	t.equal("au tirage au sort, le camp demandé est ignoré", drawnPerTeam["A"], 2)
+
+	-- Et les camps restent egaux quel que soit le tirage. Vingt tirages
+	-- differents, parce qu'un melange ecrit a l'envers peut tomber juste sur un.
+	local seed = 7
+	local function pseudo(n: number): number
+		seed = (seed * 31 + 17) % 1000
+		return (seed % n) + 1
+	end
+
+	local uneven = 0
+	local allInOne = 0
+	for _ = 1, 20 do
+		local plan = Seating.plan(Config, roster(6), randomMode, pseudo)
+		assert(plan ~= nil, "un plan etait attendu")
+
+		local counts: { [string]: number } = { A = 0, B = 0 }
+		for _, id in plan.seated do
+			counts[plan.teams[id]] += 1
+		end
+		if counts["A"] ~= counts["B"] then
+			uneven += 1
+		end
+		if #plan.seated ~= 6 then
+			allInOne += 1
+		end
+	end
+	t.equal("vingt tirages, et les camps restent toujours égaux", uneven, 0)
+	t.equal("et tout le monde joue toujours", allInOne, 0)
 end

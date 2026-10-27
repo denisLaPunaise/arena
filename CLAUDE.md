@@ -160,6 +160,27 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   `ServerScriptService.Arena` et `StarterPlayerScripts.Arena` avant de conclure
   que quelque chose ne marche pas. Supprimer un fichier et le recréer déclenche
   le problème.
+- **LA PLACE PEUT ETRE EN RETARD SUR LE REPO, SANS RIEN DIRE.** Vu le
+  27 octobre 2026 : le plugin Rojo etait deconnecte alors que `rojo serve`
+  tournait, et la place melangeait du neuf et du vieux — les remotes renommes,
+  mais six scripts d'avant le renommage. La console disait
+  « Infinite yield on WaitForChild("Side") » pour un remote qui n'existe plus
+  nulle part dans le repo, ce qui envoie chercher un bug imaginaire.
+
+  **La verification qui tranche en un appel : comparer les TAILLES.** La
+  longueur en octets de chaque `Source` de la place contre `wc -c` sur le
+  repo ; ce qui differe est en retard. Et pour rattraper sans le plugin :
+  servir le repo sur `http://127.0.0.1` avec `python -m http.server`, puis
+  `HttpService:GetAsync` dans `execute_luau` pour poser chaque `Source`. Il
+  faut relever `HttpService.HttpEnabled` — **le remettre comme il etait a la
+  fin**, c'est un reglage de la place, pas le mien.
+
+- **Un refus doit FERMER, pas figer.** Le panneau du salon refusait de
+  s'ouvrir quand le serveur disait non — donc il refusait aussi de se fermer,
+  et un panneau ouvert au moment du refus restait a l'ecran pour toujours. En
+  ecrivant une porte qui peut se verrouiller : elle doit laisser l'ecran dans
+  l'etat le plus sur, et c'est ferme.
+
 - **Rojo écrase, il ne fusionne pas.** Une modification faite dans Studio sur un
   script synchronisé est perdue à la prochaine synchro. Le code s'écrit dans le
   repo, jamais dans Studio.
@@ -519,7 +540,7 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 
 - **Deux reglages peuvent reclamer la meme touche, en silence.** Les touches
   sont a trois endroits de `Config` — `loadout.useKeys`, `loadout.editKey`,
-  `sandbox.toggleKey`, et maintenant `seating.sideKey` — et rien ne les
+  `sandbox.toggleKey`, et maintenant `seating.lobbyKey` — et rien ne les
   comparait. Le choix du camp a failli prendre « 1 », qui sert deja au premier
   objet : une touche qui fait deux choses selon le moment coute une manche, et
   ca ne leve aucune erreur. Un test de `tests/specs/config.luau` les reunit
@@ -527,7 +548,7 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   inscrire.
 
   A savoir aussi : une touche dont le nom ne correspond a aucun `KeyCode` donne
-  un `SIDE_KEY` nil cote client, la branche du `elseif` ne se declenche jamais,
+  un `KeyCode` nil cote client, la branche du `elseif` ne se declenche jamais,
   et la touche est morte **sans la moindre erreur**. Verifier le nom dans
   Studio, pas seulement dans Config.
 
@@ -646,7 +667,14 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    ne classe plus, et on y choisit son camp. Vérifié par les tests et dans la
    machine virtuelle de Roblox ; **jamais joué à plus d'un**, sections 18 et 19
    d'`A-TESTER.md`
-12. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+12. Le salon des parties privées — **fait** : touche `C`, trois rangées, et
+   rien d'autre. Le format (auto, ou l'un des quatre imposé) et la composition
+   des camps (chacun demande le sien, ou tirage au sort refait à chaque
+   partie). **Les règles du jeu ne sont pas réglables**, et c'est une décision
+   de Josh : le jeu reste le jeu. Un format imposé ne change jamais QUI joue,
+   et un format trop grand fait attendre au lieu de retomber en silence sur le
+   format du dessous
+13. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), les quarante-neuf autres objets, les skins, et
    l'achat de pièces en Robux. Plus **un seul** palier 6 sur quarante-deux,
