@@ -227,6 +227,24 @@ local function makePiece(name: string, size: { number }, color: { number }): Bas
 	return part
 end
 
+-- L'ARTICULATION NE VIT PAS DANS LE MODELE, ELLE VIT SUR LA MAIN. Detruire
+-- le modele de l'arme laisse donc un `Motor6D` orphelin derriere lui, un par
+-- changement d'arme, pour toujours. Vu en jeu le 27 octobre 2026 : QUATRE
+-- `ArenaGrip` empiles dans la meme main apres cinq changements, tous inertes
+-- (`Part1` vide) et tous repondant au meme nom, donc un `FindFirstChild`
+-- en designe un au hasard. C'est le meme piege que les doublons de Rojo.
+local function dropGrips(character: Model)
+	local hand = handOf(character)
+	if hand == nil then
+		return
+	end
+	for _, child in hand:GetChildren() do
+		if child.Name == GRIP_NAME then
+			child:Destroy()
+		end
+	end
+end
+
 function WeaponService.clear(player: Player)
 	joints[player] = nil
 	restC0[player] = nil
@@ -235,6 +253,7 @@ function WeaponService.clear(player: Player)
 	if character == nil then
 		return
 	end
+	dropGrips(character)
 	local existing = character:FindFirstChild(MODEL_NAME)
 	if existing ~= nil then
 		existing:Destroy()
@@ -264,6 +283,10 @@ function WeaponService.attach(character: Model, item: any): Motor6D?
 	if existing ~= nil then
 		existing:Destroy()
 	end
+	-- Et les articulations de la main, que le modele n'emporte pas avec lui.
+	-- `attach` s'appelle aussi en mode edition, sans passer par `clear` : elle
+	-- ne peut pas compter sur quelqu'un d'autre pour nettoyer.
+	dropGrips(character)
 
 	local model = Instance.new("Model")
 	model.Name = MODEL_NAME

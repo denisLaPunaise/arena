@@ -1031,6 +1031,26 @@ de la taille de l'avatar, que le joueur choisit : un chiffre écrit dans
 après l'apparition du personnage — le temps que les membres finissent d'arriver
 et que l'animation de repos le prenne en main.
 
+**Vérifié en jeu, et les deux premières sondes avaient tort.** Les sept gestes
+bougent la main, du bon côté, et reviennent au repos — mesuré en partie, coup
+par coup. Mais mes deux premières sondes ont rapporté l'inverse : « aucun
+`IKControl` » et « la main ne bouge pas d'un pouce ». Elles avaient capturé
+`player.Character` une fois pour toutes, et le bac à sable en fait apparaître
+un nouveau : elles regardaient un personnage détruit, qui ne bougera plus
+jamais. **Une sonde qui dit « rien ne se passe » est suspecte avant que le code
+ne le soit** — ici, un seul relevé direct sur le personnage courant a suffi à
+retourner la conclusion.
+
+**Un bug trouvé en chemin, qui n'a rien à voir avec le bras.** En regardant la
+main, j'y ai trouvé **quatre** `ArenaGrip` empilés après cinq changements
+d'arme. L'articulation vit sur la main, pas dans le modèle de l'arme : détruire
+le modèle en laissait donc un orphelin derrière lui, un par changement, pour
+toujours. Tous inertes, tous répondant au même nom — donc un
+`FindFirstChild("ArenaGrip")` en désignait un au hasard, exactement le piège des
+doublons de Rojo. C'est corrigé et revérifié en jeu : une articulation par arme,
+zéro à mains nues. **Ce bug était là depuis le 26 octobre et aucun test ne
+pouvait le voir** ; il a fallu aller regarder dans la main.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

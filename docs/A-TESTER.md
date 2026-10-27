@@ -705,45 +705,63 @@ l'affichage, qui part quatre fois par seconde, ne sonne pas.
 
 ---
 
-## 16. Le bras bouge aussi — **calculé et testé, jamais vu bouger**
+## 16. Le bras bouge aussi — **mesuré en jeu, jamais regardé**
 
 Depuis le 26 octobre, l'arme tournait dans une main immobile. Le bras part
 maintenant avec elle : la main avance, recule ou se lève selon le geste, et
 revient au repos aussitôt après.
 
-**Ce que je peux affirmer, et ce que je ne peux pas.** J'ai prouvé en jeu, par
-une sonde et des mesures, que le moyen employé (`IKControl`) déplace bel et
-bien la main sur ce squelette, et de combien. Les tests vérifient que chaque
-geste d'arme a sa pose de bras, qu'aucune pose ne traîne sans geste, et que
-chaque pose part dans le bon sens. Ce que je n'ai **pas** pu faire, parce que
-la place n'était pas ouverte dans Studio au moment de finir : voir le geste
-complet se jouer en frappant. Donc **tu es le premier à le regarder**.
+**Les sept gestes ont été mesurés en partie**, en lançant chaque coup et en
+relevant où la main arrive, dans le repère du torse. Les sept bougent, les
+sept partent du bon côté, et les sept reviennent au repos :
 
-126. **Frappe avec la machette.** La main doit partir vers l'avant et un peu
-     vers l'intérieur, pas vers l'extérieur. Si elle part du mauvais côté, le
-     signe de `slash` dans `Config.loadout.bodyMotion` est à inverser.
-127. **Frappe avec le marteau.** La main avance franchement, et l'arme s'abat.
-     Les deux doivent partir et revenir **ensemble** — si l'arme se repose en
-     laissant le bras tendu, dis-le, c'est un bug de jeton.
-128. **Tire au fusil.** La main doit **reculer**, pas avancer. C'est le geste le
-     plus facile à avoir à l'envers, et c'est aussi le plus visible.
-129. **Bande l'arc.** Même chose : la main tire vers soi.
-130. **Puis déséquipe tout et frappe à mains nues.** C'est le point le plus
-     important de la section : avant aujourd'hui, un coup de poing ne faisait
-     **rien bouger du tout**. Est-ce qu'on voit enfin qu'on frappe ?
-131. **Frappe très vite, plusieurs fois de suite, avec le couteau.** Le geste
+| geste | la main part | de combien |
+| --- | --- | --- |
+| machette, couteau | vers l'avant et vers le corps | 1,10 – 1,14 stud |
+| marteau | vers l'avant | 1,01 stud |
+| fusil, pistolet-mitrailleur | vers l'**arrière** | 0,54 stud |
+| arc | vers l'**arrière** | 0,67 stud |
+| mains nues | vers l'avant | 1,17 stud |
+
+**Donc ce n'est pas à toi de vérifier que ça marche : c'est à toi de dire si
+c'est beau.** Un chiffre ne dit pas si un geste a l'air d'un coup. C'est la
+même réserve que pour les sons, qui partent au bon moment sans que je sache
+s'ils sonnent juste.
+
+**Une chose à regarder en particulier.** L'épaule relève la main de 0,38 stud
+quand le bras s'étend, qu'on le demande ou non. Pour le marteau, j'avais
+demandé que la main descende légèrement (− 0,10) et elle **monte** de 0,38 :
+l'arme s'abat bien, mais la main qui la tient monte un peu. Est-ce que ça se
+voit, et est-ce que ça gêne ?
+
+126. **Frappe à mains nues, d'abord.** C'est le point le plus important de la
+     section : avant aujourd'hui, un coup de poing ne faisait **rien bouger du
+     tout**. Est-ce qu'on voit enfin qu'on frappe ?
+127. **Puis le marteau.** Mesuré : l'arme s'abat et la main avance d'un stud,
+     mais elle monte aussi de 0,38. Est-ce que l'ensemble a l'air d'un coup qui
+     s'abat, ou d'un bras qui se lève ?
+128. **Puis le fusil.** La main recule de 0,54 stud. Est-ce que ça se lit comme
+     un recul, ou est-ce trop petit pour se voir ?
+129. **Puis la machette.** La main avance et rentre vers le corps. C'est le seul
+     geste latéral du jeu, et c'est celui que l'épaule bride le plus.
+130. **Frappe très vite, plusieurs fois de suite, avec le couteau.** Le geste
      dure 0,23 s et le couteau peut frapper plus vite que ça sur certaines
-     classes. Est-ce que le bras tremble, ou est-ce qu'il enchaîne ?
-132. **Regarde un adversaire frapper, de loin.** Le mouvement sert surtout à
+     classes. Est-ce que le bras tremble, ou est-ce qu'il enchaîne ? Si l'arme
+     se repose en laissant le bras tendu, dis-le : c'est un bug de jeton.
+131. **Regarde un adversaire frapper, de loin.** Le mouvement sert surtout à
      ça : savoir qu'un coup est parti sans voir la barre de vie descendre.
      Est-ce que ça se lit à dix studs ? À trente ?
-133. **Change d'avatar pour un corps très grand ou très petit**, et refrappe.
+132. **Change d'avatar pour un corps très grand ou très petit**, et refrappe.
      La position de repos de la main se mesure sur chaque corps, donc ça devrait
-     marcher partout — mais c'est exactement le genre de chose qui se voit en le
-     faisant.
-134. **Si tu joues en R6** (un avatar à six parties, pas quinze), le bras ne
+     marcher partout — mais je n'ai mesuré que sur le tien.
+133. **Si tu joues en R6** (un avatar à six parties, pas quinze), le bras ne
      bougera **pas**, et c'est voulu : ce squelette n'a aucune articulation de
      coude à plier. L'arme bouge quand même.
+134. **Change d'arme plusieurs fois de suite, puis frappe.** Un bug trouvé en
+     vérifiant ce geste : chaque changement d'arme laissait une articulation
+     morte dans la main, quatre après cinq changements. C'est corrigé et
+     revérifié en jeu — mais si une arme se met à pendre de travers après
+     plusieurs changements, c'est là qu'il faut regarder.
 
 **Un geste ample est impossible, et ce n'est pas un réglage.** Mesuré en jeu :
 l'épaule laisse la main monter de 1,85 stud et avancer de 1,25, mais ne la

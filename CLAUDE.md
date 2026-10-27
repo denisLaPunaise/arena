@@ -360,6 +360,24 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   rien : le bras reste immobile pendant que l'arme part, et un test le refuse
   desormais dans les deux sens.
 
+- **Une articulation posee sur un membre ne meurt pas avec le modele qu'elle
+  tient.** `WeaponService` soude l'arme par un `Motor6D` parente a LA MAIN :
+  detruire le modele de l'arme laisse donc l'articulation derriere lui, une par
+  changement d'arme, pour toujours. Vu en jeu le 27 octobre 2026 : QUATRE
+  `ArenaGrip` dans la meme main apres cinq changements, toutes inertes et
+  toutes repondant au meme nom, donc un `FindFirstChild` en designait une au
+  hasard — le meme piege que les doublons de Rojo. En posant une contrainte,
+  une attache ou une articulation sur un personnage : la detruire au meme
+  endroit et au meme moment que ce qu'elle tient.
+
+- **Une sonde qui dit « rien ne se passe » est suspecte avant le code.** Deux
+  sondes de suite ont rapporte « aucun `IKControl` » et « la main ne bouge pas
+  d'un pouce » alors que le geste marchait. Elles avaient capture
+  `player.Character` une fois pour toutes, et le bac a sable en fait apparaitre
+  un nouveau : elles regardaient un personnage detruit, qui ne bougera plus
+  jamais. **Une sonde relit `player.Character` a chaque mesure**, jamais une
+  seule fois au demarrage.
+
 - **Rien de visuel ne touche a l'equilibrage.** Le bloc `look` d'un objet ne
   contient que des tailles, des couleurs et des angles, et aucun de ses
   chiffres n'entre dans un calcul de degats, de portee ou de budget. C'est le
@@ -458,10 +476,12 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    jeu, choix de la classe, points d'arbre à la demande, budget relevé, jusqu'à
    quatre mannequins aux statistiques d'une vraie classe. Pas un bot, et la
    raison est dans les pièges ci-dessus
-10. Le bras qui bouge pendant les attaques — **fait** : la main avance,
-   recule ou se lève avec le geste de l'arme, par `IKControl` et sans une
-   seule animation téléversée. Le coup de poing se voit enfin. L'épaule a une
-   butée mesurée, donc un geste ample est impossible par ce moyen
+10. Le bras qui bouge pendant les attaques — **fait et mesuré en jeu** : la
+   main avance, recule ou se lève avec le geste de l'arme, par `IKControl` et
+   sans une seule animation téléversée. Les sept gestes bougent du bon côté
+   et reviennent au repos. Le coup de poing se voit enfin. L'épaule a une
+   butée mesurée, donc un geste ample est impossible par ce moyen. Reste à
+   savoir si c'est beau, et ça ne se mesure pas
 11. Ce qui reste : le reste du corps, les quarante-neuf autres objets, les
    skins, et l'achat de pièces en Robux
 
