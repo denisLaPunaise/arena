@@ -352,13 +352,41 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   repos se mesure**, une demi-seconde apres l'apparition du personnage, parce
   qu'elle depend de la taille de l'avatar que le joueur choisit.
 
-- **Le bras et l'arme sont deux tables, un seul geste.** `weaponMotion` dit
-  COMMENT l'arme tourne dans la main, `bodyMotion` dit OU va la main : les
-  melanger ferait tourner l'arme deux fois. Ils partagent la duree et **un seul
-  jeton**, parce qu'ils doivent revenir ensemble ou pas du tout. Un geste de
-  plus dans l'une des deux tables sans son equivalent dans l'autre ne leve
-  rien : le bras reste immobile pendant que l'arme part, et un test le refuse
-  desormais dans les deux sens.
+  Le buste se penche par un SECOND `IKControl`, en `Rotation` celui-la, sur la
+  chaine `LowerTorso` -> `UpperTorso` : on veut qu'il PLIE A LA TAILLE et pas
+  qu'il quitte son bassin, et les jambes restent hors de la chaine. Les deux
+  controles se composent sans se marcher dessus, parce que la cible de la main
+  est posee SUR le torse : elle part avec lui, et le bras n'a rien a corriger.
+  Mesure, pas suppose : buste penche de 20 degres, la main reste a 1,08 de son
+  1,01 habituel dans le repere du torse.
+
+- **L'ANIMATION D'ATTENTE DE ROBLOX FAIT TOURNER LE BUSTE, jusqu'a 22 degres,
+  en permanence.** C'est ce qui interdit de le faire tourner ou s'incliner
+  lateralement : un angle demande sur le lacet ou le roulis arrive quelque part
+  entre ce qu'on veut et ce que l'animation voulait, et le resultat change a
+  chaque coup. Seul le TANGAGE revient exactement a zero, donc le buste se
+  penche et ne se tourne pas. Et la butee du bassin est a 22 degres : demander
+  45 donne 21,4, demander 90 donne 22,4.
+
+  Consequence dans le code, et c'est la seule difference avec le bras :
+  **l'orientation de repos du buste se relit au depart de chaque geste**, alors
+  que la position de repos de la main se mesure une fois par personnage. Une
+  orientation relevee une fois serait perimee a l'instant suivant, et le torse
+  sauterait au depart du geste.
+
+- **Le corps et l'arme sont deux tables, un seul geste.** `weaponMotion` dit
+  COMMENT l'arme tourne dans la main, `bodyMotion` dit OU va la main et DE
+  COMBIEN le buste penche : les melanger ferait tourner l'arme deux fois. Ils
+  partagent la duree et **un seul jeton**, parce qu'ils doivent revenir ensemble
+  ou pas du tout. Un geste de plus dans l'une des deux tables sans son
+  equivalent dans l'autre ne leve rien : le bras reste immobile pendant que
+  l'arme part, et un test le refuse desormais dans les deux sens.
+
+  Dans `bodyMotion`, `lean` est un ANGLE et les trois autres sont des
+  DISTANCES. Rien dans le code ne lie les deux, ils sont juste voisins : un
+  buste qui part en arriere pendant que la main avance n'est pas un geste, c'est
+  une convulsion, et ca ne se verrait qu'a l'ecran. Un test verifie donc que les
+  deux sont d'accord sur « avant ».
 
 - **Une articulation posee sur un membre ne meurt pas avec le modele qu'elle
   tient.** `WeaponService` soude l'arme par un `Motor6D` parente a LA MAIN :
@@ -495,13 +523,14 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    jeu, choix de la classe, points d'arbre à la demande, budget relevé, jusqu'à
    quatre mannequins aux statistiques d'une vraie classe. Pas un bot, et la
    raison est dans les pièges ci-dessus
-10. Le bras qui bouge pendant les attaques — **fait et mesuré en jeu** : la
-   main avance, recule ou se lève avec le geste de l'arme, par `IKControl` et
-   sans une seule animation téléversée. Les sept gestes bougent du bon côté
-   et reviennent au repos. Le coup de poing se voit enfin. L'épaule a une
-   butée mesurée, donc un geste ample est impossible par ce moyen. Reste à
-   savoir si c'est beau, et ça ne se mesure pas
-11. Ce qui reste : le reste du corps, les quarante-neuf autres objets, les
+10. Le corps qui bouge pendant les attaques — **fait et mesuré en jeu** : la
+   main avance, recule ou se lève avec le geste de l'arme, et le buste plie à
+   la taille du même côté, par deux `IKControl` et sans une seule animation
+   téléversée. Les sept gestes bougent du bon côté et reviennent au repos. Le
+   coup de poing se voit enfin. L'épaule et le bassin ont des butées mesurées,
+   donc un geste plus ample est impossible par ce moyen. Reste à savoir si
+   c'est beau, et ça ne se mesure pas
+11. Ce qui reste : les jambes et la tête, les quarante-neuf autres objets, les
    skins, et l'achat de pièces en Robux. Plus **un seul** palier 6 sur
    quarante-deux, « immunisé aux projectiles », qui attend un système de
    projectiles — donc une décision de conception, donc Josh

@@ -1105,6 +1105,56 @@ et l'arc touchent instantanément à portée ; rien ne vole dans ce jeu. Lui
 donner un sens demande un système de projectiles, donc une décision de
 conception, donc toi.
 
+## 27 octobre 2026 — Le buste qui se penche dans le coup
+
+Le bras bougeait depuis ce matin, le reste du corps non. **Le buste se penche
+maintenant avec le geste** : vers l'avant quand le coup part devant, vers
+l'arrière quand l'arme repousse.
+
+**Le même moyen que pour le bras, mais pas le même réglage.** `Waist` est un
+`AnimationConstraint`, comme l'épaule : rien ne s'y écrit. C'est donc un second
+`IKControl`, mais en **`Rotation`** et pas en `Position` — on veut que le buste
+**plie à la taille**, pas qu'il quitte son bassin. La chaîne ne contient que
+l'articulation du bassin, donc les jambes ne bougent pas.
+
+**Les deux contrôles se composent, et c'est mesuré.** Avec le buste penché de
+20 degrés, la main reste à 1,08 de son 1,01 habituel *dans le repère du torse*.
+La cible de la main étant posée **sur** le torse, elle part en même temps que
+lui et le bras n'a rien à corriger. Mieux : la main va un peu plus loin qu'avant
+en valeur absolue, parce que le buste l'emmène — 1,21 stud pour la machette
+contre 1,11 sans le penchement.
+
+**La butée du bassin est à 22 degrés.** Mesurée : demander 20 donne 21,3,
+demander 45 donne 21,4, demander 90 donne 22,4. Le marteau est réglé à 18 et
+pas à 22, pour qu'il reste de la place sous la butée — un geste calé contre sa
+butée ne se distingue plus d'un geste trop grand.
+
+**Rien que le tangage, et c'est une décision prise sur une mesure.** J'ai essayé
+le lacet et le roulis — la torsion et l'inclinaison latérale. Ils ne marchent
+pas, et pas par manque de réglage : **l'animation d'attente de Roblox fait
+tourner le buste de son côté, jusqu'à 22 degrés, en permanence.** Un angle
+demandé sur ces deux axes arrive quelque part entre ce qu'on veut et ce que
+l'animation voulait, et le résultat change à chaque coup. Le tangage, lui,
+revient exactement à zéro : les cinq gestes mesurés reviennent à moins d'un
+degré de leur départ.
+
+**Conséquence dans le code, et c'est la seule différence avec le bras :
+l'orientation de repos du buste se relit au départ de chaque geste.** Pour la
+main, la position de repos est relevée une fois par personnage, parce qu'elle
+dépend de la taille du corps. Pour le buste, une orientation relevée une fois
+serait périmée à l'instant suivant, et le torse sauterait au départ du geste.
+
+**Un test attrape la contradiction que l'œil seul verrait.** Un buste qui part
+en arrière pendant que la main avance n'est pas un geste, c'est une convulsion.
+Rien dans le code ne lie les deux chiffres — ils sont voisins dans `Config` et
+c'est tout — donc une faute de signe sur l'un ne se verrait qu'à l'écran. La
+suite vérifie désormais que les deux sont d'accord sur « avant », pour les cinq
+gestes.
+
+**Ce qui ne bouge toujours pas** : les jambes, la tête et le bras gauche. Les
+jambes jouent la marche de Roblox et c'est ce qu'on veut ; la tête et le bras
+gauche n'ont rien à faire pendant une attaque à une main.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

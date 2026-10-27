@@ -705,11 +705,12 @@ l'affichage, qui part quatre fois par seconde, ne sonne pas.
 
 ---
 
-## 16. Le bras bouge aussi — **mesuré en jeu, jamais regardé**
+## 16. Le corps bouge aussi — **mesuré en jeu, jamais regardé**
 
 Depuis le 26 octobre, l'arme tournait dans une main immobile. Le bras part
-maintenant avec elle : la main avance, recule ou se lève selon le geste, et
-revient au repos aussitôt après.
+maintenant avec elle, **et le buste se penche dans le coup** : la main avance,
+recule ou se lève selon le geste, le torse plie à la taille du même côté, et
+les deux reviennent au repos aussitôt après.
 
 **Les sept gestes ont été mesurés en partie**, en lançant chaque coup et en
 relevant où la main arrive, dans le repère du torse. Les sept bougent, les
@@ -722,6 +723,20 @@ sept partent du bon côté, et les sept reviennent au repos :
 | fusil, pistolet-mitrailleur | vers l'**arrière** | 0,54 stud |
 | arc | vers l'**arrière** | 0,67 stud |
 | mains nues | vers l'avant | 1,17 stud |
+
+**Et le buste, mesuré de la même façon**, en degrés de tangage dans le repère du
+bassin. Les cinq reviennent à moins d'un degré de leur départ :
+
+| geste | le buste | demandé → obtenu |
+| --- | --- | --- |
+| machette | se penche en avant | +8° → +9,0° |
+| marteau | **le plus penché de tous** | +18° → +20,2° |
+| fusil | part en **arrière** | −6° → −6,6° |
+| arc | part en arrière, à peine | −4° → −4,3° |
+| mains nues | se penche en avant | +12° → +13,8° |
+
+Le penchement emmène la main avec lui, donc elle va un peu plus loin qu'avant :
+1,21 stud pour la machette contre 1,11 sans le buste.
 
 **Donc ce n'est pas à toi de vérifier que ça marche : c'est à toi de dire si
 c'est beau.** Un chiffre ne dit pas si un geste a l'air d'un coup. C'est la
@@ -737,11 +752,14 @@ voit, et est-ce que ça gêne ?
 126. **Frappe à mains nues, d'abord.** C'est le point le plus important de la
      section : avant aujourd'hui, un coup de poing ne faisait **rien bouger du
      tout**. Est-ce qu'on voit enfin qu'on frappe ?
-127. **Puis le marteau.** Mesuré : l'arme s'abat et la main avance d'un stud,
-     mais elle monte aussi de 0,38. Est-ce que l'ensemble a l'air d'un coup qui
-     s'abat, ou d'un bras qui se lève ?
-128. **Puis le fusil.** La main recule de 0,54 stud. Est-ce que ça se lit comme
-     un recul, ou est-ce trop petit pour se voir ?
+127. **Puis le marteau.** C'est le geste le plus ample du jeu : l'arme s'abat,
+     la main avance d'un stud et le buste pique de 20 degrés. Est-ce que
+     l'ensemble a l'air d'un coup qui s'abat, ou d'un bonhomme qui se casse en
+     deux ? 20 degrés est tout près de la butée du bassin, qui est à 22 — donc
+     si c'est trop, il faut **baisser**, il n'y a pas de marge au-dessus.
+128. **Puis le fusil.** La main recule de 0,54 stud et le buste part de 6 degrés
+     en arrière. Est-ce que ça se lit comme un recul, ou est-ce trop petit pour
+     se voir ?
 129. **Puis la machette.** La main avance et rentre vers le corps. C'est le seul
      geste latéral du jeu, et c'est celui que l'épaule bride le plus.
 130. **Frappe très vite, plusieurs fois de suite, avec le couteau.** Le geste
@@ -749,15 +767,20 @@ voit, et est-ce que ça gêne ?
      classes. Est-ce que le bras tremble, ou est-ce qu'il enchaîne ? Si l'arme
      se repose en laissant le bras tendu, dis-le : c'est un bug de jeton.
 131. **Regarde un adversaire frapper, de loin.** Le mouvement sert surtout à
-     ça : savoir qu'un coup est parti sans voir la barre de vie descendre.
-     Est-ce que ça se lit à dix studs ? À trente ?
-132. **Change d'avatar pour un corps très grand ou très petit**, et refrappe.
+     ça : savoir qu'un coup est parti sans voir la barre de vie descendre. Le
+     buste est ce qui doit porter le plus loin, parce qu'il déplace une grande
+     surface. Est-ce que ça se lit à dix studs ? À trente ?
+132. **Cours, saute, tombe, et frappe pendant.** Le penchement s'ajoute à
+     l'animation de Roblox au lieu de la remplacer, donc frapper en pleine
+     course devrait marcher — mais c'est là que ça se verrait si les deux se
+     contredisaient.
+133. **Change d'avatar pour un corps très grand ou très petit**, et refrappe.
      La position de repos de la main se mesure sur chaque corps, donc ça devrait
      marcher partout — mais je n'ai mesuré que sur le tien.
-133. **Si tu joues en R6** (un avatar à six parties, pas quinze), le bras ne
-     bougera **pas**, et c'est voulu : ce squelette n'a aucune articulation de
-     coude à plier. L'arme bouge quand même.
-134. **Change d'arme plusieurs fois de suite, puis frappe.** Un bug trouvé en
+134. **Si tu joues en R6** (un avatar à six parties, pas quinze), le bras ne
+     bougera **pas** et le buste non plus, et c'est voulu : ce squelette n'a ni
+     coude ni taille à plier. L'arme bouge quand même.
+135. **Change d'arme plusieurs fois de suite, puis frappe.** Un bug trouvé en
      vérifiant ce geste : chaque changement d'arme laissait une articulation
      morte dans la main, quatre après cinq changements. C'est corrigé et
      revérifié en jeu — mais si une arme se met à pendre de travers après
@@ -791,18 +814,18 @@ pu vérifier** : que ça arrose vraiment quelqu'un. La propagation demande un
 deuxième joueur, et le mannequin du bac à sable ne déclenche volontairement
 aucun pouvoir de ce genre.
 
-135. **À trois, idéalement.** Un Vampire branche Peste, et deux adversaires
+136. **À trois, idéalement.** Un Vampire branche Peste, et deux adversaires
      côte à côte dont **un seul** porte l'armure lourde (5 points). Frappe
      celui qui n'en porte pas, et regarde les dégâts qui s'affichent sur
      l'armuré à côté.
-136. **Refais-le sans le sixième palier** (cinq paliers, pas six). L'armuré doit
+137. **Refais-le sans le sixième palier** (cinq paliers, pas six). L'armuré doit
      prendre nettement moins. C'est la seule comparaison qui dit si le palier
      vaut ses deux points.
-137. **Est-ce que ça se comprend ?** Rien à l'écran ne dit « l'armure est
+138. **Est-ce que ça se comprend ?** Rien à l'écran ne dit « l'armure est
      ignorée » : le joueur voit seulement un nombre plus gros. Si l'effet est
      invisible une fois en jeu, c'est un problème d'affichage à régler, pas un
      problème de calcul.
-138. **Et est-ce que c'est trop fort ?** La Peste paie son pouvoir par « aucun
+139. **Et est-ce que c'est trop fort ?** La Peste paie son pouvoir par « aucun
      vol de vie », ce qui est cher pour un Vampire. Mais contre une équipe
      groupée et armurée, elle ignore maintenant la défense de tout le monde à
      la fois.
@@ -831,9 +854,15 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   demande une animation téléversée sur un compte, donc un identifiant d'asset
   que personne ne peut vérifier en lisant le dépôt. C'est à décider ensemble,
   et seulement si le geste actuel ne suffit pas. Section 16.
-- **le reste du corps ne bouge toujours pas** — les jambes, le torse et la
-  tête jouent les animations par défaut de Roblox. Seul le bras droit répond
-  aux attaques.
+- **les jambes, la tête et le bras gauche ne bougent pas** — le bras droit et
+  le buste répondent aux attaques, le reste joue les animations par défaut de
+  Roblox. C'est voulu : les jambes doivent marcher, et la tête comme le bras
+  gauche n'ont rien à faire pendant une attaque à une main.
+- **le buste ne se tourne pas, il ne fait que se pencher** — la torsion et
+  l'inclinaison latérale ont été essayées et abandonnées : l'animation
+  d'attente de Roblox fait tourner le buste de son côté jusqu'à 22 degrés en
+  permanence, donc un angle demandé sur ces axes arrive n'importe où. Le
+  pourquoi est dans `docs/DECISIONS.md`.
 - **le couteau reste à peine visible** — 1,6 stud de lame sur un personnage de
   5, c'est honnête pour un objet à 2 points dont la portée est réduite de 30 %,
   mais si ça gêne en jouant, c'est un choix à faire : l'agrandir mentirait sur

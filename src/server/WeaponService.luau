@@ -17,7 +17,7 @@
 	anime. Une arme neuve se decrit entierement dans `Config.items`, en six
 	chiffres, sans sortir de l'editeur.
 
-	LE BRAS BOUGE AUSSI, ET PAS PAR UN `Motor6D`. Le premier jet visait
+	LE CORPS BOUGE AUSSI, ET PAS PAR UN `Motor6D`. Le premier jet visait
 	l'epaule, comme pour l'arme. Ca ne marche pas, et la raison se voit en
 	jeu : sur les avatars d'aujourd'hui, l'epaule n'est PAS un `Motor6D` mais
 	un `AnimationConstraint`, que l'animateur de Roblox reecrit a chaque
@@ -31,6 +31,12 @@
 	dans la main ; l'IK ne fait que porter la main ailleurs, sans toucher a
 	son orientation (`IKControlType.Position`). Melanger les deux ferait
 	tourner l'arme deux fois, une fois par l'arme et une fois par le poignet.
+
+	ET LE BUSTE PENCHE, par un deuxieme `IKControl`, en `Rotation` celui-la :
+	on veut qu'il PLIE A LA TAILLE et pas qu'il quitte son bassin. Les deux
+	controles se composent sans se marcher dessus parce que la cible de la main
+	est posee SUR le torse : elle part avec lui, et le bras n'a rien a
+	corriger. Mesure en jeu, et pas suppose.
 
 	CE SERVICE NE REQUIERT RIEN DU SERVEUR. Pas de `CombatService`, pas de
 	`LoadoutService` : c'est `LoadoutService` qui l'appelle, jamais l'inverse.
@@ -55,6 +61,8 @@ local MODEL_NAME = "ArenaWeapon"
 local GRIP_NAME = "ArenaGrip"
 local ARM_NAME = "ArenaArm"
 local TARGET_NAME = "ArenaHandTarget"
+local LEAN_NAME = "ArenaLean"
+local LEAN_TARGET_NAME = "ArenaLeanTarget"
 
 -- Ce que chaque joueur est cense porter. C'est la memoire qui permet de
 -- rebatir l'arme apres une mort, et de ne rien rebatir quand l'arme n'a pas
@@ -76,30 +84,48 @@ local armControl: { [Player]: IKControl } = {}
 local armTarget: { [Player]: Attachment } = {}
 local armRest: { [Player]: Vector3 } = {}
 
-local function forgetArm(player: Player)
-	local control = armControl[player]
-	if control ~= nil then
-		control:Destroy()
-	end
-	local target = armTarget[player]
-	if target ~= nil then
-		target:Destroy()
+-- LE TORSE. Pas de `leanRest` ici, et c'est la difference importante avec le
+-- bras : l'animation d'attente fait tourner le buste de son cote, jusqu'a 22
+-- degres, en permanence. Une orientation de repos relevee une fois serait donc
+-- perimee a l'instant suivant, et pencher par rapport a elle ferait sauter le
+-- torse. On la relit au depart de chaque geste. La main, elle, se mesure une
+-- fois, parce que sa position de repos depend de la taille du corps et pas de
+-- ce que l'animation est en train de faire.
+local leanControl: { [Player]: IKControl } = {}
+local leanTarget: { [Player]: Attachment } = {}
+
+local function forgetBody(player: Player)
+	for _, held in
+		{ armControl[player], armTarget[player], leanControl[player], leanTarget[player] }
+	do
+		if held ~= nil then
+			held:Destroy()
+		end
 	end
 	armControl[player] = nil
 	armTarget[player] = nil
 	armRest[player] = nil
+	leanControl[player] = nil
+	leanTarget[player] = nil
 end
 
--- Prepare le bras droit du personnage actuel. Renvoie faux quand le squelette
--- ne s'y prete pas : un avatar R6 n'a qu'une seule part pour tout le bras, donc
--- il n'y a aucune articulation a flechir. Dans ce cas l'arme bouge et le bras
--- non, exactement comme avant — mieux vaut ca qu'un bras casse.
-local function prepareArm(player: Player): boolean
+-- Prepare le bras droit ET le buste du personnage actuel. Renvoie faux quand le
+-- squelette ne s'y prete pas : un avatar R6 n'a qu'une seule part pour tout le
+-- bras et une seule pour tout le tronc, donc il n'y a aucune articulation a
+-- flechir ni a pencher. Dans ce cas l'arme bouge et le corps non, exactement
+-- comme avant — mieux vaut ca qu'un bras casse.
+--
+-- LES DEUX CONTROLES SE COMPOSENT SANS SE MARCHER DESSUS, et ce n'est pas une
+-- supposition : mesure en jeu le 27 octobre 2026, avec le buste penche de 20
+-- degres, la main reste a 1,08 de son 1,01 habituel DANS LE REPERE DU TORSE.
+-- La cible de la main etant posee sur le torse, elle part en meme temps que lui
+-- et le bras n'a rien a corriger.
+local function prepareBody(player: Player): boolean
 	local existing = armControl[player]
 	if existing ~= nil and existing.Parent ~= nil then
 		return true
 	end
-	forgetArm(player)
+	forgetBody(player)
 
 	local character = player.Character
 	if character == nil then
@@ -109,6 +135,7 @@ local function prepareArm(player: Player): boolean
 	local torso = character:FindFirstChild("UpperTorso")
 	local hand = character:FindFirstChild("RightHand")
 	local upper = character:FindFirstChild("RightUpperArm")
+	local hips = character:FindFirstChild("LowerTorso")
 	if humanoid == nil or upper == nil then
 		return false
 	end
@@ -116,6 +143,9 @@ local function prepareArm(player: Player): boolean
 		return false
 	end
 	if hand == nil or not hand:IsA("BasePart") then
+		return false
+	end
+	if hips == nil or not hips:IsA("BasePart") then
 		return false
 	end
 
@@ -140,50 +170,89 @@ local function prepareArm(player: Player): boolean
 	control.Weight = 0
 	control.Parent = humanoid
 
+	-- Le buste. `Rotation` et pas `Position` : on veut qu'il PENCHE, pas qu'il
+	-- se deplace — un torse qu'on tire vers l'avant quitte son bassin, un torse
+	-- qu'on incline plie a la taille. La chaine ne contient que l'articulation
+	-- du bassin, donc les jambes ne bougent pas.
+	local leanAt = Instance.new("Attachment")
+	leanAt.Name = LEAN_TARGET_NAME
+	leanAt.CFrame = hips.CFrame:ToObjectSpace(torso.CFrame)
+	leanAt.Parent = hips
+
+	local bend = Instance.new("IKControl")
+	bend.Name = LEAN_NAME
+	bend.Type = Enum.IKControlType.Rotation
+	bend.ChainRoot = hips
+	bend.EndEffector = torso
+	bend.Target = leanAt
+	bend.Weight = 0
+	bend.Parent = humanoid
+
 	armControl[player] = control
 	armTarget[player] = target
 	armRest[player] = target.CFrame.Position
+	leanControl[player] = bend
+	leanTarget[player] = leanAt
 	return true
 end
 
--- La main part chercher un point. `pose` porte le meme nom que le geste de
--- l'arme — « slash », « overhead »... — plus « fist » quand il n'y a pas d'arme
--- du tout.
+local function tweenWeight(control: IKControl?, seconds: number, weight: number)
+	if control == nil or control.Parent == nil then
+		return
+	end
+	local info = TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	TweenService:Create(control, info, { Weight = weight }):Play()
+end
+
+-- La main part chercher un point et le buste se penche. `pose` porte le meme
+-- nom que le geste de l'arme — « slash », « overhead »... — plus « fist » quand
+-- il n'y a pas d'arme du tout.
 local function reachOut(player: Player, pose: string)
-	if not prepareArm(player) then
+	if not prepareBody(player) then
 		return
 	end
 	local move = Config.loadout.bodyMotion[pose]
 	local target = armTarget[player]
-	local control = armControl[player]
 	local rest = armRest[player]
-	if move == nil or target == nil or control == nil or rest == nil then
+	if move == nil or target == nil or rest == nil then
 		return
 	end
+
+	local seconds = Config.loadout.weaponMotion.outSeconds
 
 	-- L'avant de Roblox est -Z. C'est la seule conversion de tout le fichier, et
 	-- elle est ici pour que `Config` parle en mots plutot qu'en axes.
 	target.CFrame = CFrame.new(rest + Vector3.new(move.right, move.up, -move.forward))
+	tweenWeight(armControl[player], seconds, 1)
 
-	local out = TweenInfo.new(
-		Config.loadout.weaponMotion.outSeconds,
-		Enum.EasingStyle.Quad,
-		Enum.EasingDirection.Out
-	)
-	TweenService:Create(control, out, { Weight = 1 }):Play()
+	-- LE BUSTE SE PENCHE DEPUIS LA OU IL EST, et c'est pour ca qu'on relit son
+	-- orientation ici plutot que de l'avoir gardee : l'animation d'attente le
+	-- fait tourner en permanence, donc une orientation relevee une fois pour
+	-- toutes serait perimee et le torse sauterait au depart du geste.
+	local bend = leanControl[player]
+	local leanAt = leanTarget[player]
+	local character = player.Character
+	local hips = character ~= nil and character:FindFirstChild("LowerTorso") or nil
+	local torso = character ~= nil and character:FindFirstChild("UpperTorso") or nil
+	if bend == nil or leanAt == nil or not hips or not torso then
+		return
+	end
+	if not hips:IsA("BasePart") or not torso:IsA("BasePart") then
+		return
+	end
+
+	-- Un tangage positif penche le buste vers l'avant : verifie en jeu, une
+	-- demande de +20 degres a donne +21,3. Pas de conversion de signe ici,
+	-- contrairement a la main.
+	leanAt.CFrame = hips.CFrame:ToObjectSpace(torso.CFrame)
+		* CFrame.Angles(math.rad(move.lean), 0, 0)
+	tweenWeight(bend, seconds, 1)
 end
 
 local function comeBack(player: Player)
-	local control = armControl[player]
-	if control == nil or control.Parent == nil then
-		return
-	end
-	local back = TweenInfo.new(
-		Config.loadout.weaponMotion.backSeconds,
-		Enum.EasingStyle.Quad,
-		Enum.EasingDirection.Out
-	)
-	TweenService:Create(control, back, { Weight = 0 }):Play()
+	local seconds = Config.loadout.weaponMotion.backSeconds
+	tweenWeight(armControl[player], seconds, 0)
+	tweenWeight(leanControl[player], seconds, 0)
 end
 
 local function triple(values: { number }): Vector3
@@ -430,11 +499,11 @@ function WeaponService.init()
 		player.CharacterAdded:Connect(function()
 			-- Le personnage arrive membre par membre : la main n'existe pas
 			-- forcement a l'instant ou l'evenement part.
-			forgetArm(player)
+			forgetBody(player)
 			task.delay(Config.loadout.bodyMotion.settleSeconds, function()
-				-- Le bras se prepare pour TOUT LE MONDE, arme ou pas : un coup
-				-- de poing bouge le bras aussi.
-				prepareArm(player)
+				-- Le corps se prepare pour TOUT LE MONDE, arme ou pas : un coup
+				-- de poing bouge le bras et le buste aussi.
+				prepareBody(player)
 			end)
 			task.defer(function()
 				local item = wanted[player]
@@ -453,7 +522,7 @@ function WeaponService.init()
 	Players.PlayerAdded:Connect(watch)
 
 	Players.PlayerRemoving:Connect(function(player)
-		forgetArm(player)
+		forgetBody(player)
 		wanted[player] = nil
 		joints[player] = nil
 		restC0[player] = nil

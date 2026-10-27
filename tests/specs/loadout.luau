@@ -727,6 +727,17 @@ return function(t: harness.Harness)
 		local reach = math.abs(pose.right) + math.abs(pose.up) + math.abs(pose.forward)
 		t.equal("« " .. poseName .. " » bouge la main", reach > 0.1, true)
 
+		-- L'inclinaison du buste est un ANGLE, pas une distance : elle a sa
+		-- propre unite et sa propre butee, donc son propre test.
+		t.equal("« " .. poseName .. " » a une inclinaison", typeof(pose.lean), "number")
+		t.equal("et elle n'est pas nulle", math.abs(pose.lean) > 0.5, true)
+
+		-- LA BUTEE DU BASSIN EST A 22 DEGRES, mesuree en jeu le 27 octobre 2026 :
+		-- demander 45 donne 21,4, demander 90 donne 22,4. Au-dela, le chiffre
+		-- ecrit dans Config ne decrit plus ce qui se passe a l'ecran, et on
+		-- reglerait un geste a l'aveugle — meme regle que les 2 studs de l'epaule.
+		t.equal("et elle reste sous la butee du bassin", math.abs(pose.lean) <= 22, true)
+
 		-- L'EPAULE A UNE BUTEE, mesuree en jeu le 27 octobre 2026 : une demande
 		-- de 2 studs deplace la main de 1,85 vers le haut mais de 0,36
 		-- seulement vers l'interieur du corps. Au-dela de 2, le chiffre ecrit
@@ -764,4 +775,39 @@ return function(t: harness.Harness)
 	-- gauche, c'est-a-dire vers le -X. C'est la meme logique que pour la pointe
 	-- de la machette ci-dessus, un etage plus haut dans le bras.
 	t.equal("la machette ramene la main vers le corps", handTravel("slash")[1] < 0, true)
+
+	t.section("Le buste penche du meme cote que la main")
+
+	-- LE TEST QUI ATTRAPE LA CONTRADICTION. Un buste qui part en arriere pendant
+	-- que la main avance n'est pas un geste, c'est une convulsion. Rien dans le
+	-- code ne lie les deux chiffres : ils sont voisins dans `Config` et c'est
+	-- tout, donc une faute de signe sur l'un ne se voit que sur l'ecran.
+	--
+	-- Un tangage positif penche le buste vers l'avant, comme la main avance vers
+	-- le -Z. Les deux doivent donc etre d'accord sur « avant ».
+	local disagreeing: string? = nil
+	for poseName, pose in body do
+		if typeof(pose) ~= "table" then
+			continue
+		end
+		local handForward = pose.forward > 0
+		local leanForward = pose.lean > 0
+		if handForward ~= leanForward then
+			disagreeing = poseName
+		end
+	end
+	t.equal("aucun geste ne penche a l'envers de sa main", disagreeing, nil)
+
+	-- Et le marteau est le plus penche de tous, parce que c'est le seul geste du
+	-- jeu qui vient du corps entier. Si un autre le depasse un jour, c'est une
+	-- decision, pas un accident : ce test la rend visible.
+	local steepest = ""
+	local steepestLean = -math.huge
+	for poseName, pose in body do
+		if typeof(pose) == "table" and pose.lean > steepestLean then
+			steepestLean = pose.lean
+			steepest = poseName
+		end
+	end
+	t.equal("le marteau est le geste le plus penche", steepest, "overhead")
 end
