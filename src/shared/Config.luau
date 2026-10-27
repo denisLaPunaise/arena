@@ -1651,6 +1651,67 @@ Config.sounds = {
 
 		down = { assets = { "9113480915" }, volume = 0.65, pitch = { 0.95, 1.05 } },
 		blast = { assets = { "3444652484" }, volume = 0.75, pitch = { 0.9, 1.06 } },
+
+		-- LES SIX QUI MANQUAIENT. Toutes ces pistes viennent de la
+		-- bibliotheque officielle de Roblox (ProSoundEffects) : elle est
+		-- libre d'usage et sa duree est annoncee au dixieme de seconde, ce
+		-- qui est le seul critere que je puisse verifier sans oreille.
+
+		-- Le soin ne sonne QUE pour un soin voulu — un stimulant, une
+		-- trousse. Le vol de vie du Vampire passe par le meme message et
+		-- s'annonce a chaque coup porte : un carillon par coup, et le son du
+		-- combat disparait dessous. C'est le serveur qui tranche, parce que
+		-- le client ne peut pas distinguer les deux.
+		heal = {
+			assets = { "9116394545", "9116394876" },
+			volume = 0.45,
+			pitch = { 0.95, 1.08 },
+			maxSeconds = 1.2,
+		},
+
+		-- Un relevement est rare et il compte : il s'entend en entier.
+		revive = { assets = { "9117885276" }, volume = 0.6, pitch = { 0.97, 1.05 } },
+
+		-- La brulure de zone revient toutes les secondes
+		-- (`Config.round.zoneNumberIntervalSeconds`), donc la piste est
+		-- coupee bien avant la suivante : sans ca, deux brulures se
+		-- superposent et le son devient un grondement continu qui ne
+		-- previent plus de rien.
+		zoneBurn = {
+			assets = { "9126221312", "9126219755" },
+			volume = 0.4,
+			pitch = { 0.9, 1.1 },
+			maxSeconds = 0.8,
+		},
+
+		-- Le clic de l'interface est le seul son qu'on entend des dizaines de
+		-- fois par partie : il est volontairement le plus discret du
+		-- catalogue.
+		uiClick = {
+			assets = { "9119717523", "9119717529" },
+			volume = 0.35,
+			pitch = { 0.96, 1.06 },
+		},
+
+		-- Le debut d'une manche est un coup de cloche clair ; la fin, une
+		-- cloche grave. Les deux sont coupees : la piste de fin dure vingt et
+		-- une secondes, et une manche enchaine sur la suivante.
+		roundStart = {
+			assets = { "9116224192" },
+			volume = 0.55,
+			pitch = { 0.98, 1.02 },
+			maxSeconds = 2,
+		},
+		roundEnd = {
+			assets = { "9126005605" },
+			volume = 0.5,
+			pitch = { 0.98, 1.02 },
+			maxSeconds = 2.5,
+		},
+
+		-- La caisse. C'est le seul son de recompense du jeu, donc il a le
+		-- droit de durer.
+		crate = { assets = { "9125644661" }, volume = 0.5, pitch = { 0.95, 1.05 } },
 	},
 
 	-- L'impact arrive JUSTE APRES le depart du coup, pas en meme temps. Sans

@@ -299,12 +299,28 @@ local function onEffect(payload: any)
 		Audio.playAt("down", payload.position)
 	elseif kind == "revive" then
 		flash(payload.position, HEAL)
+		Audio.playAt("revive", payload.position)
 	elseif typeof(payload.amount) == "number" then
 		if kind == "hit" then
 			flash(payload.position, if mine then TAKEN else DEALT)
 		elseif kind == "spread" then
 			flash(payload.position, SPREAD)
+		elseif kind == "zone" and mine then
+			-- LA BRULURE NE SONNE QUE POUR MOI. Le serveur annonce a tout le
+			-- monde chaque joueur qui brule : a dix joueurs dehors, ce sont dix
+			-- brulures par seconde dans la meme oreille. Et ce son est un
+			-- avertissement — « bouge » — pas une ambiance : il ne s'adresse
+			-- qu'a celui qui brule.
+			Audio.playAt("zoneBurn", payload.position)
 		end
+
+		-- Le serveur nomme lui-meme le son quand il y en a un. Il le fait pour
+		-- le soin, qui ne doit sonner que s'il est voulu : voir
+		-- `EffectsService.heal`.
+		if typeof(payload.sound) == "string" then
+			Audio.playAt(payload.sound, payload.position)
+		end
+
 		floatingNumber(payload.position, payload.amount, kind, mine)
 	end
 end

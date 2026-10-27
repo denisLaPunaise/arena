@@ -929,6 +929,57 @@ pour ta fenêtre, et je veux le savoir.
 
 ---
 
+## 27 octobre 2026 — Les six sons qui manquaient
+
+Il manquait le soin, le relèvement, la brûlure de zone, le clic d'interface, le
+début et la fin d'une manche, et l'ouverture d'une caisse. Les sept
+évènements sont faits, sur dix pistes, toutes tirées de la bibliothèque
+officielle de Roblox. **Je ne les ai pas écoutés**, et c'est la même réserve
+que pour les quatorze premiers.
+
+**Comment je les ai choisis, puisque je ne les entends pas.** La bibliothèque
+de Roblox annonce pour chaque piste sa **durée exacte au dixième de seconde**,
+sa catégorie et son auteur. C'est ce qui permet d'éliminer sans oreille les
+pires erreurs : un « clic » de deux secondes est une porte de voiture, une
+« brûlure » de quarante secondes est une cheminée. J'ai donc pris la durée
+comme critère principal, et je me suis tenu à un seul fournisseur, celui que
+Roblox publie lui-même.
+
+**Trois décisions de fond, qui ne sont pas des choix de piste :**
+
+- **Le soin ne sonne que s'il est voulu.** Le vol de vie du Vampire et le
+  siphon du Parasite passent par la même annonce qu'une trousse de soin, et ils
+  s'annoncent à chaque coup porté. Un carillon par coup, et le son du combat
+  disparaît dessous. Le client ne peut pas faire la différence entre les deux
+  — seul l'appelant la connaît. C'est donc le serveur qui nomme le son, et il
+  ne le nomme que pour les objets de soin.
+- **La brûlure de zone ne sonne que pour celui qui brûle.** Le serveur annonce
+  à tout le monde chaque joueur qui brûle : à dix joueurs dehors, dix brûlures
+  par seconde dans la même oreille. Ce son est un avertissement, pas une
+  ambiance.
+- **Gagner et perdre une manche sonnent pareil.** La bibliothèque de Roblox est
+  une bibliothèque de bruitages et ne contient aucune fanfare. Plutôt que deux
+  choix médiocres, une cloche grave marque la fin et le texte dit qui a gagné.
+  Une vraie différence demande une piste musicale, donc l'oreille de Josh.
+
+**Le coût en réseau est toujours nul.** Le son continue de se greffer sur des
+annonces qui partaient déjà. Deux champs facultatifs ont été ajoutés au
+protocole, et ils portent chacun une leçon :
+
+- `sound`, sur l'annonce de soin, pour la raison ci-dessus ;
+- `cue`, sur l'annonce d'affichage, pour le début et la fin d'une manche. Cette
+  annonce-là part **quatre fois par seconde** pour tenir l'écran à jour : un
+  son attaché à l'annonce elle-même sonnerait quatre fois par seconde. Seuls
+  les trois appels qui marquent un moment le remplissent.
+
+**Un test de plus, et c'est celui qui compte.** `Audio.play("zoneburn")` au
+lieu de « zoneBurn » ne lève rien du tout : le jeu devient muet à cet
+endroit-là pour toujours. Les tests relisent donc le code du client et du
+serveur, et vérifient que chaque nom de son écrit en toutes lettres existe dans
+le catalogue.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

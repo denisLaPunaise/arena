@@ -36,6 +36,8 @@ local progressRemote = Remotes:WaitForChild("Progress") :: RemoteEvent
 
 local Screens = require(script.Parent:WaitForChild("Screens"))
 
+local Audio = require(script.Parent:WaitForChild("Audio"))
+
 local player = Players.LocalPlayer
 
 local PANEL_WIDTH = 900
@@ -142,6 +144,7 @@ local function build()
 	owned.Parent = frame
 
 	local button = Instance.new("TextButton")
+	Audio.clicks(button)
 	button.Name = "Crate"
 	button.Size = UDim2.fromOffset(340, 52)
 	button.Position = UDim2.new(0.5, 0, 0, 206)
@@ -328,6 +331,11 @@ function ProgressPanel.start()
 				redraw(payload)
 			end
 		elseif payload.kind == "drawn" then
+			-- Le seul son de recompense du jeu. Il ne depend pas du resultat :
+			-- un double rapporte des fragments, donc il ne sonne pas comme une
+			-- deception. C'est la regle de Roblox autant que la notre — tout
+			-- tirage doit donner quelque chose.
+			Audio.play("crate")
 			if payload.isNew then
 				say(string.format("NOUVEAU : %s", payload.name), GOOD)
 			else

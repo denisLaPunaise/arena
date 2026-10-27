@@ -289,6 +289,18 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   comme tel a Josh : le jugement d'oreille n'existe pas tant qu'il ne l'a pas
   fait. Meme regle que pour l'allure des armes.
 
+- **Un son greffe sur une annonce qui se repete sonne autant de fois qu'elle.**
+  Deux cas, deux parades, et les deux sont dans le protocole :
+  l'annonce d'affichage part QUATRE FOIS PAR SECONDE pour tenir l'ecran a jour,
+  donc le son du debut de manche est porte par un champ `cue` que seuls les
+  trois appels marquant un moment remplissent ; et l'annonce de soin sert aussi
+  bien a une trousse qu'au vol de vie du Vampire, qui s'annonce a chaque coup
+  porte, donc c'est l'appelant qui nomme le son dans `sound`. Dans les deux cas
+  le client ne peut PAS trancher tout seul : il ne voit pas la difference entre
+  un rafraichissement et un evenement, ni entre un soin voulu et un vol de vie.
+  En branchant un son sur une annonce existante, la premiere question est donc :
+  a quelle frequence part-elle, et sait-elle pourquoi elle part ?
+
 - **Le son ne coute aucun message reseau, et ca doit rester vrai.** Le client
   recoit deja chaque coup, chaque chute et chaque explosion avec sa position
   par le remote des effets ; `Audio` se greffe sur ces memes annonces. La seule
@@ -421,8 +433,7 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    quatre mannequins aux statistiques d'une vraie classe. Pas un bot, et la
    raison est dans les pièges ci-dessus
 10. Ce qui reste : le mouvement du corps, les quarante-neuf autres objets, les
-   skins, l'achat de pièces en Robux, et six sons laissés vides (soin,
-   relèvement, brûlure de zone, interface, début et fin de manche, caisse)
+   skins, et l'achat de pièces en Robux
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans

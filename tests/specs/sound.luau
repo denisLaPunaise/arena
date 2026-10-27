@@ -15,6 +15,8 @@
 	`Audio.verify`, au demarrage du client, qui s'en charge.
 ]]
 
+local fs = require("@lune/fs")
+
 local Config = require("../../src/shared/Config")
 
 local harness = require("../harness")
@@ -93,6 +95,46 @@ return function(t: harness.Harness)
 	-- sont nommees en dur dans le client, donc elles doivent exister ici.
 	t.equal("le son de la chute existe", sounds.events.down ~= nil, true)
 	t.equal("celui de l'explosion aussi", sounds.events.blast ~= nil, true)
+
+	-- Ces deux-la ne sont pas joues par le client de sa propre initiative :
+	-- c'est le serveur qui les nomme dans l'annonce d'affichage, donc le
+	-- balayage ci-dessous ne peut pas les voir.
+	t.equal("le son du debut de manche existe", sounds.events.roundStart ~= nil, true)
+	t.equal("celui de la fin de manche aussi", sounds.events.roundEnd ~= nil, true)
+	-- Meme chose pour le soin : c'est `EffectsService.heal` qui nomme le son,
+	-- parce que lui seul sait si le soin est voulu ou si c'est du vol de vie.
+	t.equal("et celui du soin voulu", sounds.events.heal ~= nil, true)
+
+	t.section("Tout son nomme dans le code existe dans le catalogue")
+
+	-- LE SEUL TEST QUI ATTRAPE UNE FAUTE DE FRAPPE. `Audio.play("zoneburn")`
+	-- au lieu de « zoneBurn » ne leve rien du tout : la fonction cherche
+	-- l'evenement, ne le trouve pas, et retourne. Le jeu est muet a cet
+	-- endroit-la pour toujours, et rien ne le dit. On relit donc le code du
+	-- client et du serveur, et on verifie chaque nom ecrit en toutes lettres.
+	local scanned = 0
+	for _, folder in { "src/client", "src/server" } do
+		t.equal("le dossier " .. folder .. " est bien la ou je le cherche", fs.isDir(folder), true)
+		for _, fileName in fs.readDir(folder) do
+			if string.match(fileName, "%.luau$") == nil then
+				continue
+			end
+			local source = fs.readFile(folder .. "/" .. fileName)
+			for soundName in string.gmatch(source, 'Audio%.play[A-Za-z]*%("([%w_]+)"') do
+				scanned += 1
+				t.equal(
+					fileName .. " joue « " .. soundName .. " », qui existe",
+					sounds.events[soundName] ~= nil,
+					true
+				)
+			end
+		end
+	end
+
+	-- Sans ca, une expression reguliere qui ne correspond plus a rien ferait
+	-- passer cette section en silence, et c'est exactement la panne qu'elle
+	-- surveille.
+	t.equal("il y a bien des sons nommes a verifier", scanned > 0, true)
 
 	t.section("L'impact arrive apres le coup, pas avec lui")
 

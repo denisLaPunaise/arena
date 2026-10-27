@@ -34,6 +34,8 @@ local sandboxRemote = Remotes:WaitForChild("Sandbox") :: RemoteEvent
 local Config = require(Arena:WaitForChild("Config"))
 local Screens = require(script.Parent:WaitForChild("Screens"))
 
+local Audio = require(script.Parent:WaitForChild("Audio"))
+
 local player = Players.LocalPlayer
 
 local PADDING = 20
@@ -142,6 +144,7 @@ end
 
 local function button(name: string, size: UDim2, position: UDim2, text: string): TextButton
 	local made = Instance.new("TextButton")
+	Audio.clicks(made)
 	made.Name = name
 	made.Size = size
 	made.Position = position

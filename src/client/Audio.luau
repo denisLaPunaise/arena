@@ -133,6 +133,16 @@ function Audio.play(eventName: string)
 	Debris:AddItem(sound, 6)
 end
 
+-- Le clic d'un bouton. Il se branche sur LE BOUTON, et pas sur un clic
+-- global : un clic global sonnerait aussi pour le menu de Roblox et pour la
+-- fenetre de discussion, qui ne nous appartiennent pas, et resterait muet sur
+-- une manette ou un ecran tactile la ou `Activated` repond.
+function Audio.clicks(button: GuiButton)
+	button.Activated:Connect(function()
+		Audio.play("uiClick")
+	end)
+end
+
 -- Le son de l'arme qui porte ce coup. `voice` arrive du serveur avec
 -- l'annonce du coup ; une classe sans arme equipee retombe sur les poings.
 function Audio.voice(voice: string?): any

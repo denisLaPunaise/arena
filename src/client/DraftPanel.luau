@@ -30,6 +30,8 @@ local draftRemote = Remotes:WaitForChild("Draft") :: RemoteEvent
 
 local Screens = require(script.Parent:WaitForChild("Screens"))
 
+local Audio = require(script.Parent:WaitForChild("Audio"))
+
 local player = Players.LocalPlayer
 
 local PANEL_WIDTH = 1180
@@ -239,6 +241,7 @@ end
 
 local function makeCard(class: any, index: number, canVote: boolean): TextButton
 	local button = Instance.new("TextButton")
+	Audio.clicks(button)
 	button.Name = class.id
 	button.LayoutOrder = index
 	button.BackgroundColor3 = CARD
@@ -397,6 +400,7 @@ local function showReroll(payload: any)
 	end
 
 	local button = Instance.new("TextButton")
+	Audio.clicks(button)
 	button.Size = UDim2.fromOffset(320, 76)
 	button.Position = UDim2.new(0.5, 0, 0, 90)
 	button.AnchorPoint = Vector2.new(0.5, 0)

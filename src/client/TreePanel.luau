@@ -43,6 +43,8 @@ local treeRemote = Remotes:WaitForChild("Tree") :: RemoteEvent
 
 local Screens = require(script.Parent:WaitForChild("Screens"))
 
+local Audio = require(script.Parent:WaitForChild("Audio"))
+
 local player = Players.LocalPlayer
 
 --------------------------------------------------------------------------------
@@ -152,6 +154,7 @@ end
 
 local function button(parent: Instance, content: string, color: Color3): TextButton
 	local b = Instance.new("TextButton")
+	Audio.clicks(b)
 	b.BackgroundColor3 = color
 	b.BorderSizePixel = 0
 	b.Font = Enum.Font.GothamBold

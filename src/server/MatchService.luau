@@ -88,13 +88,33 @@ local function treeLineFor(player: Player): string
 	return string.format("%s  ·  %d %s à dépenser  [T]", tierText, points, plural)
 end
 
-local function tell(player: Player, title: string, status: string, zone: string?, alert: string?)
+-- Les deux moments que la boucle de partie fait sonner. Ils sont nommes ici
+-- plutot qu'ecrits dans l'appel, parce qu'un nom de son qui ne correspond a
+-- rien dans `Config.sounds.events` est un SILENCE, sans la moindre erreur :
+-- `tests/specs/sound.luau` verifie que ces deux-la existent.
+local ROUND_START_SOUND = "roundStart"
+local ROUND_END_SOUND = "roundEnd"
+
+-- `cue` NOMME UN SON, une seule fois. Cette annonce part quatre fois par
+-- seconde pour tenir l'affichage a jour : un son attache a l'annonce elle-meme
+-- sonnerait quatre fois par seconde. Il n'est donc rempli que par les trois
+-- appels qui marquent un moment — le debut d'une manche, sa fin, la fin de la
+-- partie — et le rafraichissement le laisse vide.
+local function tell(
+	player: Player,
+	title: string,
+	status: string,
+	zone: string?,
+	alert: string?,
+	cue: string?
+)
 	hudRemote:FireClient(player, {
 		title = title,
 		status = status,
 		zone = zone or "",
 		alert = alert or "",
 		tree = treeLineFor(player),
+		cue = cue,
 	})
 end
 
@@ -296,7 +316,7 @@ local function countdown(entries: { CombatService.Entry }, state: MatchState.Sta
 
 	for _, entry in entries do
 		CombatService.setFrozen(entry.player, false)
-		tell(entry.player, "Combat !", statusFor(entry, state))
+		tell(entry.player, "Combat !", statusFor(entry, state), nil, nil, ROUND_START_SOUND)
 	end
 end
 
@@ -447,7 +467,7 @@ local function runMatch(players: { Player })
 				end
 			end
 
-			tell(entry.player, verdict, line)
+			tell(entry.player, verdict, line, nil, nil, ROUND_END_SOUND)
 		end
 
 		print(
@@ -465,7 +485,7 @@ local function runMatch(players: { Player })
 	local winner = MatchState.winner(state)
 	for _, entry in entries do
 		local verdict = if entry.team == winner then "Partie gagnee" else "Partie perdue"
-		tell(entry.player, verdict, statusFor(entry, state))
+		tell(entry.player, verdict, statusFor(entry, state), nil, nil, ROUND_END_SOUND)
 	end
 
 	print(

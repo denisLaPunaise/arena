@@ -589,7 +589,12 @@ function LoadoutService.use(player: Player, slot: number): string?
 			healPlayer(player, use.amount)
 			local root = rootOf(player)
 			if root ~= nil then
-				EffectsService.heal(root.Position + Vector3.new(0, 1.5, 0), use.amount, player)
+				EffectsService.heal(
+					root.Position + Vector3.new(0, 1.5, 0),
+					use.amount,
+					player,
+					"heal"
+				)
 			end
 			fired = true
 		end
@@ -646,7 +651,12 @@ local function finishCasts(now: number)
 			healPlayer(player, cast.amount)
 			local root = rootOf(player)
 			if root ~= nil then
-				EffectsService.heal(root.Position + Vector3.new(0, 1.5, 0), cast.amount, player)
+				EffectsService.heal(
+					root.Position + Vector3.new(0, 1.5, 0),
+					cast.amount,
+					player,
+					"heal"
+				)
 			end
 		end
 		LoadoutService.push(player)

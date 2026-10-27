@@ -529,11 +529,8 @@ pas tant que tu ne l'as pas fait.**
      grenade aussi — avant, une grenade qui ne touchait personne était
      silencieuse. Est-ce que l'explosion s'entend assez pour qu'on recule ?
 
-**Ce qui n'a aucun son, et c'est volontaire pour l'instant** : le soin, le
-relèvement, la brûlure de la zone, les clics de l'interface, le début et la fin
-d'une manche, l'ouverture d'une caisse. J'ai cherché, et ce que la bibliothèque
-m'a rendu pour ces cas-là ne valait pas la peine d'être branché à l'aveugle.
-Ces six sons-là, autant les choisir quand tu pourras les écouter.
+**Les six sons qui manquaient sont faits**, et ils ont leur propre section
+plus bas.
 
 ---
 
@@ -652,6 +649,62 @@ fait moins, et la marge sera plus confortable, pas moins.
 
 ---
 
+## 15. Les six sons qui manquaient — **vérifiés en jeu, jamais écoutés**
+
+Il reste la même réserve qu'à la section 12, et elle ne bougera pas tant que tu
+ne les auras pas entendus : **je choisis une piste sur son nom, sa provenance
+et sa durée**, pas à l'oreille. Toutes viennent cette fois de la bibliothèque
+officielle de Roblox (ProSoundEffects), qui annonce la durée exacte de chaque
+piste au dixième de seconde — c'est le seul critère que je puisse vérifier
+seul, et c'est celui qui attrape les pires erreurs.
+
+| Ce qui sonne | Ce que c'est | Durée |
+| --- | --- | --- |
+| Le soin | un carillon doux, deux pistes | coupé à 1,2 s |
+| Le relèvement | une montée courte | 1,4 s |
+| La brûlure de zone | une brûlure brève, deux pistes | coupée à 0,8 s |
+| Le clic d'interface | un interrupteur sec, deux pistes | 0,4 et 0,5 s |
+| Le début d'une manche | un coup de cloche clair | coupé à 2 s |
+| La fin d'une manche | une cloche grave | coupée à 2,5 s |
+| L'ouverture d'une caisse | un carillon qui tournoie | 2,5 s |
+
+**Trois choix que j'ai faits seul, et qui se discutent à l'oreille :**
+
+120. **Le soin ne sonne que s'il est voulu.** Un stimulant, une trousse : oui.
+     Le vol de vie du Vampire : non. Il passe par la même annonce, et il
+     s'annonce à chaque coup porté — un carillon par coup, et le son du combat
+     disparaîtrait dessous. Si tu trouves qu'un Vampire qui se soigne devrait
+     s'entendre, c'est une ligne à changer.
+121. **La brûlure de zone ne sonne que pour toi.** Le serveur annonce à tout le
+     monde chaque joueur qui brûle ; à dix joueurs dehors, ça ferait dix
+     brûlures par seconde dans la même oreille. Ce son est un avertissement
+     — « bouge » — pas une ambiance.
+122. **Gagner et perdre une manche sonnent pareil.** La bibliothèque de Roblox
+     est une bibliothèque de bruitages, pas de musique : il n'y a pas de
+     fanfare de victoire dedans. Une cloche grave marque la fin, et c'est le
+     texte qui dit qui a gagné. Si tu veux une différence, il faudra une piste
+     musicale, donc un choix à ton oreille.
+
+**Ce qui est vérifié, en jeu, dans Studio** : les seize évènements chargent
+(« toutes les pistes chargées » au démarrage du client) ; chacun des six sons
+part pour de bon, avec le bon identifiant, le bon volume et la bonne hauteur ;
+le clic a été déclenché par un **vrai clic sur un vrai bouton** du panneau ; et
+les trois silences voulus sont silencieux — le vol de vie ne carillonne pas, la
+brûlure d'un autre joueur ne s'entend pas, et le rafraîchissement de
+l'affichage, qui part quatre fois par seconde, ne sonne pas.
+
+123. **À écouter en priorité : le clic.** C'est le seul son qu'on entend des
+     dizaines de fois par partie. Je l'ai mis au volume le plus bas du
+     catalogue. S'il agace au bout de cinq minutes, c'est ce chiffre-là qu'il
+     faut baisser, ou le son qu'il faut retirer.
+124. **Puis la brûlure.** Elle revient toutes les secondes tant que tu es
+     dehors. Est-ce qu'elle presse de rentrer, ou est-ce qu'elle agace ?
+125. **Et le début de manche.** Il arrive sur le « Combat ! », au moment où
+     tout le monde se dégele. Est-ce qu'il lance la manche, ou est-ce qu'il
+     passe inaperçu ?
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -659,9 +712,6 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
 - **je n'ai pas pu écouter les sons** — je les ai choisis au nom, à la
   bibliothèque et à la durée, et vérifié en jeu qu'ils partent bien. Savoir
   s'ils sonnent juste demande une oreille. Section 12.
-- **six sons manquent encore** — le soin, le relèvement, la brûlure de la
-  zone, les clics de l'interface, le début et la fin d'une manche, et
-  l'ouverture d'une caisse. À choisir quand tu pourras les écouter.
 - **les quarante-neuf autres objets** — treize sur soixante-deux sont codés.
   Les autres attendent de savoir si le budget est bon à treize.
 - **les skins** — les fragments s'accumulent et ne servent encore à rien.

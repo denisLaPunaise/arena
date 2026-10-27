@@ -216,6 +216,13 @@ hudRemote.OnClientEvent:Connect(function(payload)
 
 	zone.TextColor3 = if outsideZone then ZONE_COLOR else Color3.fromRGB(255, 255, 255)
 	title.TextColor3 = if alert == "downed" then DOWNED_COLOR else Color3.fromRGB(255, 255, 255)
+
+	-- Le serveur ne remplit `cue` que sur les trois annonces qui marquent un
+	-- moment. Le rafraichissement, lui, arrive quatre fois par seconde et le
+	-- laisse vide : voir `tell` dans MatchService.
+	if typeof(payload.cue) == "string" and payload.cue ~= "" then
+		Audio.play(payload.cue)
+	end
 end)
 
 RunService.RenderStepped:Connect(onRenderStep)

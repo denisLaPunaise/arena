@@ -39,6 +39,8 @@ local Config = require(Arena:WaitForChild("Config"))
 
 local Screens = require(script.Parent:WaitForChild("Screens"))
 
+local Audio = require(script.Parent:WaitForChild("Audio"))
+
 local player = Players.LocalPlayer
 
 local PANEL_WIDTH = 1180
@@ -134,6 +136,7 @@ local function buildStrip()
 
 	for index = 1, Config.loadout.maxUsableSlots do
 		local button = Instance.new("TextButton")
+		Audio.clicks(button)
 		button.Name = "Slot" .. index
 		button.Size = UDim2.fromOffset(140, 52)
 		button.LayoutOrder = index
@@ -260,6 +263,7 @@ local function build()
 	foot.Parent = frame
 
 	local reset = Instance.new("TextButton")
+	Audio.clicks(reset)
 	reset.Name = "Reset"
 	reset.Size = UDim2.fromOffset(220, 40)
 	reset.Position = UDim2.new(0.5, 0, 0, 608)
@@ -307,6 +311,7 @@ end
 
 local function cardFor(item: any, parent: Frame, order: number): TextButton
 	local button = Instance.new("TextButton")
+	Audio.clicks(button)
 	button.Name = item.id
 	button.Size = UDim2.fromOffset(COLUMN_WIDTH, CARD_HEIGHT)
 	button.Position = UDim2.fromOffset(0, (order - 1) * (CARD_HEIGHT + CARD_GAP))

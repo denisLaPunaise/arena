@@ -42,12 +42,13 @@ export type Kind =
 
 -- Un evenement d'affichage. `amount` n'est rempli que quand il y a un nombre a
 -- montrer, et `target` quand l'effet se joue sur un personnage precis.
-local function send(kind: Kind, position: Vector3, amount: number?, target: Player?)
+local function send(kind: Kind, position: Vector3, amount: number?, target: Player?, sound: string?)
 	effectsRemote:FireAllClients({
 		kind = kind,
 		position = position,
 		amount = amount,
 		target = target,
+		sound = sound,
 	})
 end
 
@@ -83,8 +84,14 @@ function EffectsService.spread(position: Vector3, amount: number, target: Player
 	send("spread", position, amount, target)
 end
 
-function EffectsService.heal(position: Vector3, amount: number, target: Player?)
-	send("heal", position, amount, target)
+-- `sound` NOMME UN SON, et il est vide la plupart du temps. Le vol de vie du
+-- Vampire et le siphon du Parasite passent par la meme annonce qu'une trousse
+-- de soin, et ils s'annoncent a chaque coup porte : un carillon par coup, et
+-- le son du combat disparait dessous. Le client ne peut pas faire la
+-- difference entre les deux — seul l'appelant la connait, donc c'est lui qui
+-- demande le son.
+function EffectsService.heal(position: Vector3, amount: number, target: Player?, sound: string?)
+	send("heal", position, amount, target, sound)
 end
 
 function EffectsService.zone(position: Vector3, amount: number, target: Player?)
