@@ -776,27 +776,61 @@ return function(t: harness.Harness)
 	-- de la machette ci-dessus, un etage plus haut dans le bras.
 	t.equal("la machette ramene la main vers le corps", handTravel("slash")[1] < 0, true)
 
-	t.section("Le buste penche du meme cote que la main")
+	t.section("Ou pointe vraiment la poitrine, et ou pointe la tete")
 
-	-- LE TEST QUI ATTRAPE LA CONTRADICTION. Un buste qui part en arriere pendant
-	-- que la main avance n'est pas un geste, c'est une convulsion. Rien dans le
-	-- code ne lie les deux chiffres : ils sont voisins dans `Config` et c'est
-	-- tout, donc une faute de signe sur l'un ne se voit que sur l'ecran.
+	-- CE TEST A DEJA MANQUE UN BUG, ET VOICI POURQUOI IL EST REECRIT.
 	--
-	-- Un tangage positif penche le buste vers l'avant, comme la main avance vers
-	-- le -Z. Les deux doivent donc etre d'accord sur « avant ».
+	-- Sa premiere version comparait `pose.forward > 0` a `pose.lean > 0` : deux de
+	-- MES conventions, mises face a face. Elles etaient d'accord entre elles et
+	-- toutes les deux fausses — dans Roblox un tangage positif LEVE l'avant d'une
+	-- part, donc le buste partait en arriere pendant que la main allait devant,
+	-- sur les cinq gestes, et le test passait. Verifie par un temoin en jeu le
+	-- 27 octobre 2026 : `CFrame.Angles(+18, 0, 0)` donne a l'avant du buste un Y
+	-- de +0,30 et a son sommet un Z de +0,29.
+	--
+	-- La lecon, et elle vaut pour tout ce fichier : **un test de direction ne
+	-- compare pas deux noms, il refait le calcul de Roblox et regarde ou pointe
+	-- la part.** Et il verifie d'abord qu'il reproduit Roblox, avant de juger.
+	--
+	-- `WeaponService` applique `CFrame.Angles(math.rad(-lean), 0, 0)`, donc le
+	-- moins est ici aussi : on teste ce que le code fait, pas ce qu'on voudrait.
+	local function chestForward(leanDegrees: number): { number }
+		return rotate({ 0, 0, -1 }, -leanDegrees, 0, 0)
+	end
+
+	-- D'abord : ce calcul donne-t-il la meme chose que Studio ? Les deux chiffres
+	-- attendus sont ceux du temoin, pour un `lean` de 18 et son oppose.
+	t.equal(
+		"le calcul reproduit celui de Studio (buste a +18)",
+		near(chestForward(-18)[2], 0.309),
+		true
+	)
+	t.equal("et a -18", near(chestForward(18)[2], -0.309), true)
+
+	-- Ensuite seulement : chaque geste penche-t-il du bon cote ?
+	--
+	-- L'avant d'une part est -Z et son haut est +Y. Une poitrine qui tombe vers
+	-- l'avant a donc son avant qui PIQUE VERS LE SOL, c'est-a-dire un Y negatif.
 	local disagreeing: string? = nil
 	for poseName, pose in body do
 		if typeof(pose) ~= "table" then
 			continue
 		end
-		local handForward = pose.forward > 0
-		local leanForward = pose.lean > 0
-		if handForward ~= leanForward then
+		local handGoesForward = pose.forward > 0
+		local chestGoesForward = chestForward(pose.lean)[2] < 0
+		if handGoesForward ~= chestGoesForward then
 			disagreeing = poseName
 		end
 	end
 	t.equal("aucun geste ne penche a l'envers de sa main", disagreeing, nil)
+
+	-- Et nommement, pour que l'intention soit lisible sans relire Config.
+	t.equal(
+		"le marteau pique du buste vers le sol",
+		chestForward(body.overhead.lean)[2] < -0.2,
+		true
+	)
+	t.equal("le fusil renverse le buste en arriere", chestForward(body.recoil.lean)[2] > 0.05, true)
 
 	-- Et le marteau est le plus penche de tous, parce que c'est le seul geste du
 	-- jeu qui vient du corps entier. Si un autre le depasse un jour, c'est une
@@ -810,4 +844,60 @@ return function(t: harness.Harness)
 		end
 	end
 	t.equal("le marteau est le geste le plus penche", steepest, "overhead")
+
+	t.section("La tete regarde ou le coup part")
+
+	-- Meme methode, meme signe moins : `WeaponService` applique
+	-- `CFrame.Angles(math.rad(-headDip), math.rad(headTurn), 0)`.
+	local function headForward(dip: number, turn: number): { number }
+		return rotate({ 0, 0, -1 }, -dip, turn, 0)
+	end
+
+	-- La reproduction d'abord, contre les chiffres du temoin : une demande de
+	-- +20 degres de tangage a donne un avant de tete a +0,47 en Y, et +30 de
+	-- lacet un avant a -0,45 en X.
+	t.equal("le calcul reproduit Studio (tete, tangage)", near(headForward(-20, 0)[2], 0.342), true)
+	t.equal("et en lacet", near(headForward(0, 30)[1], -0.5), true)
+
+	for poseName, pose in body do
+		if typeof(pose) ~= "table" then
+			continue
+		end
+		t.equal("« " .. poseName .. " » a un abaissement de tete", typeof(pose.headDip), "number")
+		t.equal("et une rotation de tete", typeof(pose.headTurn), "number")
+
+		-- LES BUTEES DU COU, mesurees en jeu : 37 degres de tangage et 48 de
+		-- lacet. On s'arrete bien en dessous, pour la meme raison que le marteau
+		-- s'arrete a 18 sur 22 — un geste cale contre sa butee ne se distingue
+		-- plus d'un geste trop grand.
+		t.equal("la tete reste sous sa butee de tangage", math.abs(pose.headDip) <= 30, true)
+		t.equal("et sous celle de lacet", math.abs(pose.headTurn) <= 40, true)
+
+		-- LA TETE REGARDE DU MEME COTE QUE LE BUSTE. Une tete qui se leve pendant
+		-- que la poitrine tombe est la meme convulsion qu'avant, un etage plus
+		-- haut, et elle serait tout aussi invisible dans les tests.
+		local chestDown = chestForward(pose.lean)[2] < 0
+		local headDown = headForward(pose.headDip, pose.headTurn)[2] < 0
+		t.equal(
+			"« " .. poseName .. " » : la tete et la poitrine regardent du meme cote",
+			headDown,
+			chestDown
+		)
+	end
+
+	-- La machette est le seul geste lateral, donc le seul qui tourne la tete. Le
+	-- X d'une part est sa droite, donc un avant de tete negatif en X est une tete
+	-- tournee vers la GAUCHE, du cote ou la lame s'en va.
+	t.equal(
+		"la tete suit la machette vers la gauche",
+		headForward(body.slash.headDip, body.slash.headTurn)[1] < -0.1,
+		true
+	)
+	local turning = 0
+	for _, pose in body do
+		if typeof(pose) == "table" and math.abs(pose.headTurn) > 0.5 then
+			turning += 1
+		end
+	end
+	t.equal("et c'est le seul geste qui la tourne", turning, 1)
 end

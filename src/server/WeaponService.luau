@@ -32,11 +32,20 @@
 	son orientation (`IKControlType.Position`). Melanger les deux ferait
 	tourner l'arme deux fois, une fois par l'arme et une fois par le poignet.
 
-	ET LE BUSTE PENCHE, par un deuxieme `IKControl`, en `Rotation` celui-la :
-	on veut qu'il PLIE A LA TAILLE et pas qu'il quitte son bassin. Les deux
-	controles se composent sans se marcher dessus parce que la cible de la main
-	est posee SUR le torse : elle part avec lui, et le bras n'a rien a
-	corriger. Mesure en jeu, et pas suppose.
+	ET LE BUSTE PENCHE, ET LA TETE SUIT, par deux autres `IKControl`, en
+	`Rotation` ceux-la : on veut que le buste PLIE A LA TAILLE et pas qu'il
+	quitte son bassin, et qu'une tete tourne plutot qu'elle se deplace. Les
+	trois controles se composent sans se marcher dessus parce que chaque cible
+	est posee sur le parent de ce qu'elle commande : la main sur le torse, la
+	tete sur le torse, le torse sur le bassin. Chacun part donc avec son
+	porteur et n'a rien a corriger. Mesure en jeu, et pas suppose.
+
+	LES JAMBES NE BOUGENT PAS, ET C'EST UN REFUS MESURE. Un `IKControl` sur la
+	chaine `RightUpperLeg` -> `RightFoot` marche tres bien debout. En marchant
+	il GAGNE contre l'animation de marche, et c'est precisement le probleme :
+	le pied, qui balance normalement de 1,68 stud, tombe a 0,10. Le personnage
+	glisse alors sur une jambe figee. Une attaque dure 230 ms, la marche est a
+	l'ecran en permanence — donc on ne touche pas aux jambes.
 
 	CE SERVICE NE REQUIERT RIEN DU SERVEUR. Pas de `CombatService`, pas de
 	`LoadoutService` : c'est `LoadoutService` qui l'appelle, jamais l'inverse.
@@ -63,6 +72,8 @@ local ARM_NAME = "ArenaArm"
 local TARGET_NAME = "ArenaHandTarget"
 local LEAN_NAME = "ArenaLean"
 local LEAN_TARGET_NAME = "ArenaLeanTarget"
+local HEAD_NAME = "ArenaHead"
+local HEAD_TARGET_NAME = "ArenaHeadTarget"
 
 -- Ce que chaque joueur est cense porter. C'est la memoire qui permet de
 -- rebatir l'arme apres une mort, et de ne rien rebatir quand l'arme n'a pas
@@ -94,12 +105,26 @@ local armRest: { [Player]: Vector3 } = {}
 local leanControl: { [Player]: IKControl } = {}
 local leanTarget: { [Player]: Attachment } = {}
 
+-- LA TETE. Meme traitement que le buste, et pour une raison mesuree :
+-- l'animation d'attente ne la bouge que de 0,7 degre sur trois secondes, contre
+-- 22 pour le buste. Ses DEUX axes sont donc utilisables, la ou le buste n'en
+-- avait qu'un. Son orientation de repos se relit quand meme au depart de chaque
+-- geste : 0,7 degre n'est pas zero.
+local headControl: { [Player]: IKControl } = {}
+local headTarget: { [Player]: Attachment } = {}
+
 local function forgetBody(player: Player)
-	for _, held in
-		{ armControl[player], armTarget[player], leanControl[player], leanTarget[player] }
-	do
-		if held ~= nil then
-			held:Destroy()
+	local held = {
+		armControl[player],
+		armTarget[player],
+		leanControl[player],
+		leanTarget[player],
+		headControl[player],
+		headTarget[player],
+	}
+	for _, one in held do
+		if one ~= nil then
+			one:Destroy()
 		end
 	end
 	armControl[player] = nil
@@ -107,6 +132,8 @@ local function forgetBody(player: Player)
 	armRest[player] = nil
 	leanControl[player] = nil
 	leanTarget[player] = nil
+	headControl[player] = nil
+	headTarget[player] = nil
 end
 
 -- Prepare le bras droit ET le buste du personnage actuel. Renvoie faux quand le
@@ -136,6 +163,7 @@ local function prepareBody(player: Player): boolean
 	local hand = character:FindFirstChild("RightHand")
 	local upper = character:FindFirstChild("RightUpperArm")
 	local hips = character:FindFirstChild("LowerTorso")
+	local skull = character:FindFirstChild("Head")
 	if humanoid == nil or upper == nil then
 		return false
 	end
@@ -146,6 +174,9 @@ local function prepareBody(player: Player): boolean
 		return false
 	end
 	if hips == nil or not hips:IsA("BasePart") then
+		return false
+	end
+	if skull == nil or not skull:IsA("BasePart") then
 		return false
 	end
 
@@ -188,11 +219,30 @@ local function prepareBody(player: Player): boolean
 	bend.Weight = 0
 	bend.Parent = humanoid
 
+	-- La tete, sur la chaine du cou seulement : `UpperTorso` -> `Head`. En
+	-- `Rotation` comme le buste, parce qu'une tete tourne, elle ne se deplace
+	-- pas.
+	local headAt = Instance.new("Attachment")
+	headAt.Name = HEAD_TARGET_NAME
+	headAt.CFrame = torso.CFrame:ToObjectSpace(skull.CFrame)
+	headAt.Parent = torso
+
+	local neck = Instance.new("IKControl")
+	neck.Name = HEAD_NAME
+	neck.Type = Enum.IKControlType.Rotation
+	neck.ChainRoot = torso
+	neck.EndEffector = skull
+	neck.Target = headAt
+	neck.Weight = 0
+	neck.Parent = humanoid
+
 	armControl[player] = control
 	armTarget[player] = target
 	armRest[player] = target.CFrame.Position
 	leanControl[player] = bend
 	leanTarget[player] = leanAt
+	headControl[player] = neck
+	headTarget[player] = headAt
 	return true
 end
 
@@ -225,15 +275,18 @@ local function reachOut(player: Player, pose: string)
 	target.CFrame = CFrame.new(rest + Vector3.new(move.right, move.up, -move.forward))
 	tweenWeight(armControl[player], seconds, 1)
 
-	-- LE BUSTE SE PENCHE DEPUIS LA OU IL EST, et c'est pour ca qu'on relit son
-	-- orientation ici plutot que de l'avoir gardee : l'animation d'attente le
-	-- fait tourner en permanence, donc une orientation relevee une fois pour
-	-- toutes serait perimee et le torse sauterait au depart du geste.
+	-- LE BUSTE ET LA TETE PARTENT DE LA OU ILS SONT, et c'est pour ca qu'on
+	-- relit leur orientation ici plutot que de l'avoir gardee : l'animation
+	-- d'attente les fait tourner en permanence, donc une orientation relevee une
+	-- fois pour toutes serait perimee et le corps sauterait au depart du geste.
 	local bend = leanControl[player]
 	local leanAt = leanTarget[player]
+	local neck = headControl[player]
+	local headAt = headTarget[player]
 	local character = player.Character
 	local hips = character ~= nil and character:FindFirstChild("LowerTorso") or nil
 	local torso = character ~= nil and character:FindFirstChild("UpperTorso") or nil
+	local skull = character ~= nil and character:FindFirstChild("Head") or nil
 	if bend == nil or leanAt == nil or not hips or not torso then
 		return
 	end
@@ -241,18 +294,38 @@ local function reachOut(player: Player, pose: string)
 		return
 	end
 
-	-- Un tangage positif penche le buste vers l'avant : verifie en jeu, une
-	-- demande de +20 degres a donne +21,3. Pas de conversion de signe ici,
-	-- contrairement a la main.
+	-- LA SEULE CONVERSION D'ANGLE DU FICHIER, ET ELLE PORTE UN SIGNE MOINS.
+	-- Dans Roblox un tangage positif LEVE l'avant de la part : verifie par un
+	-- temoin le 27 octobre 2026, `CFrame.Angles(+18, 0, 0)` donne a l'avant du
+	-- buste un Y de +0,30 et a son sommet un Z de +0,29, c'est-a-dire une
+	-- poitrine qui regarde le ciel et un buste qui part EN ARRIERE. Or `lean`
+	-- est nomme par son effet et vaut 18 pour le marteau, qui s'abat. D'ou le
+	-- moins.
+	--
+	-- Ce signe a ete faux pendant une journee entiere, et le test qui devait
+	-- l'attraper comparait deux de mes conventions entre elles. Il mesure
+	-- maintenant ou pointe la poitrine.
 	leanAt.CFrame = hips.CFrame:ToObjectSpace(torso.CFrame)
-		* CFrame.Angles(math.rad(move.lean), 0, 0)
+		* CFrame.Angles(math.rad(-move.lean), 0, 0)
 	tweenWeight(bend, seconds, 1)
+
+	-- Meme signe moins pour `headDip`, meme raison. `headTurn` n'en a pas : un
+	-- lacet positif tourne bien vers la gauche du personnage, mesure a +30
+	-- degres demandes pour un avant de tete a -0,45 en X, et le X d'une part est
+	-- sa droite.
+	if neck == nil or headAt == nil or skull == nil or not skull:IsA("BasePart") then
+		return
+	end
+	headAt.CFrame = torso.CFrame:ToObjectSpace(skull.CFrame)
+		* CFrame.Angles(math.rad(-move.headDip), math.rad(move.headTurn), 0)
+	tweenWeight(neck, seconds, 1)
 end
 
 local function comeBack(player: Player)
 	local seconds = Config.loadout.weaponMotion.backSeconds
 	tweenWeight(armControl[player], seconds, 0)
 	tweenWeight(leanControl[player], seconds, 0)
+	tweenWeight(headControl[player], seconds, 0)
 end
 
 local function triple(values: { number }): Vector3

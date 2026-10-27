@@ -724,19 +724,32 @@ sept partent du bon côté, et les sept reviennent au repos :
 | arc | vers l'**arrière** | 0,67 stud |
 | mains nues | vers l'avant | 1,17 stud |
 
-**Et le buste, mesuré de la même façon**, en degrés de tangage dans le repère du
-bassin. Les cinq reviennent à moins d'un degré de leur départ :
+**Le buste et la tête, mesurés par un témoin** — pas en angles, mais en
+regardant **où pointe** la poitrine et où pointe le visage. Les cinq reviennent
+droit à 0,01 près :
 
-| geste | le buste | demandé → obtenu |
+| geste | la poitrine | la tête |
 | --- | --- | --- |
-| machette | se penche en avant | +8° → +9,0° |
-| marteau | **le plus penché de tous** | +18° → +20,2° |
-| fusil | part en **arrière** | −6° → −6,6° |
-| arc | part en arrière, à peine | −4° → −4,3° |
-| mains nues | se penche en avant | +12° → +13,8° |
+| machette | tombe devant | baisse, et **tourne à gauche** |
+| marteau | **tombe le plus** | baisse le plus |
+| fusil | **se renverse** | **se lève** |
+| arc | se renverse, à peine | se lève à peine |
+| mains nues | tombe devant | baisse |
 
 Le penchement emmène la main avec lui, donc elle va un peu plus loin qu'avant :
 1,21 stud pour la machette contre 1,11 sans le buste.
+
+**Attention si tu as regardé le jeu entre les deux commits d'aujourd'hui** : le
+penchement du buste partait **à l'envers**, le torse en arrière pendant que la
+main allait devant. C'est corrigé. Le pourquoi est dans `docs/DECISIONS.md`, et
+ça vaut la peine d'être lu : mon test était fait pour attraper exactement ça et
+ne l'a pas vu.
+
+**Les jambes ne bougent pas, et c'est un refus mesuré.** Piloter le pied marche
+très bien debout, mais en marchant l'IK gagne contre l'animation de marche : le
+pied, qui balance de 1,68 stud par cycle, tombe à 0,10. Le personnage
+glisserait sur une jambe figée. Casser la marche, qui est à l'écran en
+permanence, pour décorer une attaque de 230 ms, est un mauvais échange.
 
 **Donc ce n'est pas à toi de vérifier que ça marche : c'est à toi de dire si
 c'est beau.** Un chiffre ne dit pas si un geste a l'air d'un coup. C'est la
@@ -753,15 +766,18 @@ voit, et est-ce que ça gêne ?
      section : avant aujourd'hui, un coup de poing ne faisait **rien bouger du
      tout**. Est-ce qu'on voit enfin qu'on frappe ?
 127. **Puis le marteau.** C'est le geste le plus ample du jeu : l'arme s'abat,
-     la main avance d'un stud et le buste pique de 20 degrés. Est-ce que
-     l'ensemble a l'air d'un coup qui s'abat, ou d'un bonhomme qui se casse en
-     deux ? 20 degrés est tout près de la butée du bassin, qui est à 22 — donc
-     si c'est trop, il faut **baisser**, il n'y a pas de marge au-dessus.
+     la main avance d'un stud, le buste pique de 20 degrés et la tête regarde
+     où ça va tomber. Est-ce que l'ensemble a l'air d'un coup qui s'abat, ou
+     d'un bonhomme qui se casse en deux ? 20 degrés est tout près de la butée
+     du bassin, qui est à 22 — donc si c'est trop, il faut **baisser**, il n'y
+     a pas de marge au-dessus.
 128. **Puis le fusil.** La main recule de 0,54 stud et le buste part de 6 degrés
      en arrière. Est-ce que ça se lit comme un recul, ou est-ce trop petit pour
      se voir ?
-129. **Puis la machette.** La main avance et rentre vers le corps. C'est le seul
-     geste latéral du jeu, et c'est celui que l'épaule bride le plus.
+129. **Puis la machette.** La main avance et rentre vers le corps, et **la tête
+     tourne vers la gauche**, du côté où la lame s'en va. C'est le seul geste
+     qui tourne la tête, parce que c'est le seul geste latéral du jeu. Est-ce
+     que ça aide à lire le coup, ou est-ce que ça fait juste loucher ?
 130. **Frappe très vite, plusieurs fois de suite, avec le couteau.** Le geste
      dure 0,23 s et le couteau peut frapper plus vite que ça sur certaines
      classes. Est-ce que le bras tremble, ou est-ce qu'il enchaîne ? Si l'arme
@@ -773,7 +789,8 @@ voit, et est-ce que ça gêne ?
 132. **Cours, saute, tombe, et frappe pendant.** Le penchement s'ajoute à
      l'animation de Roblox au lieu de la remplacer, donc frapper en pleine
      course devrait marcher — mais c'est là que ça se verrait si les deux se
-     contredisaient.
+     contredisaient. **Les jambes doivent marcher normalement pendant tout
+     ça** : c'est pour les protéger que je ne les pilote pas.
 133. **Change d'avatar pour un corps très grand ou très petit**, et refrappe.
      La position de repos de la main se mesure sur chaque corps, donc ça devrait
      marcher partout — mais je n'ai mesuré que sur le tien.
@@ -854,10 +871,15 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   demande une animation téléversée sur un compte, donc un identifiant d'asset
   que personne ne peut vérifier en lisant le dépôt. C'est à décider ensemble,
   et seulement si le geste actuel ne suffit pas. Section 16.
-- **les jambes, la tête et le bras gauche ne bougent pas** — le bras droit et
-  le buste répondent aux attaques, le reste joue les animations par défaut de
-  Roblox. C'est voulu : les jambes doivent marcher, et la tête comme le bras
-  gauche n'ont rien à faire pendant une attaque à une main.
+- **les jambes et le bras gauche ne bougent pas** — le bras droit, le buste et
+  la tête répondent aux attaques, le reste joue les animations par défaut de
+  Roblox. Pour les jambes c'est un refus mesuré et pas un oubli : piloter le
+  pied casse la marche, chiffres dans `docs/DECISIONS.md`. Le bras gauche n'a
+  rien à faire pendant une attaque à une main.
+- **la tête ne regarde pas sa cible** — elle suit le geste, elle ne vise
+  personne. Lui faire regarder son adversaire se lirait très bien, mais ça
+  donnerait à l'adversaire une information qu'il n'a pas aujourd'hui : un
+  signal avant le coup. Ce n'est plus de la décoration, donc c'est ton appel.
 - **le buste ne se tourne pas, il ne fait que se pencher** — la torsion et
   l'inclinaison latérale ont été essayées et abandonnées : l'animation
   d'attente de Roblox fait tourner le buste de son côté jusqu'à 22 degrés en

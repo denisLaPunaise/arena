@@ -1155,6 +1155,81 @@ gestes.
 jambes jouent la marche de Roblox et c'est ce qu'on veut ; la tête et le bras
 gauche n'ont rien à faire pendant une attaque à une main.
 
+## 27 octobre 2026 — La tête, les jambes refusées, et un signe faux pendant un jour
+
+Tu m'as demandé les jambes et la tête. **La tête est faite. Les jambes, non, et
+c'est une mesure qui l'a décidé.** Et en mesurant, j'ai trouvé que le
+penchement du buste que je t'avais livré le matin même partait à l'envers.
+
+### Le signe du buste était faux, et mon test ne pouvait pas le voir
+
+J'avais mesuré des **angles d'Euler** et conclu « +18 degrés, donc penche en
+avant ». C'est faux : dans Roblox, un tangage positif **lève** l'avant d'une
+part. Vérifié par un témoin — `CFrame.Angles(+18, 0, 0)` donne à l'avant du
+buste un Y de **+0,30** et à son sommet un Z de **+0,29** : une poitrine qui
+regarde le ciel, un buste qui part **en arrière**. Les cinq gestes penchaient
+donc à l'envers, la main devant et le torse derrière.
+
+**Et j'avais écrit un test exactement pour ça, qui a laissé passer.** Il
+comparait `pose.forward > 0` à `pose.lean > 0` : deux de **mes** conventions,
+mises face à face. Elles étaient d'accord entre elles et toutes les deux
+fausses. Un test de direction qui compare deux noms ne teste rien.
+
+Trois choses ont changé pour que ça ne se reproduise pas :
+
+- **les angles sont nommés par leur effet**, jamais par leur axe : `lean`
+  positif fait tomber la poitrine vers l'avant, `headDip` positif fait regarder
+  vers le bas, `headTurn` positif tourne vers la gauche du personnage ;
+- **la conversion vers les axes de Roblox se fait à un seul endroit**, dans
+  `WeaponService`, avec le signe moins et la mesure citée à côté ;
+- **le test refait le calcul de Roblox et regarde où pointe la part**, après
+  avoir vérifié qu'il reproduit bien les chiffres du témoin. C'est la même
+  structure que le test de la pointe de l'arme, qui avait déjà attrapé deux
+  signes inversés le 26 octobre — j'aurais dû l'employer tout de suite.
+
+### La tête prend ses deux axes, et c'est mesuré
+
+Le `Neck` est un `AnimationConstraint` comme l'épaule et la taille, donc même
+moyen : un `IKControl` en `Rotation` sur la chaîne `UpperTorso` → `Head`.
+
+Mais contrairement au buste, **la tête prend le tangage ET le lacet**, et pour
+une raison chiffrée : l'animation d'attente ne la bouge que de **0,7 degré** de
+tangage et **0,1** de lacet sur trois secondes, contre **22 degrés** pour le
+buste. Il y a donc de la place pour piloter. Ses butées sont à 37 degrés de
+tangage et 48 de lacet, et les valeurs s'arrêtent bien en dessous.
+
+La machette est le seul geste qui **tourne** la tête, parce que c'est le seul
+geste latéral du jeu : la tête suit la lame vers la gauche. Un test vérifie que
+c'est le seul, pour qu'un deuxième soit une décision et pas un oubli.
+
+### Les jambes : refusées, et voici le chiffre
+
+Un `IKControl` sur la chaîne `RightUpperLeg` → `RightFoot` marche très bien
+**debout** : un pied demandé un stud en avant arrive à 0,72, et revient à 0,01.
+
+**En marchant, il gagne contre l'animation de marche, et c'est ça le
+problème.** Le pied, qui balance normalement de **1,68 stud** pendant un cycle
+de marche, tombe à **0,10** quand l'IK le tient. Le personnage glisserait sur
+une jambe figée.
+
+Ce n'est pas le même échec que la torsion du buste, où l'animation gagnait et
+rendait le résultat imprévisible. Ici l'IK gagne — et il casse la marche, qui
+est à l'écran **en permanence**, pour décorer une attaque qui dure 230 ms.
+C'est un mauvais échange.
+
+Il y avait une porte de sortie — ne piloter les jambes que lorsque le
+personnage est immobile. Je ne l'ai pas prise : une attaque qui change d'allure
+selon qu'on bouge ou non est un signal incohérent, et dans une arène PvP la
+plupart des coups partent en mouvement. Si tu veux ce pas planté malgré tout,
+c'est faisable, mais c'est ton appel.
+
+### Une idée que je n'ai pas prise, et qui t'appartient
+
+La tête pourrait **regarder sa cible** plutôt que suivre le geste. Ça se lirait
+très bien : on verrait qui quelqu'un attaque. Je ne l'ai pas fait, parce que
+c'est une **information nouvelle donnée à l'adversaire** — un signal avant le
+coup. Ce n'est pas de la décoration, donc ce n'est pas à moi de le décider.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

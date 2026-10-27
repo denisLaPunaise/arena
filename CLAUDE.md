@@ -352,13 +352,15 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   repos se mesure**, une demi-seconde apres l'apparition du personnage, parce
   qu'elle depend de la taille de l'avatar que le joueur choisit.
 
-  Le buste se penche par un SECOND `IKControl`, en `Rotation` celui-la, sur la
-  chaine `LowerTorso` -> `UpperTorso` : on veut qu'il PLIE A LA TAILLE et pas
-  qu'il quitte son bassin, et les jambes restent hors de la chaine. Les deux
-  controles se composent sans se marcher dessus, parce que la cible de la main
-  est posee SUR le torse : elle part avec lui, et le bras n'a rien a corriger.
-  Mesure, pas suppose : buste penche de 20 degres, la main reste a 1,08 de son
-  1,01 habituel dans le repere du torse.
+  Le buste se penche par un SECOND `IKControl` et la tete par un TROISIEME, en
+  `Rotation` tous les deux, sur les chaines `LowerTorso` -> `UpperTorso` et
+  `UpperTorso` -> `Head` : on veut que le buste PLIE A LA TAILLE et pas qu'il
+  quitte son bassin, et qu'une tete tourne plutot qu'elle se deplace. Les
+  jambes restent hors de toute chaine. Les trois controles se composent sans se
+  marcher dessus parce que chaque cible est posee sur le PARENT de ce qu'elle
+  commande : la main et la tete sur le torse, le torse sur le bassin. Chacun
+  part donc avec son porteur. Mesure, pas suppose : buste penche de 20 degres,
+  la main reste a 1,08 de son 1,01 habituel dans le repere du torse.
 
 - **L'ANIMATION D'ATTENTE DE ROBLOX FAIT TOURNER LE BUSTE, jusqu'a 22 degres,
   en permanence.** C'est ce qui interdit de le faire tourner ou s'incliner
@@ -374,6 +376,46 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   orientation relevee une fois serait perimee a l'instant suivant, et le torse
   sauterait au depart du geste.
 
+- **UN TANGAGE POSITIF LEVE L'AVANT D'UNE PART, et ca a coute une journee.**
+  Le penchement du buste a ete ecrit a l'envers le 27 octobre 2026 et livre
+  comme ca : des angles d'Euler avaient ete mesures, et « +18 degres » lu comme
+  « penche en avant ». Verifie par un temoin, `CFrame.Angles(+18, 0, 0)` donne a
+  l'avant du buste un Y de +0,30 et a son sommet un Z de +0,29 : une poitrine
+  qui regarde le ciel et un buste qui part EN ARRIERE, pendant que la main
+  allait devant. Les cinq gestes etaient faux.
+
+  **Un angle d'Euler ne dit pas ou pointe une part.** La mesure qui compte est
+  `LookVector` et `UpVector` dans le repere du parent. Trois parades, et les
+  trois sont en place : les angles de `bodyMotion` sont NOMMES PAR LEUR EFFET
+  (`lean` positif fait tomber la poitrine devant, `headDip` positif fait
+  regarder en bas, `headTurn` positif tourne vers la gauche) ; la conversion
+  vers les axes de Roblox se fait a UN SEUL endroit, dans `WeaponService`, avec
+  son signe moins et la mesure citee a cote ; et le test refait le calcul de
+  Roblox puis regarde ou pointe la part.
+
+- **Un test de direction qui compare deux noms ne teste rien.** Celui du buste
+  comparait `pose.forward > 0` a `pose.lean > 0` — deux de mes conventions,
+  mises face a face. Elles etaient d'accord entre elles et toutes les deux
+  fausses, donc il passait sur un geste integralement a l'envers. Un test de
+  direction REPRODUIT le calcul de Roblox, verifie d'abord qu'il retrouve les
+  chiffres d'un temoin releve en jeu, et juge les signes seulement apres. C'est
+  la structure du test de la pointe de l'arme, qui avait deja attrape deux
+  signes inverses le 26 octobre : l'employer tout de suite.
+
+- **LA TETE PREND SES DEUX AXES, LE BUSTE UN SEUL, ET LES JAMBES AUCUN.** Les
+  trois reponses viennent de la meme mesure : de combien l'animation de Roblox
+  tient-elle le membre ? Sur trois secondes, l'animation d'attente bouge la tete
+  de 0,7 degre de tangage et 0,1 de lacet, et le buste de 22 degres de lacet.
+  D'ou tangage plus lacet pour la tete, tangage seul pour le buste. Butees
+  mesurees : 37 degres de tangage et 48 de lacet pour le cou, 22 pour le bassin.
+
+  **Les jambes sont un refus, pas un oubli.** Un `IKControl` sur
+  `RightUpperLeg` -> `RightFoot` marche tres bien debout. En marchant il GAGNE
+  contre l'animation de marche : le pied, qui balance de 1,68 stud par cycle,
+  tombe a 0,10, et le personnage glisse sur une jambe figee. Casser la marche,
+  qui est a l'ecran en permanence, pour decorer une attaque de 230 ms, est un
+  mauvais echange. Ne pas le refaire sans en parler a Josh.
+
 - **Le corps et l'arme sont deux tables, un seul geste.** `weaponMotion` dit
   COMMENT l'arme tourne dans la main, `bodyMotion` dit OU va la main et DE
   COMBIEN le buste penche : les melanger ferait tourner l'arme deux fois. Ils
@@ -382,11 +424,12 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   equivalent dans l'autre ne leve rien : le bras reste immobile pendant que
   l'arme part, et un test le refuse desormais dans les deux sens.
 
-  Dans `bodyMotion`, `lean` est un ANGLE et les trois autres sont des
-  DISTANCES. Rien dans le code ne lie les deux, ils sont juste voisins : un
-  buste qui part en arriere pendant que la main avance n'est pas un geste, c'est
-  une convulsion, et ca ne se verrait qu'a l'ecran. Un test verifie donc que les
-  deux sont d'accord sur « avant ».
+  Dans `bodyMotion`, `right`, `up` et `forward` sont des DISTANCES, et `lean`,
+  `headDip` et `headTurn` des ANGLES. Rien dans le code ne lie les six, ils sont
+  juste voisins : un buste qui part en arriere pendant que la main avance n'est
+  pas un geste, c'est une convulsion, et ca ne se verrait qu'a l'ecran. Un test
+  verifie donc que la main, la poitrine et la tete sont d'accord sur « avant »,
+  en mesurant ou chacune pointe.
 
 - **Une articulation posee sur un membre ne meurt pas avec le modele qu'elle
   tient.** `WeaponService` soude l'arme par un `Motor6D` parente a LA MAIN :
@@ -523,17 +566,19 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    jeu, choix de la classe, points d'arbre à la demande, budget relevé, jusqu'à
    quatre mannequins aux statistiques d'une vraie classe. Pas un bot, et la
    raison est dans les pièges ci-dessus
-10. Le corps qui bouge pendant les attaques — **fait et mesuré en jeu** : la
-   main avance, recule ou se lève avec le geste de l'arme, et le buste plie à
-   la taille du même côté, par deux `IKControl` et sans une seule animation
-   téléversée. Les sept gestes bougent du bon côté et reviennent au repos. Le
-   coup de poing se voit enfin. L'épaule et le bassin ont des butées mesurées,
-   donc un geste plus ample est impossible par ce moyen. Reste à savoir si
-   c'est beau, et ça ne se mesure pas
-11. Ce qui reste : les jambes et la tête, les quarante-neuf autres objets, les
-   skins, et l'achat de pièces en Robux. Plus **un seul** palier 6 sur
-   quarante-deux, « immunisé aux projectiles », qui attend un système de
-   projectiles — donc une décision de conception, donc Josh
+10. Le corps qui bouge pendant les attaques — **fait et mesuré par témoin** :
+   la main avance, recule ou se lève avec le geste de l'arme, le buste plie à
+   la taille du même côté, et la tête baisse, se lève ou tourne avec eux —
+   trois `IKControl`, pas une seule animation téléversée. Le coup de poing se
+   voit enfin. **Les jambes sont un refus mesuré** : les piloter casse la
+   marche. L'épaule, le bassin et le cou ont des butées mesurées, donc un
+   geste plus ample est impossible par ce moyen. Reste à savoir si c'est beau,
+   et ça ne se mesure pas
+11. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+   regarderait sa cible (une information de plus donnée à l'adversaire, donc
+   une décision de conception), les quarante-neuf autres objets, les skins, et
+   l'achat de pièces en Robux. Plus **un seul** palier 6 sur quarante-deux,
+   « immunisé aux projectiles », qui attend un système de projectiles
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans

@@ -1024,25 +1024,41 @@ Config.loadout = {
 	-- ceder. Un grand moulinet qui traverse le corps est donc impossible, et
 	-- c'est pour ca que la machette avance surtout au lieu de faucher.
 	--
-	-- LE TORSE SE PENCHE AUSSI, et `lean` est son angle en DEGRES : positif, le
-	-- buste part vers l'avant, dans le coup ; negatif, il recule. C'est le seul
-	-- chiffre de ce bloc qui soit un angle et pas une distance, parce que c'est
-	-- une articulation qui plie et pas une main qui se deplace.
+	-- LE TORSE SE PENCHE ET LA TETE SUIT. Trois angles en DEGRES, et ils sont
+	-- NOMMES PAR LEUR EFFET et jamais par leur axe :
+	--
+	--   lean      positif, le buste tombe vers l'AVANT, dans le coup
+	--   headDip   positif, la tete regarde vers le BAS
+	--   headTurn  positif, la tete tourne vers la GAUCHE du personnage
+	--
+	-- CE NOMMAGE EST UNE CICATRICE. Le penchement du buste a ete ecrit a
+	-- l'envers le 27 octobre 2026 et livre comme ca : « tangage positif » avait
+	-- ete lu comme « penche en avant » alors que dans Roblox un tangage positif
+	-- LEVE l'avant, donc le buste partait en arriere pendant que la main allait
+	-- devant. Un test existait et ne l'a pas vu, parce qu'il comparait deux de
+	-- mes conventions entre elles au lieu de mesurer ou pointe la poitrine. La
+	-- conversion vers les axes de Roblox se fait donc a UN SEUL endroit, dans
+	-- `WeaponService`, et le test refait le calcul de Roblox avant de juger.
 	--
 	-- LA BUTEE DU BASSIN EST A 22 DEGRES, mesuree en jeu le 27 octobre 2026 :
 	-- une demande de 20 degres donne 21,3, une demande de 45 donne 21,4, et une
 	-- demande de 90 donne 22,4. Au-dela de 22, le chiffre ecrit ici ne decrit
 	-- plus rien.
 	--
-	-- RIEN QUE LE TANGAGE, ET C'EST MESURE AUSSI. Le lacet et le roulis ont ete
-	-- essayes : ils se battent avec l'animation d'attente, qui fait tourner le
-	-- buste de son cote jusqu'a 22 degres toute seule. Un angle demande sur ces
-	-- deux axes arrive donc quelque part entre ce qu'on veut et ce que
-	-- l'animation voulait, et ca ne se regle pas. Le tangage, lui, revient
-	-- exactement a zero.
+	-- RIEN QUE LE TANGAGE POUR LE BUSTE, ET C'EST MESURE AUSSI. Le lacet et le
+	-- roulis ont ete essayes : ils se battent avec l'animation d'attente, qui
+	-- fait tourner le buste de son cote jusqu'a 22 degres toute seule. Un angle
+	-- demande sur ces deux axes arrive donc quelque part entre ce qu'on veut et
+	-- ce que l'animation voulait, et ca ne se regle pas. Le tangage, lui,
+	-- revient exactement a zero.
 	--
-	-- La duree vient de `weaponMotion` : le bras, l'arme et le torse partent
-	-- ensemble, sinon ils se contredisent.
+	-- LA TETE, ELLE, PREND LES DEUX AXES, et pour la meme raison mesuree :
+	-- l'animation d'attente ne la bouge que de 0,7 degre de tangage et 0,1 de
+	-- lacet sur trois secondes, contre 22 pour le buste. Ses butees sont a
+	-- 37 degres de tangage et 48 de lacet.
+	--
+	-- La duree vient de `weaponMotion` : le bras, l'arme, le torse et la tete
+	-- partent ensemble, sinon ils se contredisent.
 	bodyMotion = {
 		-- LE DELAI AVANT DE MESURER LA MAIN AU REPOS. Un personnage arrive
 		-- membre par membre et l'animation de repos met un instant a le
@@ -1052,24 +1068,30 @@ Config.loadout = {
 		-- ca ne se voit pas.
 		settleSeconds = 0.5,
 
-		slash = { right = -0.5, up = 0.15, forward = 1.2, lean = 8 },
+		-- La tete suit la lame vers la gauche : c'est le seul geste lateral du
+		-- jeu, donc le seul qui merite un `headTurn`.
+		slash = { right = -0.5, up = 0.15, forward = 1.2, lean = 8, headDip = 5, headTurn = 10 },
 		-- LE PLUS PENCHE DE TOUS, et c'est le seul geste qui le merite : un
 		-- marteau qui s'abat vient du corps entier. 18 et pas 22, pour qu'il
 		-- reste de la place sous la butee — un geste cale contre sa butee ne se
 		-- distingue plus d'un geste trop grand.
-		overhead = { right = 0, up = -0.1, forward = 1.5, lean = 18 },
+		-- Et la tete regarde ou le marteau va tomber. Le plus gros `headDip` du
+		-- jeu, pour la meme raison que le plus gros `lean`.
+		overhead = { right = 0, up = -0.1, forward = 1.5, lean = 18, headDip = 14, headTurn = 0 },
 		-- Une arme a feu repousse : la main recule, elle n'avance pas, et le
 		-- buste part en arriere avec elle.
-		recoil = { right = 0, up = 0.15, forward = -0.35, lean = -6 },
+		-- Le coup de feu releve la tete : c'est le seul `headDip` negatif avec
+		-- l'arc, et c'est ce qui distingue un recul d'une frappe.
+		recoil = { right = 0, up = 0.15, forward = -0.35, lean = -6, headDip = -8, headTurn = 0 },
 		-- L'arc se bande : la main tire la corde vers soi, et le buste s'ouvre a
 		-- peine. Moins que le fusil, parce que bander un arc est une traction
 		-- lente et pas un choc.
-		draw = { right = 0, up = 0.1, forward = -0.5, lean = -4 },
+		draw = { right = 0, up = 0.1, forward = -0.5, lean = -4, headDip = -3, headTurn = 0 },
 		-- Sans arme. C'est le seul geste qui n'a pas d'equivalent dans
 		-- `weaponMotion`, et c'est voulu : un coup de poing doit se voir. Il
 		-- penche plus que la machette, parce qu'il n'a aucune arme pour se voir
 		-- a sa place.
-		fist = { right = -0.1, up = 0.1, forward = 1.5, lean = 12 },
+		fist = { right = -0.1, up = 0.1, forward = 1.5, lean = 12, headDip = 10, headTurn = 0 },
 	},
 }
 
