@@ -619,6 +619,39 @@ meme reserve qu'a la section 11.
 
 ---
 
+## 14. Les panneaux et la barre du haut — **mesuré et regardé**
+
+Tu m'as demandé de corriger le décalage des quatre autres panneaux. En les
+remesurant, j'ai trouvé que **le décalage n'existait pas** : c'est ma mesure de
+la veille qui était fausse, et c'est le bac à sable, que j'avais « corrigé »,
+qui était devenu le seul vraiment décentré. Le détail est dans `DECISIONS.md`.
+
+Trois choses ont quand même changé, et celles-là sont de vraies corrections :
+
+110. **Ouvre les cinq panneaux** — l'arbre (**T**), l'équipement (**L**), les
+     pièces (**P**), le bac à sable (**B**), et les bans au début d'une partie.
+     Aucun titre, aucun pied de page, aucun bouton ne doit être coupé ni
+     passer derrière les icônes de Roblox en haut de l'écran.
+111. **Change la taille de la fenêtre pendant qu'un panneau est ouvert.** Il
+     doit se remettre à l'échelle tout seul. Avant, trois panneaux sur cinq ne
+     suivaient pas du tout, et un quatrième cessait de suivre après une
+     réapparition.
+112. **Regarde les deux lignes en haut à gauche** — l'arbre et le pouvoir de
+     classe. Elles passaient derrière les icônes de Roblox sur une petite
+     fenêtre ; elles sont maintenant sous la barre. En plein écran ça ne se
+     voyait pas.
+
+**Ce qui est vérifié** : les cinq panneaux sont centrés au pixel sur la partie
+visible de la fenêtre, avec la même marge en haut et en bas, et aucun ne
+dépasse. L'affichage de jeu, lui, a été **regardé sur une capture** avant et
+après : la ligne de l'arbre était bien derrière les icônes, elle ne l'est plus.
+
+**Ce qui n'est pas vérifié** : ta fenêtre à toi. J'ai mesuré dans une fenêtre
+de Studio de 1016 sur 387, où la barre fait 58 pixels ; en plein écran elle en
+fait moins, et la marge sera plus confortable, pas moins.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -626,15 +659,6 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
 - **je n'ai pas pu écouter les sons** — je les ai choisis au nom, à la
   bibliothèque et à la durée, et vérifié en jeu qu'ils partent bien. Savoir
   s'ils sonnent juste demande une oreille. Section 12.
-- **les quatre autres panneaux sont decentres vers le haut** — l'arbre,
-  l'equipement, les pieces et les bans. Meme cause que celle que j'ai corrigee
-  sur le panneau du bac a sable, et je l'ai mesuree : avec `IgnoreGuiInset`,
-  l'espace de l'interface commence a moins la hauteur de la barre du haut, donc
-  un panneau centre tombe trop haut de la moitie de cet encart. Dans Studio ca
-  faisait 58 pixels ; sur un ecran de 1080p ca en fera 18, donc c'est visible
-  sans etre grave. La correction est une ligne par panneau. **Je ne l'ai pas
-  faite** parce que ce n'etait pas ce que tu m'avais demande, et que je ne peux
-  pas regarder le resultat — dis-moi si tu veux que je m'en occupe.
 - **six sons manquent encore** — le soin, le relèvement, la brûlure de la
   zone, les clics de l'interface, le début et la fin d'une manche, et
   l'ouverture d'une caisse. À choisir quand tu pourras les écouter.

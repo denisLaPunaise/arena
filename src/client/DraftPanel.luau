@@ -28,12 +28,12 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
 local draftRemote = Remotes:WaitForChild("Draft") :: RemoteEvent
 
+local Screens = require(script.Parent:WaitForChild("Screens"))
+
 local player = Players.LocalPlayer
 
 local PANEL_WIDTH = 1180
 local PANEL_HEIGHT = 640
-local MIN_SCALE = 0.4
-local MARGIN = 0.94
 
 -- Sept cartes par rangee, donc DEUX rangees pour les quatorze classes.
 -- Six par rangee en faisait trois, et la troisieme passait sous le pied de
@@ -51,6 +51,8 @@ local MUTED = Color3.fromRGB(150, 158, 172)
 
 local gui: ScreenGui? = nil
 local scale: UIScale? = nil
+local panelFrame: Frame? = nil
+local fit: () -> ()
 local header: TextLabel? = nil
 local subheader: TextLabel? = nil
 local timerLabel: TextLabel? = nil
@@ -121,6 +123,15 @@ local function build()
 
 	local uiscale = Instance.new("UIScale")
 	uiscale.Parent = frame
+	panelFrame = frame
+
+	-- La fenetre change de taille, le panneau suit. BRANCHE ICI, et pas
+	-- dans start() : le ScreenGui n'existe pas encore quand start() tourne,
+	-- donc la connexion n'etait jamais prise et un panneau ouvert avant la
+	-- premiere mise a jour du serveur se dessinait a sa taille entiere.
+	screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		fit()
+	end)
 
 	local title = label("Header", UDim2.fromOffset(PANEL_WIDTH, 48), UDim2.fromOffset(0, 26), 34)
 	title.Font = Enum.Font.GothamBold
@@ -188,21 +199,14 @@ end
 -- Sur telephone il devient petit, mais il reste ENTIER : aucune ligne ne sort
 -- du cadre, et c'est ce qui compte quand ce sont les lignes du bas qui portent
 -- la faiblesse d'une classe.
-local function fit()
+function fit()
 	local current = scale
 	local screen = gui
-	if current == nil or screen == nil then
+	local frame = panelFrame
+	if current == nil or screen == nil or frame == nil then
 		return
 	end
-
-	local viewport = screen.AbsoluteSize
-	if viewport.X <= 0 or viewport.Y <= 0 then
-		return
-	end
-
-	local byWidth = (viewport.X * MARGIN) / PANEL_WIDTH
-	local byHeight = (viewport.Y * MARGIN) / PANEL_HEIGHT
-	current.Scale = math.max(math.min(byWidth, byHeight, 1), MIN_SCALE)
+	Screens.fit(screen, frame, current, PANEL_WIDTH, PANEL_HEIGHT)
 end
 
 --------------------------------------------------------------------------------
@@ -511,11 +515,6 @@ function DraftPanel.start()
 			close()
 		end
 	end)
-
-	local screen = gui
-	if screen ~= nil then
-		screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
-	end
 
 	RunService.RenderStepped:Connect(onRenderStep)
 end

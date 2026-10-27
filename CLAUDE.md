@@ -232,16 +232,35 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   a plein de vie. Un mannequin se RECONSTRUIT, au meme endroit. Vu le
   26 octobre 2026, et seule la sonde en jeu pouvait le montrer.
 
-- **`IgnoreGuiInset` decale tous les panneaux vers le haut.** Avec ce reglage,
-  l'espace du `ScreenGui` commence a MOINS `GuiService:GetGuiInset().Y` alors
-  que son `AbsoluteSize` reste celle de la fenetre entiere : un panneau pose a
-  `Position = fromScale(0.5, 0.5)` avec `AnchorPoint` au centre tombe donc trop
-  haut de la moitie de cet encart. Mesure le 26 octobre 2026 dans Studio :
-  encart de 58 px, les CINQ panneaux centres a 135 au lieu de 193, et le titre
-  du plus grand sortait de l'ecran. Le remede est une ligne —
-  `UDim2.new(0.5, 0, 0.5, GuiService:GetGuiInset().Y)` — appliquee dans
-  `SandboxPanel.fit`. Les quatre autres panneaux ne sont pas corriges : c'est un
-  point d'`A-TESTER`, en attente de l'accord de Josh.
+- **`AbsolutePosition` et `AbsoluteSize` ne se lisent pas dans le meme
+  repere.** Avec `IgnoreGuiInset = true`, le `ScreenGui` couvre toute la
+  fenetre, mais l'origine des `AbsolutePosition` reste SOUS la barre du haut :
+  le bord superieur du `ScreenGui` s'y lit `-GuiService:GetGuiInset().Y`.
+  Comparer un `AbsolutePosition` a `AbsoluteSize / 2` melange donc deux reperes
+  et fait croire a un decalage qui n'existe pas. C'est exactement l'erreur
+  commise le 26 octobre 2026 : les cinq panneaux ont ete declares « decentres
+  de 58 pixels vers le haut » alors qu'ils etaient au milieu exact, et la
+  « correction » appliquee au bac a sable l'a, elle, vraiment decentre de 58
+  pixels vers le bas. **Une mesure d'interface ne compare que des
+  `AbsolutePosition` entre eux** : le centre du panneau contre le milieu de ses
+  PROPRES bords, avec deux temoins poses dans le meme `ScreenGui`. Refait comme
+  ca le 27 octobre : ecart 0.0 sur les cinq.
+
+  Ce qui restait vrai, et qui est corrige : la barre du haut se dessine
+  PAR-DESSUS les `ScreenGui` qui l'ignorent, donc un grand panneau mesure
+  contre la hauteur entiere passe son en-tete derriere elle. La regle vit
+  maintenant a un seul endroit, `src/client/Screens.luau`, que les cinq
+  panneaux appellent : elle retire la barre de la place disponible et descend
+  le panneau d'une demi-barre. Ne pas en recopier une deuxieme ailleurs.
+
+- **Un panneau ne suit la fenetre que si sa connexion existe vraiment.** Trois
+  panneaux branchaient `AbsoluteSize` dans `start()`, ou leur `ScreenGui`
+  n'existe pas encore : la connexion etait sautee en silence, et le panneau
+  gardait son echelle d'origine. Le quatrieme la branchait sur
+  `Workspace.CurrentCamera`, qui est remplacee a la reapparition. La connexion
+  se prend dans `build()`, sur le `ScreenGui` lui-meme. A savoir aussi : un
+  `ScreenGui` desactive ne met plus a jour son `AbsoluteSize`, donc il faut
+  l'afficher pour le mesurer.
 
 - **La taille d'un panneau se DEDUIT de son contenu.** La colonne des actions du
   bac a sable debordait de 42 pixels parce que la largeur etait ecrite en dur et

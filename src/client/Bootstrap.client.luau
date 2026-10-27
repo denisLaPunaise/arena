@@ -92,7 +92,13 @@ end
 local gui = Instance.new("ScreenGui")
 gui.Name = "ArenaHud"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
+-- L'affichage de jeu respecte la barre du haut, contrairement aux panneaux.
+-- Ses lignes se placent en pourcentage de la hauteur, et la barre de Roblox
+-- mange les quinze premiers pour cent d'une petite fenetre : vu a l'ecran le
+-- 27 octobre 2026, la ligne de l'arbre passait derriere les icones de Roblox.
+-- Un panneau, lui, ignore la barre pour que son voile sombre couvre tout, et
+-- c'est Screens.fit qui le redescend.
+gui.IgnoreGuiInset = false
 gui.Parent = playerGui
 
 local topBand = makeBand("TopBand", true)

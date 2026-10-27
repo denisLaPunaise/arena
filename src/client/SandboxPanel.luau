@@ -24,7 +24,6 @@
 
 local SandboxPanel = {}
 
-local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -33,11 +32,9 @@ local Remotes = Arena:WaitForChild("Remotes")
 local sandboxRemote = Remotes:WaitForChild("Sandbox") :: RemoteEvent
 
 local Config = require(Arena:WaitForChild("Config"))
+local Screens = require(script.Parent:WaitForChild("Screens"))
 
 local player = Players.LocalPlayer
-
-local MIN_SCALE = 0.4
-local MARGIN = 0.94
 
 local PADDING = 20
 local HEADER_HEIGHT = 86
@@ -417,17 +414,6 @@ local function build(view: any)
 	madeFooter.Parent = panel
 end
 
--- Met le panneau a l'echelle de la fenetre, ET LE RECENTRE.
---
--- LE RECENTRAGE N'EST PAS DECORATIF. Avec `IgnoreGuiInset = true`, l'espace du
--- ScreenGui ne commence pas a zero : il commence a MOINS la hauteur de la barre
--- du haut, tandis que sa taille reste celle de la fenetre entiere. Un
--- `Position = fromScale(0.5, 0.5)` tombe donc trop haut de la moitie de cet
--- encart. Mesure le 26 octobre 2026 dans Studio : encart de 58 px, panneau
--- centre a 135 au lieu de 193, et le titre sortait de l'ecran.
---
--- On rajoute donc l'encart. Les quatre autres panneaux du jeu derivent
--- exactement de la meme facon, et de la meme quantite.
 local function fit()
 	local screen = gui
 	local madeScale = scale
@@ -435,14 +421,7 @@ local function fit()
 	if screen == nil or madeScale == nil or panel == nil then
 		return
 	end
-	local size = screen.AbsoluteSize
-	if size.X <= 0 or size.Y <= 0 then
-		return
-	end
-
-	local factor = math.min(size.X / PANEL_WIDTH, size.Y / PANEL_HEIGHT) * MARGIN
-	madeScale.Scale = math.max(math.min(factor, 1), MIN_SCALE)
-	panel.Position = UDim2.new(0.5, 0, 0.5, GuiService:GetGuiInset().Y)
+	Screens.fit(screen, panel, madeScale, PANEL_WIDTH, PANEL_HEIGHT)
 end
 
 local function paint()

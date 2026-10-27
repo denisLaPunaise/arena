@@ -34,12 +34,12 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
 local progressRemote = Remotes:WaitForChild("Progress") :: RemoteEvent
 
+local Screens = require(script.Parent:WaitForChild("Screens"))
+
 local player = Players.LocalPlayer
 
 local PANEL_WIDTH = 900
 local PANEL_HEIGHT = 640
-local MIN_SCALE = 0.4
-local MARGIN = 0.94
 
 local BACKGROUND = Color3.fromRGB(12, 14, 20)
 local CARD = Color3.fromRGB(26, 30, 40)
@@ -51,6 +51,8 @@ local TEXT = Color3.fromRGB(240, 244, 255)
 
 local gui: ScreenGui? = nil
 local scale: UIScale? = nil
+local panelFrame: Frame? = nil
+local fit: () -> ()
 local wallet: TextLabel? = nil
 local collection: TextLabel? = nil
 local crateButton: TextButton? = nil
@@ -113,6 +115,15 @@ local function build()
 
 	local uiscale = Instance.new("UIScale")
 	uiscale.Parent = frame
+	panelFrame = frame
+
+	-- La fenetre change de taille, le panneau suit. BRANCHE ICI, et pas
+	-- dans start() : le ScreenGui n'existe pas encore quand start() tourne,
+	-- donc la connexion n'etait jamais prise et un panneau ouvert avant la
+	-- premiere mise a jour du serveur se dessinait a sa taille entiere.
+	screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		fit()
+	end)
 
 	local title =
 		label("Header", UDim2.fromOffset(PANEL_WIDTH - 60, 44), UDim2.fromOffset(30, 22), 32)
@@ -193,19 +204,14 @@ local function build()
 	flash = message
 end
 
-local function fit()
+function fit()
 	local current = scale
 	local screen = gui
-	if current == nil or screen == nil then
+	local frame = panelFrame
+	if current == nil or screen == nil or frame == nil then
 		return
 	end
-	local viewport = screen.AbsoluteSize
-	if viewport.X <= 0 or viewport.Y <= 0 then
-		return
-	end
-	local factor =
-		math.min((viewport.X * MARGIN) / PANEL_WIDTH, (viewport.Y * MARGIN) / PANEL_HEIGHT, 1)
-	current.Scale = math.max(factor, MIN_SCALE)
+	Screens.fit(screen, frame, current, PANEL_WIDTH, PANEL_HEIGHT)
 end
 
 local function redraw(view: any)
@@ -351,11 +357,6 @@ function ProgressPanel.start()
 			)
 		end
 	end)
-
-	local screen = gui
-	if screen ~= nil then
-		screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
-	end
 end
 
 return ProgressPanel

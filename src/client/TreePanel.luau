@@ -36,11 +36,12 @@ local TreePanel = {}
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
 local treeRemote = Remotes:WaitForChild("Tree") :: RemoteEvent
+
+local Screens = require(script.Parent:WaitForChild("Screens"))
 
 local player = Players.LocalPlayer
 
@@ -206,36 +207,25 @@ local PANEL_WIDTH = 1180
 -- fixe laisserait soit un grand vide sous les cartes, soit une liste coupee.
 local PANEL_MIN_HEIGHT = 300
 local PANEL_MAX_HEIGHT = 620
-local MIN_SCALE = 0.4
-local MARGIN = 0.94
 
 local panelHeight = PANEL_MAX_HEIGHT
 
 local function fitToViewport()
-	local camera = Workspace.CurrentCamera
-	if camera == nil or panelScale == nil then
+	if gui == nil or panel == nil or panelScale == nil then
 		return
 	end
-	local viewport = camera.ViewportSize
-	if viewport.X <= 0 or viewport.Y <= 0 then
-		return
-	end
-
-	-- La plus contraignante des deux dimensions decide, et on garde une marge :
-	-- un panneau qui touche exactement les bords ressemble a un bug d'affichage.
-	local byWidth = (viewport.X * MARGIN) / PANEL_WIDTH
-	local byHeight = (viewport.Y * MARGIN) / panelHeight
-	panelScale.Scale = math.clamp(math.min(byWidth, byHeight), MIN_SCALE, 1)
+	-- La hauteur varie : 370 pixels pour l'ecran de choix, 545 une fois la
+	-- branche prise. C'est pour ca qu'elle se passe en argument.
+	Screens.fit(gui, panel, panelScale, PANEL_WIDTH, panelHeight)
 end
 
 local function isNarrow(): boolean
-	local camera = Workspace.CurrentCamera
-	if camera == nil then
+	if gui == nil then
 		return false
 	end
 	-- En dessous de 700 pixels de large, trois cartes cote a cote font des
 	-- colonnes de texte illisibles : on les empile.
-	return camera.ViewportSize.X < 700
+	return gui.AbsoluteSize.X < 700
 end
 
 local function build(parent: Instance)
@@ -273,10 +263,11 @@ local function build(parent: Instance)
 	panelScale.Parent = panel
 	fitToViewport()
 
-	local camera = Workspace.CurrentCamera
-	if camera ~= nil then
-		camera:GetPropertyChangedSignal("ViewportSize"):Connect(fitToViewport)
-	end
+	-- On suit la taille du ScreenGui, et pas celle de la camera : la camera du
+	-- joueur est remplacee a chaque reapparition, et la connexion mourait avec
+	-- elle. Vu le 27 octobre 2026, l'arbre etait le seul panneau a ne plus
+	-- suivre la fenetre.
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitToViewport)
 
 	header = text(panel, "", 26, TEXT, true)
 	header.Size = UDim2.new(1, 0, 0, HEADER_HEIGHT)

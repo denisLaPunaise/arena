@@ -37,12 +37,12 @@ local loadoutRemote = Remotes:WaitForChild("Loadout") :: RemoteEvent
 
 local Config = require(Arena:WaitForChild("Config"))
 
+local Screens = require(script.Parent:WaitForChild("Screens"))
+
 local player = Players.LocalPlayer
 
 local PANEL_WIDTH = 1180
 local PANEL_HEIGHT = 660
-local MIN_SCALE = 0.4
-local MARGIN = 0.94
 
 -- Cinq colonnes, une par categorie. La plus garnie en compte quatre, donc
 -- quatre rangees suffisent et rien ne defile : un ecran qui defile cache la
@@ -68,6 +68,8 @@ local TEXT = Color3.fromRGB(240, 244, 255)
 
 local gui: ScreenGui? = nil
 local scale: UIScale? = nil
+local panelFrame: Frame? = nil
+local fit: () -> ()
 local pointsLabel: TextLabel? = nil
 local footer: TextLabel? = nil
 local board: Frame? = nil
@@ -221,6 +223,15 @@ local function build()
 
 	local uiscale = Instance.new("UIScale")
 	uiscale.Parent = frame
+	panelFrame = frame
+
+	-- La fenetre change de taille, le panneau suit. BRANCHE ICI, et pas
+	-- dans start() : le ScreenGui n'existe pas encore quand start() tourne,
+	-- donc la connexion n'etait jamais prise et un panneau ouvert avant la
+	-- premiere mise a jour du serveur se dessinait a sa taille entiere.
+	screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		fit()
+	end)
 
 	local title = label("Header", UDim2.fromOffset(PANEL_WIDTH, 44), UDim2.fromOffset(0, 22), 32)
 	title.Font = Enum.Font.GothamBold
@@ -275,21 +286,14 @@ end
 -- Dessine a taille fixe puis reduit pour tenir dans la fenetre. Sur telephone
 -- il devient petit mais il reste ENTIER, et c'est ce qui compte : le prix d'un
 -- objet est en bas de sa carte.
-local function fit()
+function fit()
 	local current = scale
 	local screen = gui
-	if current == nil or screen == nil then
+	local frame = panelFrame
+	if current == nil or screen == nil or frame == nil then
 		return
 	end
-
-	local viewport = screen.AbsoluteSize
-	if viewport.X <= 0 or viewport.Y <= 0 then
-		return
-	end
-
-	local factor =
-		math.min((viewport.X * MARGIN) / PANEL_WIDTH, (viewport.Y * MARGIN) / PANEL_HEIGHT, 1)
-	current.Scale = math.max(factor, MIN_SCALE)
+	Screens.fit(screen, frame, current, PANEL_WIDTH, PANEL_HEIGHT)
 end
 
 -- « 1 pt », pas « 1 pts ». Un detail, mais il est affiche treize fois sur le
@@ -515,11 +519,6 @@ function LoadoutPanel.start()
 			redraw(payload)
 		end
 	end)
-
-	local screen = gui
-	if screen ~= nil then
-		screen:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
-	end
 end
 
 return LoadoutPanel

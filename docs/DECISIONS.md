@@ -874,14 +874,58 @@ séparées. **Trouvé en regardant une capture d'écran**, pas autrement.
 **La colonne des actions débordait du panneau de 42 pixels.** La largeur était
 écrite en dur et devait s'accorder avec quatre autres chiffres ; elle ne
 s'accordait plus. Elle se **déduit** désormais de son contenu, donc elle ne peut
-plus mentir. Et le panneau sortait de l'écran par le haut, comme **les quatre
-autres panneaux du jeu** : avec `IgnoreGuiInset`, l'espace de l'interface ne
-commence pas à zéro mais à moins la hauteur de la barre du haut, alors que sa
-taille reste celle de la fenêtre entière — donc un panneau centré à 50 % tombe
-trop haut de la moitié de cet encart. Dans Studio, 58 pixels. J'ai corrigé **le
-mien seulement**, et je te le signale pour les autres : c'est une ligne par
-panneau, mais ce n'était pas ce que tu m'avais demandé et je ne peux pas
-regarder le résultat.
+plus mentir. Et j'ai cru que le panneau sortait de l'écran par le haut, comme
+les quatre autres : **c'était une erreur de mesure de ma part**, défaite le
+27 octobre et racontée plus bas. Le « rattrapage » de 58 pixels que j'avais
+appliqué ici décentrait en réalité le panneau vers le bas.
+
+---
+
+## 27 octobre 2026 — Le centrage des panneaux, et une erreur de mesure
+
+Tu m'as demandé de corriger le décalage des quatre autres panneaux. **Il n'y
+avait pas de décalage.** Avant de recopier la correction quatre fois, je l'ai
+remesurée, et c'est ma mesure de la veille qui était fausse.
+
+`AbsolutePosition` et `AbsoluteSize` ne se lisent pas dans le même repère.
+Quand un `ScreenGui` ignore la barre du haut, il couvre bien toute la fenêtre,
+mais l'origine des `AbsolutePosition` reste **sous** cette barre : le bord
+supérieur s'y lit − 58. J'avais comparé le centre du panneau, lu dans ce
+repère-là, à la moitié de `AbsoluteSize`, qui est dans l'autre. D'où un écart
+de 58 pixels qui n'existait que dans ma soustraction. La sonde qui tranche ne
+compare plus que des `AbsolutePosition` entre eux : le centre du panneau contre
+le milieu de ses propres bords, deux témoins posés dans le même `ScreenGui`.
+Écart mesuré : 0.0, sur les cinq panneaux.
+
+Donc la vraie correction a porté sur le bac à sable, que mon « rattrapage » de
+la veille avait descendu de 58 pixels pour de bon.
+
+**Ce qui était vrai quand même**, et que j'ai corrigé pendant que j'y étais :
+
+- **La barre du haut se dessine par-dessus les panneaux.** Un grand panneau
+  mesuré contre la hauteur entière de la fenêtre passe son en-tête derrière
+  elle. On retire désormais la barre de la place disponible, et on descend le
+  panneau d'une demi-barre pour le centrer sur ce qui reste visible.
+- **Trois panneaux ne suivaient pas la fenêtre du tout.** L'équipement, les
+  pièces et les bans branchaient leur écoute de redimensionnement dans
+  `start()`, à un moment où leur `ScreenGui` n'existe pas encore : la connexion
+  était sautée en silence. Le panneau de l'arbre, lui, l'avait branchée sur la
+  caméra, qui est remplacée à chaque réapparition. Les cinq écoutent maintenant
+  leur propre `ScreenGui`, et la connexion se prend là où il est construit.
+- **L'affichage de jeu passait derrière les icônes de Roblox.** Les lignes de
+  l'arbre et du pouvoir se placent en pourcentage de la hauteur, et la barre
+  mange les quinze premiers pour cent d'une petite fenêtre. L'affichage
+  respecte maintenant la barre ; les panneaux continuent à l'ignorer, pour que
+  leur voile sombre couvre tout l'écran. **Vu sur une capture**, pas autrement.
+
+La règle de placement vit maintenant dans un seul fichier, `src/client/Screens.luau`,
+que les cinq panneaux appellent — même raison que les planchers de
+statistiques : une règle recopiée cinq fois est une règle qui se trompe cinq
+fois.
+
+**Ce que ça te coûte à vérifier : rien de plus que d'ouvrir les panneaux.** Si
+un titre ou un pied de page est coupé chez toi, c'est que ma mesure ne vaut pas
+pour ta fenêtre, et je veux le savoir.
 
 ---
 
