@@ -14,9 +14,23 @@
 	d'asset, donc un televersement sur un compte, donc quelque chose que
 	personne ne peut relire dans ce depot ni rejouer ailleurs. Tout ici est
 	geometrique : un `Motor6D` entre la main et l'arme, et son `C0` qu'on
-	anime. Le prix a payer est qu'on ne bouge que l'arme, pas le bras ; le
-	gain est qu'une arme neuve se decrit entierement dans `Config.items`, en
-	six chiffres, sans sortir de l'editeur.
+	anime. Une arme neuve se decrit entierement dans `Config.items`, en six
+	chiffres, sans sortir de l'editeur.
+
+	LE BRAS BOUGE AUSSI, ET PAS PAR UN `Motor6D`. Le premier jet visait
+	l'epaule, comme pour l'arme. Ca ne marche pas, et la raison se voit en
+	jeu : sur les avatars d'aujourd'hui, l'epaule n'est PAS un `Motor6D` mais
+	un `AnimationConstraint`, que l'animateur de Roblox reecrit a chaque
+	image. Le seul moyen qui marche sur les deux squelettes est `IKControl` :
+	on pose une attache sur le torse, on dit a la main d'aller la chercher, et
+	on fait monter puis redescendre le poids du controle. A poids zero,
+	l'animation d'origine est intacte — donc aucun saut au depart ni au
+	retour, et rien a defaire si le geste est interrompu.
+
+	L'ARME DIT COMMENT, LE BRAS DIT OU. Le `C0` de l'arme la fait tourner
+	dans la main ; l'IK ne fait que porter la main ailleurs, sans toucher a
+	son orientation (`IKControlType.Position`). Melanger les deux ferait
+	tourner l'arme deux fois, une fois par l'arme et une fois par le poignet.
 
 	CE SERVICE NE REQUIERT RIEN DU SERVEUR. Pas de `CombatService`, pas de
 	`LoadoutService` : c'est `LoadoutService` qui l'appelle, jamais l'inverse.
@@ -39,6 +53,8 @@ local Config = require(Arena:WaitForChild("Config"))
 
 local MODEL_NAME = "ArenaWeapon"
 local GRIP_NAME = "ArenaGrip"
+local ARM_NAME = "ArenaArm"
+local TARGET_NAME = "ArenaHandTarget"
 
 -- Ce que chaque joueur est cense porter. C'est la memoire qui permet de
 -- rebatir l'arme apres une mort, et de ne rien rebatir quand l'arme n'a pas
@@ -51,6 +67,124 @@ local restC0: { [Player]: CFrame } = {}
 -- lance il y a 70 ms repose l'arme en plein milieu du coup suivant, et une
 -- arme rapide comme le couteau tremble au lieu de frapper.
 local swingToken: { [Player]: number } = {}
+
+-- LE BRAS. `armRest` est la position de la main au repos, DANS LE REPERE DU
+-- TORSE. Elle se mesure et ne s'ecrit pas : elle depend de la taille de
+-- l'avatar, que le joueur choisit, et un chiffre ecrit ici serait juste pour un
+-- seul corps.
+local armControl: { [Player]: IKControl } = {}
+local armTarget: { [Player]: Attachment } = {}
+local armRest: { [Player]: Vector3 } = {}
+
+local function forgetArm(player: Player)
+	local control = armControl[player]
+	if control ~= nil then
+		control:Destroy()
+	end
+	local target = armTarget[player]
+	if target ~= nil then
+		target:Destroy()
+	end
+	armControl[player] = nil
+	armTarget[player] = nil
+	armRest[player] = nil
+end
+
+-- Prepare le bras droit du personnage actuel. Renvoie faux quand le squelette
+-- ne s'y prete pas : un avatar R6 n'a qu'une seule part pour tout le bras, donc
+-- il n'y a aucune articulation a flechir. Dans ce cas l'arme bouge et le bras
+-- non, exactement comme avant — mieux vaut ca qu'un bras casse.
+local function prepareArm(player: Player): boolean
+	local existing = armControl[player]
+	if existing ~= nil and existing.Parent ~= nil then
+		return true
+	end
+	forgetArm(player)
+
+	local character = player.Character
+	if character == nil then
+		return false
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local torso = character:FindFirstChild("UpperTorso")
+	local hand = character:FindFirstChild("RightHand")
+	local upper = character:FindFirstChild("RightUpperArm")
+	if humanoid == nil or upper == nil then
+		return false
+	end
+	if torso == nil or not torso:IsA("BasePart") then
+		return false
+	end
+	if hand == nil or not hand:IsA("BasePart") then
+		return false
+	end
+
+	-- L'attache est posee SUR LE TORSE, et pas dans le monde : elle suit donc
+	-- le personnage qui court, qui tourne et qui tombe sans qu'une seule ligne
+	-- de code s'en occupe.
+	local target = Instance.new("Attachment")
+	target.Name = TARGET_NAME
+	target.CFrame = torso.CFrame:ToObjectSpace(hand.CFrame)
+	target.Parent = torso
+
+	local control = Instance.new("IKControl")
+	control.Name = ARM_NAME
+	-- `Position` et pas `Transform` : l'orientation de la main reste celle de
+	-- l'animation de Roblox, et c'est le `C0` de l'arme qui tourne.
+	control.Type = Enum.IKControlType.Position
+	control.ChainRoot = upper
+	control.EndEffector = hand
+	control.Target = target
+	-- Poids zero : le controle existe mais ne fait rien. C'est l'etat de repos,
+	-- et c'est ce qui permet de le laisser en place en permanence.
+	control.Weight = 0
+	control.Parent = humanoid
+
+	armControl[player] = control
+	armTarget[player] = target
+	armRest[player] = target.CFrame.Position
+	return true
+end
+
+-- La main part chercher un point. `pose` porte le meme nom que le geste de
+-- l'arme — « slash », « overhead »... — plus « fist » quand il n'y a pas d'arme
+-- du tout.
+local function reachOut(player: Player, pose: string)
+	if not prepareArm(player) then
+		return
+	end
+	local move = Config.loadout.bodyMotion[pose]
+	local target = armTarget[player]
+	local control = armControl[player]
+	local rest = armRest[player]
+	if move == nil or target == nil or control == nil or rest == nil then
+		return
+	end
+
+	-- L'avant de Roblox est -Z. C'est la seule conversion de tout le fichier, et
+	-- elle est ici pour que `Config` parle en mots plutot qu'en axes.
+	target.CFrame = CFrame.new(rest + Vector3.new(move.right, move.up, -move.forward))
+
+	local out = TweenInfo.new(
+		Config.loadout.weaponMotion.outSeconds,
+		Enum.EasingStyle.Quad,
+		Enum.EasingDirection.Out
+	)
+	TweenService:Create(control, out, { Weight = 1 }):Play()
+end
+
+local function comeBack(player: Player)
+	local control = armControl[player]
+	if control == nil or control.Parent == nil then
+		return
+	end
+	local back = TweenInfo.new(
+		Config.loadout.weaponMotion.backSeconds,
+		Enum.EasingStyle.Quad,
+		Enum.EasingDirection.Out
+	)
+	TweenService:Create(control, back, { Weight = 0 }):Play()
+end
 
 local function triple(values: { number }): Vector3
 	return Vector3.new(values[1], values[2], values[3])
@@ -209,46 +343,47 @@ function WeaponService.show(player: Player, item: any)
 	build(player, item)
 end
 
--- Le geste. Il part vite et il revient lentement : un coup est sec, un retour
--- au repos ne l'est pas. Les angles sont ceux de `Config.loadout.weaponMotion`
--- et dependent de l'arme, pas de la classe — c'est le marteau qui s'abat, pas
--- le Colosse.
+-- Le geste, bras et arme ensemble. Il part vite et il revient lentement : un
+-- coup est sec, un retour au repos ne l'est pas. Les chiffres viennent de
+-- `Config.loadout.weaponMotion` pour l'arme et de `bodyMotion` pour la main, et
+-- dependent de l'arme, pas de la classe — c'est le marteau qui s'abat, pas le
+-- Colosse.
 function WeaponService.swing(player: Player, item: any)
-	local grip = joints[player]
-	if grip == nil or grip.Parent == nil then
-		return
-	end
-	local rest = restC0[player]
-	if rest == nil then
-		return
-	end
-
-	local look = item ~= nil and item.look or nil
-	if look == nil then
-		return
-	end
-
 	local motion = Config.loadout.weaponMotion
-	local kind = motion[look.swing]
-	if kind == nil then
-		return
-	end
+	local look = if item ~= nil then item.look else nil
 
-	local target = rest
-		* CFrame.new(0, 0, kind.pullStuds)
-		* CFrame.Angles(math.rad(kind.pitch), math.rad(kind.yaw), math.rad(kind.roll))
+	-- LE BRAS PART MEME SANS ARME. `item` vaut nil quand la classe frappe a
+	-- mains nues, et un coup de poing dont rien ne bouge est un coup qu'on croit
+	-- avoir rate. C'est le seul geste du jeu qui n'a pas d'arme a animer, donc
+	-- le seul qui serait entierement invisible.
+	reachOut(player, if look ~= nil then look.swing else "fist")
 
-	local out = TweenInfo.new(motion.outSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	TweenService:Create(grip, out, { C0 = target }):Play()
-
+	-- UN SEUL JETON POUR LES DEUX, parce que c'est un seul geste : le bras et
+	-- l'arme doivent revenir ensemble, ou pas du tout. Deux jetons separes et un
+	-- coup rapide reposerait l'arme en laissant le bras tendu.
 	local token = (swingToken[player] or 0) + 1
 	swingToken[player] = token
+
+	local grip = joints[player]
+	local rest = restC0[player]
+	local kind = if look ~= nil then motion[look.swing] else nil
+	if kind ~= nil and grip ~= nil and grip.Parent ~= nil and rest ~= nil then
+		local target = rest
+			* CFrame.new(0, 0, kind.pullStuds)
+			* CFrame.Angles(math.rad(kind.pitch), math.rad(kind.yaw), math.rad(kind.roll))
+
+		local out =
+			TweenInfo.new(motion.outSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(grip, out, { C0 = target }):Play()
+	end
 
 	task.delay(motion.outSeconds, function()
 		-- Un coup plus recent est parti : c'est lui qui decidera du retour.
 		if swingToken[player] ~= token then
 			return
 		end
+		comeBack(player)
+
 		local still = joints[player]
 		local home = restC0[player]
 		if still == nil or still.Parent == nil or home == nil then
@@ -272,6 +407,12 @@ function WeaponService.init()
 		player.CharacterAdded:Connect(function()
 			-- Le personnage arrive membre par membre : la main n'existe pas
 			-- forcement a l'instant ou l'evenement part.
+			forgetArm(player)
+			task.delay(Config.loadout.bodyMotion.settleSeconds, function()
+				-- Le bras se prepare pour TOUT LE MONDE, arme ou pas : un coup
+				-- de poing bouge le bras aussi.
+				prepareArm(player)
+			end)
 			task.defer(function()
 				local item = wanted[player]
 				if item == nil then
@@ -289,6 +430,7 @@ function WeaponService.init()
 	Players.PlayerAdded:Connect(watch)
 
 	Players.PlayerRemoving:Connect(function(player)
+		forgetArm(player)
 		wanted[player] = nil
 		joints[player] = nil
 		restC0[player] = nil

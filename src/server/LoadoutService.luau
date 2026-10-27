@@ -404,6 +404,9 @@ end
 function LoadoutService.swingWeapon(entry: Entry, distance: number?): string?
 	local item = weaponAt(entry, distance)
 	if item == nil then
+		-- Sans arme, le bras part quand meme : un coup de poing qui ne se voit
+		-- pas est un coup qu'on croit avoir rate.
+		WeaponService.swing(entry.player, nil)
 		return nil
 	end
 	WeaponService.show(entry.player, item)

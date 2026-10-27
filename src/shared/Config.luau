@@ -1004,6 +1004,45 @@ Config.loadout = {
 		recoil = { pitch = 26, yaw = 0, roll = 0, pullStuds = 0.45 },
 		draw = { pitch = 0, yaw = 0, roll = 0, pullStuds = 1.4 },
 	},
+
+	-- LE BRAS. Le geste de l'arme dit COMMENT elle bouge ; celui-ci dit OU va
+	-- la main. Les deux sont separes expres : l'arme tourne sur elle-meme dans
+	-- la main, le bras ne fait que porter la main ailleurs. Melanger les deux
+	-- ferait tourner l'arme deux fois.
+	--
+	-- CHAQUE POSE EST UN DEPLACEMENT DE LA MAIN, EN STUDS, dans le repere du
+	-- torse : `right` vers la droite du personnage, `up` vers le haut,
+	-- `forward` vers l'avant. Les noms sont des mots et pas des axes, parce
+	-- que l'avant de Roblox est -Z et que c'est la source d'erreur numero un.
+	--
+	-- CE QUE LE BRAS PEUT REELLEMENT FAIRE, mesure en jeu le 27 octobre 2026
+	-- sur un avatar R15 : une demande de 2 studs vers le haut deplace la main
+	-- de 1,85, vers l'avant de 1,25, mais VERS L'INTERIEUR DU CORPS de 0,36
+	-- seulement. L'epaule a une butee, et aucun chiffre ecrit ici ne la fera
+	-- ceder. Un grand moulinet qui traverse le corps est donc impossible, et
+	-- c'est pour ca que la machette avance surtout au lieu de faucher.
+	--
+	-- La duree vient de `weaponMotion` : le bras et l'arme partent ensemble,
+	-- sinon ils se contredisent.
+	bodyMotion = {
+		-- LE DELAI AVANT DE MESURER LA MAIN AU REPOS. Un personnage arrive
+		-- membre par membre et l'animation de repos met un instant a le
+		-- prendre en main : mesurer trop tot donne une main au mauvais
+		-- endroit, et tout le geste part de travers. Une demi-seconde est
+		-- largement sous le temps qu'il faut a un joueur pour frapper, donc
+		-- ca ne se voit pas.
+		settleSeconds = 0.5,
+
+		slash = { right = -0.5, up = 0.15, forward = 1.2 },
+		overhead = { right = 0, up = -0.1, forward = 1.5 },
+		-- Une arme a feu repousse : la main recule, elle n'avance pas.
+		recoil = { right = 0, up = 0.15, forward = -0.35 },
+		-- L'arc se bande : la main tire la corde vers soi.
+		draw = { right = 0, up = 0.1, forward = -0.5 },
+		-- Sans arme. C'est le seul geste qui n'a pas d'equivalent dans
+		-- `weaponMotion`, et c'est voulu : un coup de poing doit se voir.
+		fist = { right = -0.1, up = 0.1, forward = 1.5 },
+	},
 }
 
 --------------------------------------------------------------------------------

@@ -978,6 +978,59 @@ endroit-là pour toujours. Les tests relisent donc le code du client et du
 serveur, et vérifient que chaque nom de son écrit en toutes lettres existe dans
 le catalogue.
 
+## 27 octobre 2026 — Le bras qui bouge, et l'épaule qui dit non
+
+L'arme bougeait toute seule depuis le 26 octobre : elle tournait dans une main
+immobile. Le bras bouge maintenant avec elle.
+
+**Ce n'est pas un `Motor6D`, et c'est la découverte de la journée.** Le premier
+jet visait l'épaule comme pour l'arme : on anime le `C0` de l'articulation et
+le membre suit. Ça ne marche pas, et la raison ne se devine pas — elle se lit
+en jeu. Sur l'avatar de test, le corps n'a **aucun `Motor6D`** : l'épaule est
+un `AnimationConstraint` doublé d'un `BallSocketConstraint`, et l'animateur de
+Roblox le réécrit à chaque image. Un `C0` posé là est effacé avant d'être
+affiché.
+
+Le moyen qui marche sur les deux squelettes est `IKControl` : on pose une
+attache sur le torse, on dit à la main d'aller la chercher, et on fait monter
+puis redescendre le **poids** du contrôle. À poids zéro, l'animation d'origine
+est intacte — donc aucun saut au départ ni au retour, et rien à défaire si le
+geste est interrompu en plein milieu.
+
+**L'arme dit comment, le bras dit où.** Deux tables séparées dans `Config`, et
+c'est voulu : le `C0` de l'arme la fait tourner dans la main (`weaponMotion`),
+l'IK ne fait que porter la main ailleurs (`bodyMotion`), sans toucher à son
+orientation. Mélanger les deux ferait tourner l'arme deux fois, une fois par
+l'arme et une fois par le poignet. Les deux partent en même temps et reviennent
+en même temps, sur **un seul jeton** : deux jetons séparés, et un coup rapide
+reposerait l'arme en laissant le bras tendu.
+
+**L'épaule a une butée, et aucun chiffre ne la fera céder.** Mesuré en jeu :
+une demande de 2 studs déplace la main de 1,85 vers le haut, de 1,25 vers
+l'avant, mais de **0,36 seulement vers l'intérieur du corps**. Le grand
+moulinet qui traverse la poitrine est donc impossible, et ce n'est pas un
+réglage à trouver. La machette avance surtout au lieu de faucher, et c'est la
+limite du squelette, pas un choix. Un test refuse toute pose qui demande plus
+de 2 studs : au-delà, le chiffre écrit dans `Config` cesse de décrire ce qui se
+passe à l'écran, et on réglerait un geste à l'aveugle.
+
+**Le coup de poing est le geste qui comptait le plus.** C'est le seul qui n'a
+pas d'arme à animer, donc le seul qui était **entièrement invisible** : une
+classe sans arme équipée frappait sans que rien ne bouge. Il a sa pose, `fist`,
+et c'est la seule de `bodyMotion` qui n'ait pas d'équivalent dans
+`weaponMotion`.
+
+**Les avatars R6 n'ont pas de bras à plier.** Un seul `Right Arm` pour tout le
+membre : il n'y a aucune articulation intermédiaire à fléchir, donc le bras est
+laissé tranquille et seule l'arme bouge, exactement comme avant. Mieux vaut ça
+qu'un bras cassé.
+
+**La position de la main au repos se mesure, elle ne s'écrit pas.** Elle dépend
+de la taille de l'avatar, que le joueur choisit : un chiffre écrit dans
+`Config` serait juste pour un seul corps. Elle est relevée une demi-seconde
+après l'apparition du personnage — le temps que les membres finissent d'arriver
+et que l'animation de repos le prenne en main.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

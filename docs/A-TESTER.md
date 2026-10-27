@@ -705,6 +705,55 @@ l'affichage, qui part quatre fois par seconde, ne sonne pas.
 
 ---
 
+## 16. Le bras bouge aussi — **calculé et testé, jamais vu bouger**
+
+Depuis le 26 octobre, l'arme tournait dans une main immobile. Le bras part
+maintenant avec elle : la main avance, recule ou se lève selon le geste, et
+revient au repos aussitôt après.
+
+**Ce que je peux affirmer, et ce que je ne peux pas.** J'ai prouvé en jeu, par
+une sonde et des mesures, que le moyen employé (`IKControl`) déplace bel et
+bien la main sur ce squelette, et de combien. Les tests vérifient que chaque
+geste d'arme a sa pose de bras, qu'aucune pose ne traîne sans geste, et que
+chaque pose part dans le bon sens. Ce que je n'ai **pas** pu faire, parce que
+la place n'était pas ouverte dans Studio au moment de finir : voir le geste
+complet se jouer en frappant. Donc **tu es le premier à le regarder**.
+
+126. **Frappe avec la machette.** La main doit partir vers l'avant et un peu
+     vers l'intérieur, pas vers l'extérieur. Si elle part du mauvais côté, le
+     signe de `slash` dans `Config.loadout.bodyMotion` est à inverser.
+127. **Frappe avec le marteau.** La main avance franchement, et l'arme s'abat.
+     Les deux doivent partir et revenir **ensemble** — si l'arme se repose en
+     laissant le bras tendu, dis-le, c'est un bug de jeton.
+128. **Tire au fusil.** La main doit **reculer**, pas avancer. C'est le geste le
+     plus facile à avoir à l'envers, et c'est aussi le plus visible.
+129. **Bande l'arc.** Même chose : la main tire vers soi.
+130. **Puis déséquipe tout et frappe à mains nues.** C'est le point le plus
+     important de la section : avant aujourd'hui, un coup de poing ne faisait
+     **rien bouger du tout**. Est-ce qu'on voit enfin qu'on frappe ?
+131. **Frappe très vite, plusieurs fois de suite, avec le couteau.** Le geste
+     dure 0,23 s et le couteau peut frapper plus vite que ça sur certaines
+     classes. Est-ce que le bras tremble, ou est-ce qu'il enchaîne ?
+132. **Regarde un adversaire frapper, de loin.** Le mouvement sert surtout à
+     ça : savoir qu'un coup est parti sans voir la barre de vie descendre.
+     Est-ce que ça se lit à dix studs ? À trente ?
+133. **Change d'avatar pour un corps très grand ou très petit**, et refrappe.
+     La position de repos de la main se mesure sur chaque corps, donc ça devrait
+     marcher partout — mais c'est exactement le genre de chose qui se voit en le
+     faisant.
+134. **Si tu joues en R6** (un avatar à six parties, pas quinze), le bras ne
+     bougera **pas**, et c'est voulu : ce squelette n'a aucune articulation de
+     coude à plier. L'arme bouge quand même.
+
+**Un geste ample est impossible, et ce n'est pas un réglage.** Mesuré en jeu :
+l'épaule laisse la main monter de 1,85 stud et avancer de 1,25, mais ne la
+laisse rentrer vers le corps que de **0,36**. Un moulinet qui traverse la
+poitrine ne se fera jamais avec ce moyen-là. Si le geste te paraît trop petit,
+la réponse n'est pas un chiffre plus grand — c'est une animation téléversée, et
+c'est une décision à prendre ensemble.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -721,10 +770,15 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   payant. L'écran des cotes est déjà conforme pour le jour où.
 - **les objets débloqués ne verrouillent pas l'équipement** — tout le monde a
   accès aux treize. À rebrancher quand le catalogue sera plus grand.
-- **les animations d'attaque du corps** — l'arme bouge maintenant dans la main,
-  mais le **bras ne bouge pas**. Un vrai mouvement de personnage demande une
-  animation téléversée sur un compte Roblox, donc un identifiant d'asset que
-  personne ne peut vérifier en lisant le dépôt. C'est à décider ensemble.
+- **le geste du corps reste petit** — le bras bouge maintenant avec l'arme,
+  sans une seule animation téléversée, mais l'épaule de Roblox a une butée
+  mesurée : la main ne rentre vers le corps que de 0,36 stud. Un vrai moulinet
+  demande une animation téléversée sur un compte, donc un identifiant d'asset
+  que personne ne peut vérifier en lisant le dépôt. C'est à décider ensemble,
+  et seulement si le geste actuel ne suffit pas. Section 16.
+- **le reste du corps ne bouge toujours pas** — les jambes, le torse et la
+  tête jouent les animations par défaut de Roblox. Seul le bras droit répond
+  aux attaques.
 - **le couteau reste à peine visible** — 1,6 stud de lame sur un personnage de
   5, c'est honnête pour un objet à 2 points dont la portée est réduite de 30 %,
   mais si ça gêne en jouant, c'est un choix à faire : l'agrandir mentirait sur

@@ -334,6 +334,32 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   avant de juger des signes : ne pas retirer cette premiere moitie, c'est elle
   qui rend la seconde credible.
 
+- **Le corps d'un avatar n'a plus de `Motor6D`, donc son `C0` ne sert a rien.**
+  Verifie en jeu le 27 octobre 2026 : sur l'avatar de test, les seuls `Motor6D`
+  du personnage sont ceux que le jeu a poses lui-meme, plus la tete. L'epaule
+  est un `AnimationConstraint` double d'un `BallSocketConstraint`, que
+  l'animateur de Roblox reecrit a chaque image : une valeur ecrite la est
+  effacee avant d'etre affichee. Le moyen qui marche sur les deux squelettes
+  est `IKControl`, pose sur l'`Humanoid`, avec une attache sur le torse pour
+  cible et son **poids** anime de 0 a 1 puis retour. A poids zero l'animation
+  d'origine est intacte, donc rien ne saute et il n'y a rien a defaire si le
+  geste est interrompu.
+
+  Deux consequences a ne pas perdre : **l'epaule a une butee** — 2 studs
+  demandes donnent 1,85 vers le haut, 1,25 vers l'avant et **0,36 seulement
+  vers l'interieur du corps**, donc un moulinet qui traverse la poitrine est
+  impossible et aucun chiffre ne l'obtiendra ; et **la position de la main au
+  repos se mesure**, une demi-seconde apres l'apparition du personnage, parce
+  qu'elle depend de la taille de l'avatar que le joueur choisit.
+
+- **Le bras et l'arme sont deux tables, un seul geste.** `weaponMotion` dit
+  COMMENT l'arme tourne dans la main, `bodyMotion` dit OU va la main : les
+  melanger ferait tourner l'arme deux fois. Ils partagent la duree et **un seul
+  jeton**, parce qu'ils doivent revenir ensemble ou pas du tout. Un geste de
+  plus dans l'une des deux tables sans son equivalent dans l'autre ne leve
+  rien : le bras reste immobile pendant que l'arme part, et un test le refuse
+  desormais dans les deux sens.
+
 - **Rien de visuel ne touche a l'equilibrage.** Le bloc `look` d'un objet ne
   contient que des tailles, des couleurs et des angles, et aucun de ses
   chiffres n'entre dans un calcul de degats, de portee ou de budget. C'est le
@@ -432,7 +458,11 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    jeu, choix de la classe, points d'arbre à la demande, budget relevé, jusqu'à
    quatre mannequins aux statistiques d'une vraie classe. Pas un bot, et la
    raison est dans les pièges ci-dessus
-10. Ce qui reste : le mouvement du corps, les quarante-neuf autres objets, les
+10. Le bras qui bouge pendant les attaques — **fait** : la main avance,
+   recule ou se lève avec le geste de l'arme, par `IKControl` et sans une
+   seule animation téléversée. Le coup de poing se voit enfin. L'épaule a une
+   butée mesurée, donc un geste ample est impossible par ce moyen
+11. Ce qui reste : le reste du corps, les quarante-neuf autres objets, les
    skins, et l'achat de pièces en Robux
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans

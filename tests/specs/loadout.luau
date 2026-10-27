@@ -668,4 +668,100 @@ return function(t: harness.Harness)
 	-- Une arme a feu leve le canon, elle ne le plonge pas.
 	t.equal("le fusil leve son canon", tipTravel("shotgun")[2] > 0.2, true)
 	t.equal("le pistolet-mitrailleur aussi", tipTravel("smg")[2] > 0.2, true)
+
+	-- LE BRAS, MAINTENANT. Meme panne possible que pour l'arme, et pire : une
+	-- pose absente ne leve rien, le bras reste simplement immobile pendant que
+	-- l'arme part, et personne ne sait que le geste est a moitie la.
+	t.section("Le bras a une pose pour chaque geste")
+
+	local body = Config.loadout.bodyMotion
+
+	-- CHAQUE GESTE D'ARME A SA POSE DE BRAS, et c'est la premiere chose a
+	-- verifier : ajouter un geste dans `weaponMotion` sans sa pose ici est
+	-- l'erreur naturelle, puisque les deux tables sont voisines mais separees.
+	for kindName, kind in motion do
+		if typeof(kind) ~= "table" then
+			continue
+		end
+		t.equal("le geste « " .. kindName .. " » a une pose de bras", body[kindName] ~= nil, true)
+	end
+
+	-- Le poing est le seul geste sans arme, donc le seul que `weaponMotion` ne
+	-- nomme pas. C'est aussi celui qui compte le plus : sans arme, le bras est
+	-- la SEULE chose qui bouge.
+	t.equal("et le poing a la sienne", body.fist ~= nil, true)
+
+	-- L'INVERSE AUSSI. Une pose que plus aucun geste ne nomme ne fait rien et
+	-- ne se voit pas : c'est la meme panne que les branches creuses de l'arbre.
+	local orphan: string? = nil
+	for poseName, pose in body do
+		if typeof(pose) ~= "table" then
+			continue
+		end
+		if poseName ~= "fist" and motion[poseName] == nil then
+			orphan = poseName
+		end
+	end
+	t.equal("aucune pose ne traine sans geste", orphan, nil)
+
+	-- La duree n'est ecrite qu'a un seul endroit. Si elle existait ici aussi,
+	-- le bras et l'arme pourraient partir ensemble et revenir separement, et
+	-- rien ne le dirait.
+	t.equal("la duree reste celle de l'arme", body.outSeconds, nil)
+	t.equal("le retour aussi", body.backSeconds, nil)
+
+	t.section("Chaque pose deplace vraiment la main")
+
+	-- Une pose a trois zeros se declare, se verifie, et ne fait rien du tout.
+	for poseName, pose in body do
+		if typeof(pose) ~= "table" then
+			continue
+		end
+		for _, axis in { "right", "up", "forward" } do
+			t.equal(
+				"« " .. poseName .. " » nomme son axe « " .. axis .. " »",
+				typeof(pose[axis]),
+				"number"
+			)
+		end
+		local reach = math.abs(pose.right) + math.abs(pose.up) + math.abs(pose.forward)
+		t.equal("« " .. poseName .. " » bouge la main", reach > 0.1, true)
+
+		-- L'EPAULE A UNE BUTEE, mesuree en jeu le 27 octobre 2026 : une demande
+		-- de 2 studs deplace la main de 1,85 vers le haut mais de 0,36
+		-- seulement vers l'interieur du corps. Au-dela de 2, le chiffre ecrit
+		-- dans Config cesse de decrire ce qui se passe a l'ecran, et on reglerait
+		-- un geste a l'aveugle.
+		t.equal(
+			"et elle reste dans ce que l'epaule peut donner",
+			math.max(math.abs(pose.right), math.abs(pose.up), math.abs(pose.forward)) <= 2,
+			true
+		)
+	end
+
+	t.section("La main part dans le bon sens")
+
+	-- LA SEULE CONVERSION DU SERVICE, REFAITE ICI. `WeaponService` pose la
+	-- cible a `rest + Vector3.new(right, up, -forward)`, parce que l'avant de
+	-- Roblox est -Z. Un signe oublie la et « recoil » pousserait la main en
+	-- avant au lieu de la faire reculer : le fusil avancerait en tirant.
+	local function handTravel(poseName: string): { number }
+		local pose = body[poseName]
+		return { pose.right, pose.up, -pose.forward }
+	end
+
+	-- Une arme a feu repousse, un arc se bande : dans les deux cas la main
+	-- recule, donc elle part vers le +Z du torse.
+	t.equal("le fusil recule la main", handTravel("recoil")[3] > 0, true)
+	t.equal("l'arc la tire vers soi", handTravel("draw")[3] > 0, true)
+
+	-- Les trois autres frappent devant, donc vers le -Z.
+	t.equal("la machette avance", handTravel("slash")[3] < 0, true)
+	t.equal("le marteau aussi", handTravel("overhead")[3] < 0, true)
+	t.equal("et le poing autant que les armes", handTravel("fist")[3] < 0, true)
+
+	-- La main est la droite : une frappe qui traverse le corps va vers la
+	-- gauche, c'est-a-dire vers le -X. C'est la meme logique que pour la pointe
+	-- de la machette ci-dessus, un etage plus haut dans le bras.
+	t.equal("la machette ramene la main vers le corps", handTravel("slash")[1] < 0, true)
 end
