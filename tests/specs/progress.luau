@@ -325,5 +325,18 @@ return function(t: harness.Harness)
 	t.check("les parties privees ne comptent pas", not Rating.counts(Config, true))
 	t.check("le miroir du 1v1 est classe", Config.elo.mirrorRanked)
 
+	-- LES PIECES SUIVENT LE CLASSEMENT. Les deux interrupteurs ont ete ecrits
+	-- le meme jour et lus par personne pendant des semaines : Rating.counts
+	-- existait, etait teste ici, et aucun service ne l'appelait — donc une
+	-- partie d'essai entre amis deplacait les vrais classements. Les deux
+	-- repondent maintenant a Venue.isPrivate dans ProgressService.awardMatch.
+	t.check("une partie publique paie", Economy.paysIn(Config, false))
+	t.check("une partie privee ne paie pas", not Economy.paysIn(Config, true))
+	t.equal(
+		"et les deux interrupteurs disent la meme chose",
+		Economy.paysIn(Config, true),
+		Rating.counts(Config, true)
+	)
+
 	t.equal("un classement s'arrondit a l'entier", Rating.rounded(1042.6), 1043)
 end

@@ -2,8 +2,20 @@
 --[[
 	MatchService — la boucle d'une partie du prototype.
 
-	Attendre deux joueurs, distribuer les deux classes, jouer les manches
-	jusqu'a ce qu'une equipe atteigne le compte, annoncer, recommencer.
+	Attendre assez de monde, composer deux equipes, distribuer les classes,
+	jouer les manches jusqu'a ce qu'une equipe atteigne le compte, annoncer,
+	recommencer.
+
+	QUI JOUE N'EST PLUS DECIDE ICI. Le format, les places et les equipes sont
+	calcules par Seating, qui est pur et teste hors de Studio ; cette boucle ne
+	fait que traduire ses identifiants en joueurs. Avant ca, elle asseyait les
+	DEUX PREMIERS joueurs arrives, en dur, et un troisieme n'avait aucune
+	equipe.
+
+	UN DEPART NE TUE PLUS LA PARTIE. Le partant est retire de la liste a chaque
+	tour de boucle ; la manche se resout toute seule puisque Downed compte les
+	equipes qui tiennent encore. Si un camp entier s'en va, la partie s'arrete
+	et NE PAIE PERSONNE : voir le commentaire au-dessus de awardMatch.
 
 	Le score lui-meme est calcule par MatchState, qui est pur et teste hors de
 	Studio. Ici on ne fait que ce qui demande Roblox : faire apparaitre les
@@ -39,9 +51,11 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Config = require(Arena:WaitForChild("Config"))
 local Classes = require(Arena:WaitForChild("Classes"))
 local MatchState = require(Arena:WaitForChild("MatchState"))
+local Seating = require(Arena:WaitForChild("Seating"))
 
 local Remotes = Arena:WaitForChild("Remotes")
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
+local sideRemote = Remotes:WaitForChild("Side") :: RemoteEvent
 
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
@@ -53,14 +67,38 @@ local ProgressService = require(script.Parent:WaitForChild("ProgressService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local SandboxService = require(script.Parent:WaitForChild("SandboxService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
+local Venue = require(script.Parent:WaitForChild("Venue"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
-
-local TEAMS = { "A", "B" }
-local PLAYERS_NEEDED = 2
 
 local map: Instance? = nil
 local swapClasses = false
 local roundEntries: { CombatService.Entry } = {}
+
+-- Combien de parties chacun a passees sur le banc. C'est tout ce que la
+-- rotation du banc a besoin de retenir, et ca meurt avec le serveur : un joueur
+-- qui revient demain repart a zero. C'est voulu — ce compteur sert a repartir
+-- une soiree, pas a porter une progression de compte.
+local benched: { [Player]: number } = {}
+
+-- Ceux qui regardent la partie en cours parce que le format etait plein. Ils
+-- recoivent le meme rafraichissement que les joueurs, sinon leur ecran garde
+-- l'annonce d'attente pendant toute la partie et ils croient le jeu casse.
+local watching: { Player } = {}
+
+-- Le format de la partie en cours ("2v2"), pour les annonces. Vide hors partie.
+local currentFormat = ""
+
+-- Le camp que chacun a demande, en partie privee. Nil veut dire « peu
+-- importe », et ce n'est jamais qu'un voeu : Seating garde les camps egaux.
+local wantedSide: { [Player]: string } = {}
+
+-- EN PARTIE PRIVEE SEULEMENT. Le serveur tranche, pas le client : en partie
+-- classee, deux amis qui demandent le meme camp empileraient un cote, et le
+-- classement de tous les autres paierait l'addition. Un client modifie qui
+-- envoie quand meme sa demande se fait donc ignorer ici.
+local function sideChoiceAllowed(): boolean
+	return Config.seating.sideChoiceInPrivate and Venue.isPrivate()
+end
 
 local function className(classId: string): string
 	local class = Classes.byId[classId]
@@ -118,9 +156,33 @@ local function tell(
 	})
 end
 
+-- La ligne du camp demande. Vide hors partie privee : en classe personne ne
+-- choisit son camp, donc rien a l'ecran ne doit le suggerer.
+local function sideLineFor(player: Player): string
+	if not sideChoiceAllowed() then
+		return ""
+	end
+
+	return string.format(
+		"Ton camp : %s  ·  %s pour changer",
+		wantedSide[player] or "auto",
+		Config.seating.sideKey
+	)
+end
+
 local function tellAll(title: string, status: string)
 	for _, player in Players:GetPlayers() do
 		tell(player, title, status)
+	end
+end
+
+-- L'annonce hors partie. Meme titre pour tout le monde, mais la ligne du bas
+-- est PERSONNELLE : le camp demande l'est. Elle voyage dans le champ `zone`,
+-- qui ne sert a rien tant qu'aucune manche ne tourne — un champ de plus dans le
+-- protocole pour une ligne de texte serait du gaspillage.
+local function tellLobby(title: string, status: string)
+	for _, player in Players:GetPlayers() do
+		tell(player, title, status, sideLineFor(player))
 	end
 end
 
@@ -173,14 +235,82 @@ local function statusFor(entry: CombatService.Entry, state: MatchState.State): s
 	)
 end
 
-local function spawnEntry(entry: CombatService.Entry, index: number)
+-- Les identifiants du plan de placement sont ceux de Downed et de Draft :
+-- l'UserId en texte. La traduction se fait ici et nulle part ailleurs.
+local function idOf(player: Player): string
+	return tostring(player.UserId)
+end
+
+local function candidatesFor(players: { Player }): { Seating.Candidate }
+	local candidates: { Seating.Candidate } = {}
+	for _, player in players do
+		table.insert(candidates, {
+			id = idOf(player),
+			satOut = benched[player] or 0,
+			side = if sideChoiceAllowed() then wantedSide[player] else nil,
+		})
+	end
+	return candidates
+end
+
+-- Retire de la liste ceux qui ont quitte, et renvoie combien. CombatService et
+-- DownedService ont chacun leur PlayerRemoving et se nettoient tout seuls ;
+-- cette liste-ci est celle qui sert a parler aux joueurs, a les faire
+-- apparaitre et a payer la fin de partie, donc elle doit suivre.
+local function dropLeavers(entries: { CombatService.Entry })
+	for index = #entries, 1, -1 do
+		local entry = entries[index]
+		if entry.player.Parent == nil then
+			table.remove(entries, index)
+			print(string.format("[Arena] %s a quitte la partie.", entry.player.Name))
+		end
+	end
+end
+
+-- Vrai quand un camp n'a plus personne du tout, donc vrai aussi sur une liste
+-- vide : aucun camp n'y est present.
+local function aTeamIsEmpty(entries: { CombatService.Entry }): boolean
+	local present: { [string]: boolean } = {}
+	for _, entry in entries do
+		present[entry.team] = true
+	end
+
+	for _, team in Seating.teamNames(Config) do
+		if not present[team] then
+			return true
+		end
+	end
+
+	return false
+end
+
+-- `seat` est le rang DANS SON EQUIPE, pas dans la liste de la partie : a 2v2,
+-- les deux joueurs de l'equipe A sont les entrees 1 et 3, et prendre leur rang
+-- global ferait apparaitre un coequipier a l'autre bout de sa ligne de depart.
+local function spawnEntry(entry: CombatService.Entry, seat: number)
 	local currentMap = map
 	if currentMap == nil then
 		return
 	end
 
 	local positions = MapService.spawnPositions(currentMap, Config, entry.team)
-	local position = positions[((index - 1) % #positions) + 1]
+
+	-- Le contrat de nommage demande cinq points par equipe, donc de quoi tenir
+	-- un 4v4. Une map qui en a moins empile deux joueurs sur le meme point, et
+	-- ca ne se voit qu'en jouant a plusieurs : la personne qui a construit la
+	-- map doit l'apprendre de la console, pas d'un bug.
+	if seat > #positions then
+		warn(
+			string.format(
+				"[Arena] L'equipe %s a %d joueurs pour %d point(s) de depart.",
+				entry.team,
+				seat,
+				#positions
+			)
+		)
+	end
+
+	local position = positions[((seat - 1) % #positions) + 1]
 
 	entry.player:LoadCharacter()
 
@@ -220,8 +350,9 @@ local function alertFor(entry: CombatService.Entry): string
 	return ""
 end
 
--- Renvoie l'equipe gagnante, ou nil si la manche n'a pas de vainqueur (un
--- joueur est parti, ou les deux sont tombes en meme temps).
+-- Renvoie l'equipe gagnante, ou nil quand la manche n'a plus de vainqueur
+-- possible : plus personne en piste, ou deux equipes tombees dans le meme
+-- instant.
 --
 -- Ce n'est plus l'etat des Humanoid qui decide : un joueur a terre est encore
 -- a un PV et son equipe n'est pas eliminee tant que sa fenetre court.
@@ -231,10 +362,16 @@ local function waitForRoundEnd(entries: { CombatService.Entry }, state: MatchSta
 	while true do
 		task.wait(0.1)
 
-		for _, entry in entries do
-			if entry.player.Parent == nil then
-				return nil
-			end
+		-- UN DEPART N'ANNULE PLUS LA PARTIE. A deux joueurs, abandonner etait la
+		-- seule reponse possible ; a six, une coupure de reseau faisait perdre
+		-- leur serie aux cinq autres. Le partant est retire des rosters par les
+		-- services eux-memes, donc la fin de manche se resout d'elle-meme :
+		-- Downed.roundIsOver compte les equipes qui tiennent encore, et une
+		-- equipe vide ne tient pas.
+		dropLeavers(entries)
+
+		if #entries == 0 then
+			return nil
 		end
 
 		-- Quatre rafraichissements par seconde suffisent pour un compte a
@@ -250,6 +387,18 @@ local function waitForRoundEnd(entries: { CombatService.Entry }, state: MatchSta
 					zoneLineFor(entry),
 					alertFor(entry)
 				)
+			end
+
+			-- Et le banc. Sans cette boucle, leur ecran garde l'annonce
+			-- d'attente pendant toute la partie et ils croient le jeu casse.
+			for _, viewer in watching do
+				if viewer.Parent ~= nil then
+					tell(
+						viewer,
+						"Spectateur",
+						string.format("%s en cours  ·  tu joues la partie suivante", currentFormat)
+					)
+				end
 			end
 		end
 
@@ -322,14 +471,6 @@ end
 
 -- Qui joue dans quelle equipe. On en a besoin AVANT le tirage, puisque les
 -- bans se votent par equipe.
-local function teamsFor(players: { Player }): { [Player]: string }
-	local teams: { [Player]: string } = {}
-	for index, player in players do
-		teams[player] = TEAMS[index]
-	end
-	return teams
-end
-
 -- La classe du prototype, utilisee quand le tirage est coupe ou qu'il n'a pas
 -- pu servir tout le monde. Mieux vaut un Vampire de secours qu'un joueur sans
 -- classe, qui n'aurait ni PV ni attaque et ne comprendrait pas pourquoi.
@@ -350,6 +491,16 @@ local function buildEntries(
 	local entries: { CombatService.Entry } = {}
 
 	for index, player in players do
+		local team = teams[player]
+		if team == nil then
+			-- Ne peut pas arriver : le plan de placement donne une equipe a
+			-- chaque joueur assis. Mais un joueur sans equipe ne serait jamais
+			-- compte comme elimine et la manche ne finirait plus jamais, donc on
+			-- refuse de l'asseoir plutot que d'esperer.
+			warn(string.format("[Arena] %s n'a pas d'equipe, il ne joue pas.", player.Name))
+			continue
+		end
+
 		local classId = if drawn then drawn[player] else nil
 		if classId == nil or Config.classStats[classId] == nil then
 			classId = fallbackClass(index)
@@ -357,7 +508,7 @@ local function buildEntries(
 
 		table.insert(entries, {
 			player = player,
-			team = teams[player] or TEAMS[index],
+			team = team,
 			classId = classId,
 			-- Les statistiques de la classe nue. L'arbre les remplace avant
 			-- chaque apparition, par SkillTreeService.refreshStats.
@@ -368,8 +519,8 @@ local function buildEntries(
 	return entries
 end
 
-local function runMatch(players: { Player })
-	local teams = teamsFor(players)
+local function runMatch(players: { Player }, teams: { [Player]: string }, formatId: string)
+	currentFormat = formatId
 
 	-- Les bans, puis le tirage. Coupe, on retombe sur les deux classes du
 	-- prototype : c'est l'interrupteur de comparaison qui permet de rejuger le
@@ -391,6 +542,8 @@ local function runMatch(players: { Player })
 
 	local state = MatchState.create(Config.prototype.roundsToWin)
 
+	print(string.format("[Arena] Partie en %s.", formatId))
+
 	for _, entry in entries do
 		print(
 			string.format(
@@ -403,6 +556,14 @@ local function runMatch(players: { Player })
 	end
 
 	while not MatchState.isOver(state) do
+		-- Un depart pendant la phase de depense ou entre deux manches tombe
+		-- hors de waitForRoundEnd : sans ce passage, on ferait apparaitre le
+		-- personnage d'un joueur qui n'est plus la.
+		dropLeavers(entries)
+		if aTeamIsEmpty(entries) then
+			break
+		end
+
 		DownedService.resetRound()
 		CombatService.clearTemporary()
 
@@ -415,8 +576,11 @@ local function runMatch(players: { Player })
 		-- deja donnee, et pas l'inverse.
 		LoadoutService.refreshStats(entries)
 
-		for index, entry in entries do
-			spawnEntry(entry, index)
+		local seats: { [string]: number } = {}
+		for _, entry in entries do
+			local seat = (seats[entry.team] or 0) + 1
+			seats[entry.team] = seat
+			spawnEntry(entry, seat)
 		end
 
 		countdown(entries, state)
@@ -440,6 +604,8 @@ local function runMatch(players: { Player })
 		if winner == nil then
 			tellAll("Manche interrompue", "")
 			print("[Arena] Manche sans vainqueur, partie abandonnee.")
+			SkillTreeService.endMatch()
+			CombatService.clearTemporary()
 			return
 		end
 
@@ -480,6 +646,21 @@ local function runMatch(players: { Player })
 		)
 
 		task.wait(Config.prototype.secondsBetweenRounds)
+	end
+
+	-- UN CAMP VIDE NE PAIE RIEN, et c'est deliberement severe. Deux raisons qui
+	-- tiennent ensemble : le profil de celui qui part est deja ecrit et ferme
+	-- par le PlayerRemoving de ProgressService, donc il est impossible de lui
+	-- retirer quoi que ce soit ; et un classement qui crediterait le camp
+	-- restant se farmerait a deux comptes, l'un quittant pour l'autre. Personne
+	-- n'a rien gagne ici, donc personne n'est paye.
+	dropLeavers(entries)
+	if aTeamIsEmpty(entries) then
+		tellAll("Partie interrompue", "Une équipe n'a plus de joueurs")
+		print("[Arena] Partie non comptee : une equipe n'avait plus de joueurs.")
+		SkillTreeService.endMatch()
+		CombatService.clearTemporary()
+		return
 	end
 
 	local winner = MatchState.winner(state)
@@ -555,8 +736,9 @@ end
 local function loop()
 	while true do
 		local players = Players:GetPlayers()
+		local plan = Seating.plan(Config, candidatesFor(players))
 
-		if #players < PLAYERS_NEEDED then
+		if plan == nil then
 			-- SEUL : le bac a sable prend la place de l'attente. Il ne rend la
 			-- main que quand un deuxieme joueur arrive, et c'est tout ce que
 			-- cette boucle a besoin de savoir de lui — elle reprend alors son
@@ -570,24 +752,85 @@ local function loop()
 				continue
 			end
 
-			tellAll(
-				"En attente d'un deuxieme joueur",
+			local note = Venue.describe()
+			tellLobby(
+				"En attente de joueurs",
 				string.format(
-					"%d / %d joueurs%s",
+					"%d / %d joueurs%s%s",
 					#players,
-					PLAYERS_NEEDED,
+					Seating.playersNeeded(Config),
+					if note ~= "" then "  ·  " .. note else "",
 					if why ~= "" then "  ·  bac à sable : " .. why else ""
 				)
 			)
-			task.wait(1)
+			task.wait(Config.seating.waitRefreshSeconds)
 			continue
 		end
 
-		runMatch({ players[1], players[2] })
+		-- Le plan parle en identifiants, parce qu'il est pur. On revient aux
+		-- joueurs ici, et c'est le seul endroit qui fait les deux traductions.
+		local byId: { [string]: Player } = {}
+		for _, player in players do
+			byId[idOf(player)] = player
+		end
+
+		local seated: { Player } = {}
+		local teams: { [Player]: string } = {}
+		for _, id in plan.seated do
+			local player = byId[id]
+			if player ~= nil then
+				table.insert(seated, player)
+				teams[player] = plan.teams[id]
+			end
+		end
+
+		watching = {}
+		for _, id in plan.waiting do
+			local player = byId[id]
+			if player ~= nil then
+				table.insert(watching, player)
+			end
+		end
+
+		-- Le banc avance d'un cran pour ceux qui attendent et se remet a zero
+		-- pour ceux qui jouent. C'est ce qui fait tourner les places a cinq
+		-- joueurs : sans ces deux boucles, le cinquieme arrive regarde les
+		-- autres jouer toute la soiree.
+		for _, player in seated do
+			benched[player] = 0
+		end
+		for _, player in watching do
+			benched[player] = (benched[player] or 0) + 1
+		end
+
+		if #watching > 0 then
+			print(string.format("[Arena] %s : %d joueur(s) sur le banc.", plan.formatId, #watching))
+		end
+
+		runMatch(seated, teams, plan.formatId)
+
+		watching = {}
+		currentFormat = ""
 		CombatService.setRoster({})
 		DownedService.setRoster({})
 		roundEntries = {}
-		task.wait(Config.prototype.secondsBetweenMatches)
+
+		-- L'entre-deux-parties n'est pas un temps mort : c'est LE moment ou on
+		-- arrange les equipes en partie privee. L'annonce y tourne donc au lieu
+		-- d'attendre en silence, et chacun voit le camp qu'il a demande.
+		local note = Venue.describe()
+		local deadline = os.clock() + Config.prototype.secondsBetweenMatches
+		while os.clock() < deadline do
+			tellLobby(
+				"Partie suivante",
+				string.format(
+					"dans %d s%s",
+					math.ceil(deadline - os.clock()),
+					if note ~= "" then "  ·  " .. note else ""
+				)
+			)
+			task.wait(Config.seating.waitRefreshSeconds)
+		end
 	end
 end
 
@@ -604,6 +847,42 @@ function MatchService.start()
 	end
 
 	DownedService.onStatusChanged(onStatusChanged)
+
+	-- Sans ca, le compteur du banc garde une reference sur chaque joueur qui a
+	-- traverse le serveur, et celui qui revient retrouve son rang d'il y a deux
+	-- heures.
+	Players.PlayerRemoving:Connect(function(player)
+		benched[player] = nil
+		wantedSide[player] = nil
+	end)
+
+	-- LA DEMANDE DE CAMP. Le client n'envoie qu'un nom de camp, ou rien pour
+	-- revenir a « auto ». Tout le reste est jete, et la demande entiere est
+	-- ignoree hors partie privee : c'est le serveur qui tranche, pas le client.
+	sideRemote.OnServerEvent:Connect(function(player: Player, payload: any)
+		if not sideChoiceAllowed() then
+			return
+		end
+		if typeof(payload) ~= "table" then
+			return
+		end
+
+		local asked = payload.side
+		if asked == nil then
+			wantedSide[player] = nil
+			return
+		end
+		if typeof(asked) ~= "string" then
+			return
+		end
+
+		for _, team in Seating.teamNames(Config) do
+			if asked == team then
+				wantedSide[player] = asked
+				return
+			end
+		end
+	end)
 
 	-- Un achat recalcule les statistiques tout de suite, meme si elles ne seront
 	-- posees sur le personnage qu'a la prochaine apparition : l'interface lit le

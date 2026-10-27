@@ -1232,6 +1232,158 @@ coup. Ce n'est pas de la décoration, donc ce n'est pas à moi de le décider.
 
 ---
 
+## 27 octobre 2026 — Les équipes, qui n'existaient pas
+
+En relisant la boucle de partie pour te proposer la suite, j'ai trouvé une
+chose plus grosse que prévu : **le jeu n'avait jamais eu d'équipes.**
+
+`MatchService` portait un `PLAYERS_NEEDED = 2` en dur et appelait
+`runMatch({ players[1], players[2] })`. Il asseyait les deux premiers joueurs
+arrivés, et l'équipe était donnée par ordre d'arrivée dans une liste de deux
+noms : un troisième joueur n'avait **aucune équipe**. Les quatre formats de
+`Config.formats` — 1v1, 2v2, 3v3, 4v4 — étaient déclarés, commentés, et lus par
+personne. Le 3v3, qui est le format de référence pour l'équilibrage, n'avait
+jamais fait tourner une ligne de code.
+
+Ce qui est frappant, c'est que **tout le reste savait déjà compter en
+équipes** : `Downed.roundIsOver` compte les équipes encore debout,
+`Downed.roundWinner` renvoie la dernière qui tient, le relèvement cherche « un
+coéquipier debout, assez proche », et `DraftService` déduit tout seul la taille
+des équipes depuis la table qu'on lui passe. Rien ne les composait, voilà tout.
+
+### Les décisions que j'ai prises
+
+**Les effectifs impairs descendent d'un format au lieu d'improviser.** À cinq
+joueurs on joue en 2v2 et un joueur attend ; je n'ai pas fait de 3v2. Un 3v2
+est injouable à juger : on ne saurait jamais si une classe est forte ou si elle
+était simplement une de plus. C'est le raisonnement de la fiche appliqué au
+placement — les quatre formats sont pairs, donc le surplus attend.
+
+**Le banc tourne, et c'est la seule chose qu'il retient.** Celui qui vient
+d'attendre passe devant tout le monde à la partie suivante. Sans ça, à cinq
+joueurs, le dernier arrivé regarderait les autres jouer toute la soirée sans
+que le jeu ait un moyen de le lui dire. Le compteur meurt avec le serveur : il
+sert à répartir une soirée, pas à porter une progression de compte — ce serait
+le troisième principe cassé.
+
+**Les équipes s'alternent au lieu d'être coupées en deux blocs.** Les deux
+joueurs qui ont le plus attendu se retrouvent donc face à face. Coupées en
+blocs, le banc fabriquerait une équipe entière de joueurs frais contre une
+équipe qui vient d'enchaîner une série.
+
+**Les équipes ne sont PAS équilibrées par le classement.** C'est volontaire et
+c'est ton appel : l'Elo existe, donc on pourrait répartir les forts et les
+faibles. Je ne l'ai pas fait pour deux raisons — ça demande une lecture de
+profil avant chaque partie, donc un aller-retour DataStore sur le chemin
+critique ; et surtout, équilibrer les équipes et classer les joueurs tirent
+dans deux directions opposées. Si tu veux des parties serrées entre amis de
+niveaux différents, dis-le et je le code.
+
+**Un départ ne tue plus la partie.** `waitForRoundEnd` abandonnait la partie
+dès qu'un joueur quittait. À deux joueurs c'était la seule réponse possible ; à
+six, une coupure de réseau faisait perdre leur série aux cinq autres. Le
+partant est maintenant retiré de la liste et la manche se résout toute seule,
+puisque les services en aval le retirent déjà de leurs rosters.
+
+**Une partie qui perd un camp entier ne paie PERSONNE**, et c'est délibérément
+sévère. Deux raisons qui tiennent ensemble. Le profil de celui qui part est
+déjà écrit et fermé par le `PlayerRemoving` de `ProgressService`, donc il est
+impossible de lui retirer quoi que ce soit. Et un classement qui créditerait le
+camp restant **se farmerait à deux comptes**, l'un quittant pour l'autre.
+Personne n'a rien gagné dans une partie comme ça, donc personne n'est payé.
+
+### Ce que j'ai pu vérifier, et ce que je n'ai pas pu
+
+Vérifié dans la vraie machine virtuelle de Roblox, pas seulement dans les
+tests : les formats se déduisent correctement de 1 à 9 joueurs, les deux camps
+ont toujours le même effectif, le banc tourne, et dix plans identiques à six
+joueurs donnent exactement le même placement — le tri de Roblox est d'accord
+avec celui de Lune sur les égalités. La map a bien cinq points de départ par
+équipe, espacés de 9 studs, donc un 4v4 ne superpose personne.
+
+**Ce que je ne peux pas vérifier : la chose elle-même.** Mon outil de test de
+Studio ne lance qu'une partie solo. Un vrai 2v2 ne se verra qu'avec toi et des
+amis, et c'est le point 140 d'`A-TESTER.md`.
+
+---
+
+## 27 octobre 2026 — Le mode privé, et un interrupteur que personne ne lisait
+
+Tu as demandé pourquoi le placement par ordre d'arrivée, puisqu'en classé on
+devrait arriver en équipe. En allant vérifier ce que le projet avait décidé,
+j'ai trouvé que `Config.elo` le disait depuis le début :
+
+> Le classé est le mode par défaut. Les parties privées entre amis sont natives
+> sur Roblox et ne comptent pas : c'est là qu'on teste.
+
+Donc pas de lobby, pas de file d'attente : serveur public pour le classé,
+serveur privé Roblox pour les essais. Mais `Rating.counts`, la fonction qui
+porte cette règle, **n'était appelée par aucun service** — seulement par les
+tests. `ProgressService.awardMatch` distribuait l'Elo et les pièces dans tous
+les cas. Une partie d'essai entre amis aurait déplacé vos vrais classements,
+exactement pendant le test que je venais de te demander de faire.
+
+C'est la troisième fois que la même panne apparaît : une intention écrite dans
+`Config`, lue par personne. Les branches creuses, les quatre formats, et
+maintenant le mode privé.
+
+### Les décisions
+
+**Les pièces suivent le classement.** `Config.economy.privateMatchesPay` est
+nouveau et vaut `false`, et un test vérifie que les deux interrupteurs disent la
+même chose. Payer sans classer récompenserait un serveur privé à deux joueurs
+complaisants — une caisse toutes les trois minutes ; classer sans payer serait
+incompréhensible. C'est le même raisonnement que le bac à sable, qui n'existe
+qu'avec un seul joueur pour que rien ne s'y gagne.
+
+**Le compte de parties n'avance pas non plus** dans une partie qui ne compte
+pas. Il pilote le coefficient K et l'accélération des nouveaux joueurs : le
+laisser monter userait les deux à blanc sans qu'aucun classement ne bouge.
+
+**Une partie qui ne compte pas le dit à l'écran.** « Partie privée · aucune
+pièce, aucun classement ». Sans ça le joueur gagne, ne voit rien arriver, et
+n'a aucun moyen de savoir si c'est voulu ou cassé.
+
+**Studio compte comme privé.** Sinon chacun de mes tests déplacerait un
+classement réel. Pour vérifier le chemin du classé malgré tout, il y a les deux
+interrupteurs de `Config`, pas une exception cachée dans le code.
+
+**La question « sommes-nous en privé » vit à un seul endroit**, `Venue.luau`.
+Elle avait déjà une copie dans `SandboxService` ; trois copies de la même
+condition finissent par ne plus dire la même chose. C'est la règle des planchers
+de `Modifiers`, appliquée à une question de lieu.
+
+### Le choix du camp
+
+**C'est une préférence, pas une garantie, et je n'ai pas pu faire autrement.**
+Les deux camps doivent rester égaux — un 3v1 annoncé comme un 2v2 rend tout
+l'équilibrage illisible. Donc quand quatre joueurs demandent un camp de trois
+places, le quatrième part en face, et c'est l'ordre du banc qui le désigne. Un
+test vérifie les trois cas : trois amis qui demandent le même camp l'obtiennent,
+un camp sur-demandé ne déborde pas, et quatre vœux pour le même camp laissent
+quand même deux camps égaux.
+
+**Jamais en partie classée, et ce n'est pas de la prudence.** Deux amis qui
+choisissent le même camp sur un serveur public empileraient un côté, et le
+classement de tous les autres paierait l'addition. Le serveur refuse la demande
+au lieu de compter sur le client pour ne pas l'envoyer.
+
+**Une seule touche, `C`, qui fait tourner A puis B puis auto.** Trois touches
+auraient été plus directes, mais 1 à 4 servent déjà aux objets. Un test vérifie
+maintenant qu'aucun réglage ne réclame la même touche qu'un autre — les touches
+sont à trois endroits différents de `Config`, et le camp a failli prendre « 1 ».
+
+### Ce que je n'ai pas pu vérifier
+
+La touche `C` elle-même. J'ai confirmé que `Config.seating.sideKey` se résout
+bien en `Enum.KeyCode.C` et que le cycle donne A, B, auto — et surtout que le
+chemin complet marche, en envoyant la demande directement : l'écran est passé à
+« Ton camp : B ». Mais ma frappe synthétique part dans la fenêtre de Studio et
+pas dans le jeu, donc **je n'ai pas appuyé sur C pour de vrai**. C'est le point
+151 d'`A-TESTER.md`.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

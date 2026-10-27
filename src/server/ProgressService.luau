@@ -39,6 +39,8 @@ local Economy = require(Arena:WaitForChild("Economy"))
 local Loadout = require(Arena:WaitForChild("Loadout"))
 local Rating = require(Arena:WaitForChild("Rating"))
 
+local Venue = require(script.Parent:WaitForChild("Venue"))
+
 local Remotes = Arena:WaitForChild("Remotes")
 local progressRemote = Remotes:WaitForChild("Progress") :: RemoteEvent
 
@@ -357,6 +359,16 @@ function ProgressService.awardMatch(
 		return
 	end
 
+	-- CE QUI COMPTE, ET OU. Une partie privee est une partie d'essai : elle ne
+	-- paie pas et ne classe pas. L'intention etait dans Config et dans
+	-- Rating.counts depuis le debut, et aucun service ne l'appelait — donc une
+	-- partie entre amis deplacait les vrais classements. Les deux interrupteurs
+	-- sont lus separement et pas comme un seul : si l'un est retourne pour un
+	-- essai, l'autre doit continuer a dire la verite.
+	local private = Venue.isPrivate()
+	local ranked = Rating.counts(Config, private)
+	local pays = Economy.paysIn(Config, private)
+
 	-- Le classement d'abord, parce qu'il se calcule sur les valeurs AVANT la
 	-- partie : un joueur dont le compte de parties vient d'avancer n'a plus le
 	-- meme coefficient K.
@@ -372,7 +384,10 @@ function ProgressService.awardMatch(
 		byKey[key] = entry.player
 	end
 
-	local changes = Rating.applyMatch(Config, ratingEntries, teams, winningTeam)
+	local changes: { [string]: Rating.Change } = {}
+	if ranked then
+		changes = Rating.applyMatch(Config, ratingEntries, teams, winningTeam)
+	end
 
 	for _, entry in entries do
 		local player = entry.player
@@ -394,37 +409,57 @@ function ProgressService.awardMatch(
 			roundsLost = theirs,
 		})
 
-		profile.coins += reward.coins
-		profile.matchesPlayed += 1
+		local coins = if pays then reward.coins else 0
+		profile.coins += coins
+
+		-- Le compte de parties n'avance pas non plus dans une partie qui ne
+		-- compte pas : il pilote le coefficient K et l'acceleration des
+		-- nouveaux, donc le laisser monter userait les deux a blanc.
+		if ranked or pays then
+			profile.matchesPlayed += 1
+		end
 
 		local change = changes[key]
 		if change ~= nil then
 			profile.rating = change.after
 		end
 
+		-- UNE PARTIE QUI NE COMPTE PAS LE DIT. Sans ca le joueur gagne, ne voit
+		-- rien arriver, et n'a aucun moyen de savoir si c'est voulu ou casse.
 		progressRemote:FireClient(player, {
 			kind = "match",
 			won = won,
-			coins = reward.coins,
+			coins = coins,
 			totalCoins = profile.coins,
 			rating = Rating.rounded(profile.rating),
 			ratingDelta = if change ~= nil then Rating.rounded(change.delta) else 0,
 			crateCost = Config.economy.crateCost,
+			counted = ranked or pays,
+			note = if ranked and pays then "" else Venue.describe(),
 		})
 
-		print(
-			string.format(
-				"[Arena] %s : %+d pieces (total %d), classement %d (%+d)",
-				player.Name,
-				reward.coins,
-				profile.coins,
-				Rating.rounded(profile.rating),
-				if change ~= nil then Rating.rounded(change.delta) else 0
+		if ranked or pays then
+			print(
+				string.format(
+					"[Arena] %s : %+d pieces (total %d), classement %d (%+d)",
+					player.Name,
+					coins,
+					profile.coins,
+					Rating.rounded(profile.rating),
+					if change ~= nil then Rating.rounded(change.delta) else 0
+				)
 			)
-		)
 
-		ProgressService.push(player)
-		save(player)
+			ProgressService.push(player)
+			save(player)
+		else
+			print(
+				string.format(
+					"[Arena] %s : partie non comptee (privee). Rien n'est ecrit.",
+					player.Name
+				)
+			)
+		end
 	end
 
 	local _ = byKey

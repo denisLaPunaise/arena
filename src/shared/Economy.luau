@@ -54,6 +54,17 @@ function Economy.coinsFor(config, outcome: Outcome): number
 	return settings.lossBase + (settings.lossPerRoundWon * outcome.roundsWon)
 end
 
+-- Vrai si cette partie paie des pieces. Le pendant exact de Rating.counts, et
+-- pour la meme raison : une partie privee est une partie d'essai. Les deux se
+-- changent ensemble — payer sans classer recompenserait un serveur prive a deux
+-- joueurs complaisants, classer sans payer serait incomprehensible.
+function Economy.paysIn(config, private: boolean): boolean
+	if private then
+		return config.economy.privateMatchesPay
+	end
+	return true
+end
+
 function Economy.rewardFor(config, outcome: Outcome): Reward
 	local coins = Economy.coinsFor(config, outcome)
 	return {

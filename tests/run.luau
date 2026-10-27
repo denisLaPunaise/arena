@@ -29,6 +29,7 @@ local suites = {
 	{ name = "Pieces, tirages et classement", run = require("./specs/progress") },
 	{ name = "Son", run = require("./specs/sound") },
 	{ name = "Bac a sable", run = require("./specs/sandbox") },
+	{ name = "Placement et equipes", run = require("./specs/seating") },
 }
 
 local t = harness.create()

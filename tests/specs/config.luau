@@ -169,4 +169,46 @@ return function(t: harness.Harness)
 	end
 
 	t.check("aucun skin en dessous de 50 Robux", Config.cosmetics.skinTiers[1].robux >= 50)
+
+	t.section("Les touches ne se marchent pas dessus")
+
+	-- CE QUE CE BLOC ATTRAPE : deux reglages qui reclament la meme touche. Ca
+	-- ne leve rien, ca ne se voit pas en relisant Config — les touches sont a
+	-- trois endroits differents du fichier — et en jeu une touche fait alors
+	-- deux choses selon le moment. Le camp demande a failli prendre « 1 », qui
+	-- sert deja au premier objet.
+	local taken: { [string]: string } = {}
+	local collisions: { string } = {}
+
+	local function claim(key: string, who: string)
+		local already = taken[key]
+		if already ~= nil then
+			table.insert(collisions, string.format("%s et %s veulent « %s »", already, who, key))
+			return
+		end
+		taken[key] = who
+	end
+
+	for index, key in Config.loadout.useKeys do
+		claim(key, string.format("l'objet %d", index))
+	end
+	claim(Config.loadout.editKey, "l'écran d'équipement")
+	claim(Config.sandbox.toggleKey, "le bac à sable")
+	claim(Config.seating.sideKey, "le camp demandé")
+
+	t.equal(if #collisions > 0 then collisions[1] else "aucune collision", #collisions, 0)
+
+	t.section("Ce qui compte en partie privee")
+
+	-- Les deux interrupteurs se changent ENSEMBLE : payer sans classer
+	-- recompenserait un serveur prive a deux joueurs complaisants, et classer
+	-- sans payer serait incomprehensible. Ce test est la pour qu'on ne retourne
+	-- pas l'un en oubliant l'autre.
+	t.equal(
+		"les pièces et le classement disent la même chose du privé",
+		Config.economy.privateMatchesPay,
+		Config.elo.privateMatchesRanked
+	)
+	t.check("et le privé ne compte pas", not Config.elo.privateMatchesRanked)
+	t.check("alors que le public, oui", Config.elo.rankedByDefault)
 end

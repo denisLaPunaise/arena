@@ -468,6 +468,69 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   deuxieme version ailleurs — c'est la meme regle que les planchers de
   `Modifiers.luau`.
 
+- **UNE TABLE DE CONFIG QUE PERSONNE NE LIT NE LEVE RIEN.**
+  `Config.formats` declarait le 1v1, le 2v2, le 3v3 et le 4v4 — avec leurs
+  commentaires, et `balanceReferenceFormat = "3v3"` par-dessus — pendant que
+  `MatchService` portait un `PLAYERS_NEEDED = 2` en dur et asseyait
+  `players[1], players[2]`. Personne ne lisait la table. Le format de reference
+  pour l'equilibrage n'avait jamais fait tourner une ligne de code, et un
+  troisieme joueur n'avait **aucune equipe**.
+
+  C'est la meme panne que les branches creuses et que les paliers 6 declares
+  sans etre executes, et le projet a deja un garde-fou pour celle-la : le
+  serveur refuse de demarrer quand `Config` annonce ce qu'aucun service
+  n'applique. La lecon est d'y penser pour les TABLES aussi, pas seulement pour
+  les listes de pouvoirs. Le moyen le moins cher est un test qui relie les deux
+  bouts : celui de `tests/specs/seating.luau` verifie que chaque identifiant de
+  format dit bien sa taille (`"2v2"` pour `playersPerTeam = 2`) et qu'il y a
+  exactement deux camps dans `Config.seating.teams`. Les deux listes ne peuvent
+  plus diverger en silence.
+
+  LA MEME PANNE, LE MEME JOUR, UN ETAGE PLUS LOIN. `Rating.counts(config,
+  private)` portait la regle « une partie privee ne compte pas », etait teste
+  dans Lune, et n'etait appele par AUCUN service : `ProgressService.awardMatch`
+  distribuait l'Elo et les pieces dans tous les cas. Une partie d'essai entre
+  amis deplacait donc les vrais classements. Le signal commun aux trois cas
+  (branches creuses, formats, mode prive) : **une fonction pure que seuls les
+  tests appellent est une regle qui ne s'applique pas.** Un `grep` du nom dans
+  `src/` repond en deux secondes, et il vaut d'etre fait pour chaque regle
+  qu'on croit en place.
+
+  Le contraire etait vrai, et vaut d'etre su : **tout ce qui etait en aval
+  savait deja compter en equipes.** `Downed.roundIsOver` compte les equipes
+  debout, le relevement cherche un coequipier, `DraftService` deduit la taille
+  des equipes de la table qu'on lui passe et ignore les votes de qui n'en a
+  pas. Rien ne les composait, voila tout — donc avant de croire qu'un chantier
+  est gros, lire ce qui est en aval.
+
+- **Un depart ne doit pas annuler ce qui concerne les autres.**
+  `waitForRoundEnd` abandonnait la partie des qu'un joueur quittait. A deux
+  joueurs c'etait la seule reponse possible ; a six, une coupure de reseau
+  faisait perdre leur serie aux cinq autres. Les services se nettoient deja
+  seuls (chacun a son `PlayerRemoving`), donc la fin de manche se resout toute
+  seule : il ne restait qu'a retirer le partant de la liste de MatchService.
+
+  **Et une partie qui perd un camp entier ne paie personne.** Deux raisons qui
+  tiennent ensemble : le profil de celui qui part est deja ecrit et ferme par le
+  `PlayerRemoving` de `ProgressService`, donc on ne peut rien lui retirer ; et
+  crediter le camp restant se farmerait a deux comptes, l'un quittant pour
+  l'autre. En ajoutant une recompense, la question a se poser est donc : qui
+  peut provoquer cette issue expres, et avec combien de comptes ?
+
+- **Deux reglages peuvent reclamer la meme touche, en silence.** Les touches
+  sont a trois endroits de `Config` — `loadout.useKeys`, `loadout.editKey`,
+  `sandbox.toggleKey`, et maintenant `seating.sideKey` — et rien ne les
+  comparait. Le choix du camp a failli prendre « 1 », qui sert deja au premier
+  objet : une touche qui fait deux choses selon le moment coute une manche, et
+  ca ne leve aucune erreur. Un test de `tests/specs/config.luau` les reunit
+  maintenant toutes et refuse une collision ; en ajoutant une touche, l'y
+  inscrire.
+
+  A savoir aussi : une touche dont le nom ne correspond a aucun `KeyCode` donne
+  un `SIDE_KEY` nil cote client, la branche du `elseif` ne se declenche jamais,
+  et la touche est morte **sans la moindre erreur**. Verifier le nom dans
+  Studio, pas seulement dans Config.
+
 - **Rien de visuel ne touche a l'equilibrage.** Le bloc `look` d'un objet ne
   contient que des tailles, des couleurs et des angles, et aucun de ses
   chiffres n'entre dans un calcul de degats, de portee ou de budget. C'est le
@@ -574,7 +637,16 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    marche. L'épaule, le bassin et le cou ont des butées mesurées, donc un
    geste plus ample est impossible par ce moyen. Reste à savoir si c'est beau,
    et ça ne se mesure pas
-11. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+11. Les équipes dans la boucle de partie — **fait, et c'était un trou** : le
+   format se choisit d'après le nombre de joueurs présents, les deux camps se
+   composent, le banc tourne à effectif impair, et un départ ne tue plus la
+   partie. Avant ça la boucle asseyait les deux premiers joueurs arrivés et un
+   troisième n'avait aucune équipe. Avec, le **mode privé** que `Config`
+   annonçait sans que personne ne le lise : une partie privée ne paie plus et
+   ne classe plus, et on y choisit son camp. Vérifié par les tests et dans la
+   machine virtuelle de Roblox ; **jamais joué à plus d'un**, sections 18 et 19
+   d'`A-TESTER.md`
+12. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), les quarante-neuf autres objets, les skins, et
    l'achat de pièces en Robux. Plus **un seul** palier 6 sur quarante-deux,

@@ -849,6 +849,101 @@ aucun pouvoir de ce genre.
 
 ---
 
+## 18. Les équipes — **jamais jouées, et c'est tout le point**
+
+Avant aujourd'hui, la boucle de partie asseyait les **deux premiers joueurs
+arrivés** et un troisième n'avait aucune équipe. Les quatre formats étaient
+écrits dans `Config` et lus par personne. Maintenant le format se choisit tout
+seul d'après le nombre de joueurs présents.
+
+Ce qui est vérifié par les tests et dans la machine virtuelle de Roblox : le
+bon format de 1 à 9 joueurs, deux camps toujours de la même taille, le banc qui
+tourne, et le même placement à chaque appel. Ce qui ne peut pas l'être : tout
+le reste. **Il faut être au moins deux, et idéalement cinq.**
+
+140. **À deux, d'abord.** Rien ne doit avoir changé : « 1v1 » dans la console,
+     les bans, le tirage, les manches. Si quelque chose casse ici, c'est ma
+     faute et pas le format.
+141. **À quatre.** La console doit dire « Partie en 2v2 ». Les deux joueurs de
+     ton équipe apparaissent-ils **côte à côte** et face au centre ? Le contrat
+     de nommage demande cinq points de départ par équipe ; j'ai vérifié qu'ils
+     sont espacés de 9 studs, mais le rang de chacun ne se voit qu'en jouant.
+142. **Le relèvement, enfin.** C'est la mécanique la plus importante de cette
+     étape, parce qu'elle n'avait **jamais eu de coéquipier** : tombe à terre
+     et fais-toi relever. Approche-toi, maintiens, regarde la barre. Puis
+     refais-le pendant que l'ennemi te frappe — le moindre dégât doit remettre
+     la barre à zéro.
+143. **L'équipe entière à terre.** Si plus personne de ton camp n'est debout,
+     les joueurs à terre doivent être éliminés **tout de suite** et pas après
+     dix secondes de temps mort. C'était écrit depuis l'étape 3 et jamais vu.
+144. **Le point de revanche.** Perds trois manches d'affilée : toute l'équipe
+     doit recevoir deux points d'arbre au lieu d'un, une seule fois dans la
+     partie, et l'écran doit le dire avec les mots « dont le point de revanche ».
+145. **À cinq, pour le banc.** Un joueur attend. Est-ce que son écran dit
+     « Spectateur · 2v2 en cours · tu joues la partie suivante » ? Et surtout :
+     **est-ce qu'il joue vraiment la partie suivante ?** C'est la propriété que
+     j'ai testée en simulant cinq parties, mais un joueur réel qui regarde est
+     le seul juge de « est-ce que c'est supportable d'attendre ».
+146. **Quitter en pleine partie.** Qu'un joueur ferme le jeu au milieu d'une
+     manche. Avant, ça **annulait la partie pour tout le monde** ; maintenant il
+     doit simplement compter comme éliminé et les autres continuent. La console
+     dit « a quitte la partie ».
+147. **Et si tout un camp s'en va**, la partie doit s'arrêter avec « Partie
+     interrompue · Une équipe n'a plus de joueurs », et **personne ne doit
+     recevoir ni pièces ni classement**. C'est voulu : sinon deux comptes
+     complices suffiraient à farmer le classement.
+148. **La Peste contre un groupe**, qui est le point 136 enfin jouable : à
+     quatre ou plus, le palier 6 du Vampire branche Peste ignore l'armure de
+     tous ceux qu'elle touche.
+149. **Le 2v2 et le 3v3 sont-ils le même jeu ?** La zone qui se referme, la
+     durée des manches, le plafond de trois cibles de la Peste, le budget de
+     douze points : tous ces chiffres ont été réglés en pensant au duel. Le
+     3v3 est le format de référence pour l'équilibrage, et c'est la première
+     fois qu'on peut le regarder.
+
+---
+
+## 19. Le mode privé — **à vérifier AVANT tout le reste**
+
+Lis ce point avant de lancer la section 18, parce qu'il change ce que tes essais
+coûtent.
+
+`Config` disait depuis le début que les parties privées ne comptent pas, et
+aucun service ne le lisait : l'Elo et les pièces partaient dans tous les cas.
+Donc jusqu'à aujourd'hui, **tester à plusieurs aurait déplacé vos vrais
+classements.** C'est branché maintenant, et voilà ce qu'il faut confirmer.
+
+150. **Le bandeau le dit.** En serveur privé — ou dans Studio — l'écran
+     d'attente doit afficher « Partie privée · aucune pièce, aucun
+     classement ». Vérifié par instrumentation de mon côté, lu à l'écran :
+     c'est exactement ce texte.
+151. **La touche `C` change ton camp.** Pendant l'attente et entre deux
+     parties, la ligne du bas dit « Ton camp : auto · C pour changer ». Appuie :
+     elle doit passer à A, puis B, puis revenir à auto. **Je n'ai pas pu
+     appuyer dessus** — ma frappe part dans la fenêtre de Studio et pas dans le
+     jeu — donc c'est le seul maillon que personne n'a testé. Le reste du
+     chemin, oui : en envoyant la demande directement, l'écran est bien passé à
+     « Ton camp : B ».
+152. **Arrange un 3v3.** Trois d'un côté demandent A, trois demandent B. Les
+     six doivent avoir ce qu'ils ont demandé. Puis essaie l'inverse : que
+     **quatre** demandent A. Le quatrième doit partir en face, et c'est celui
+     qui a le moins attendu sur le banc.
+153. **Après une partie privée, rien ne bouge.** Ouvre l'écran des pièces
+     (touche P) avant et après : le total de pièces et le classement doivent
+     être **identiques**. La console dit « partie non comptée (privée). Rien
+     n'est écrit. »
+154. **Et en public, tout compte comme avant.** C'est le test qui manque le
+     plus, parce qu'il demande un serveur publié et pas Studio : une partie
+     publique doit payer les pièces et bouger le classement exactement comme
+     avant aujourd'hui. Si ça ne marche plus, c'est moi qui ai cassé quelque
+     chose en branchant le privé.
+155. **Personne ne choisit son camp en public.** La ligne « Ton camp » ne doit
+     **pas** apparaître sur un serveur public, et la touche `C` ne doit rien
+     faire. Si elle apparaît, c'est grave : deux amis pourraient empiler un
+     côté et fausser le classement de tous les autres.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -865,6 +960,14 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   payant. L'écran des cotes est déjà conforme pour le jour où.
 - **les objets débloqués ne verrouillent pas l'équipement** — tout le monde a
   accès aux treize. À rebrancher quand le catalogue sera plus grand.
+- **les équipes ne sont pas équilibrées par le classement** — à cinq joueurs le
+  banc tourne, mais les deux camps se composent par ordre d'attente, pas par
+  niveau. L'Elo existe, donc c'est faisable ; c'est ton appel, et la raison est
+  dans `docs/DECISIONS.md`.
+- **il n'y a pas de lobby ni de file d'attente** — on rejoint un serveur et on
+  est réparti dedans. Arriver en équipe par une file demanderait une place de
+  lobby, un système de groupe et de l'appairage entre serveurs ; Roblox n'a
+  aucune API officielle pour ça. C'est la prochaine conversation, pas un oubli.
 - **le geste du corps reste petit** — le bras bouge maintenant avec l'arme,
   sans une seule animation téléversée, mais l'épaule de Roblox a une butée
   mesurée : la main ne rentre vers le corps que de 0,36 stud. Un vrai moulinet

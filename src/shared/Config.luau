@@ -37,6 +37,43 @@ Config.formats = {
 -- quand deux formats disent le contraire.
 Config.balanceReferenceFormat = "3v3"
 
+--- Comment on compose une partie avec les joueurs presents. Le calcul lui-meme
+--- est dans Seating, qui est pur et teste hors de Studio.
+Config.seating = {
+	-- Les deux camps. Ce ne sont pas des chiffres d'equilibrage mais des noms de
+	-- structure : MapService les traduit en SpawnsA et SpawnsB, et les
+	-- identifiants de Config.formats ("2v2") comptent deja deux camps. Un
+	-- troisieme camp demanderait une map a trois entrees et un format a trois
+	-- nombres : ce n'est pas une valeur a changer, c'est un chantier. Un test
+	-- verifie que les deux listes restent d'accord.
+	teams = { "A", "B" },
+
+	-- Le rythme de l'annonce d'attente, quand il manque du monde. Une seconde
+	-- suffit a ce que le compteur ait l'air vivant, et ne coute qu'un texte.
+	waitRefreshSeconds = 1,
+
+	-- EN PARTIE PRIVEE SEULEMENT, chacun peut demander son camp. C'est ce qui
+	-- permet d'arranger un 3v3 entre amis — « nous trois contre vous trois » —
+	-- au lieu de se faire repartir par ordre d'attente.
+	--
+	-- Jamais en public, et ce n'est pas de la prudence : deux amis qui
+	-- choisissent le meme camp sur un serveur classe empilent un cote, et le
+	-- classement de tous les autres paie l'addition. Le serveur refuse donc la
+	-- demande au lieu de compter sur le client pour ne pas l'envoyer.
+	sideChoiceInPrivate = true,
+
+	-- UNE SEULE touche, qui fait tourner A puis B puis auto. Trois touches
+	-- separees auraient ete plus directes, mais 1 a 4 servent deja aux objets
+	-- (Config.loadout.useKeys) : une touche qui fait deux choses selon le
+	-- moment est le genre de detail qui coute une manche. Libres au 27 octobre
+	-- 2026 : tout sauf 1-4, E, T, L, P, B et le clic.
+	--
+	-- Le camp demande reste une PREFERENCE : les deux camps doivent rester
+	-- egaux, donc le quatrieme a demander un camp de trois places part en face,
+	-- et c'est l'ordre du banc qui tranche.
+	sideKey = "C",
+}
+
 --------------------------------------------------------------------------------
 -- LA PARTIE ET LA MANCHE
 --------------------------------------------------------------------------------
@@ -1431,6 +1468,14 @@ Config.economy = {
 	-- jouer pour soi.
 	rewardKills = false,
 	performanceMetrics = { "damage", "roundsSurvived", "assists" },
+
+	-- Les parties privees ne paient pas, comme elles ne classent pas
+	-- (Config.elo.privateMatchesRanked). Les deux vont ensemble et pour la
+	-- meme raison : une partie entre amis est une partie d'essai, et un
+	-- serveur prive a deux joueurs complaisants ferait tomber une caisse
+	-- toutes les trois minutes. C'est le meme garde-fou que le bac a sable,
+	-- qui n'existe qu'avec un seul joueur pour que rien ne s'y gagne.
+	privateMatchesPay = false,
 }
 
 --------------------------------------------------------------------------------

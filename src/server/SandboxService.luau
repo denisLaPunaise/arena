@@ -41,7 +41,6 @@ local SandboxService = {}
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
@@ -58,6 +57,7 @@ local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
+local Venue = require(script.Parent:WaitForChild("Venue"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
 local FOLDER_NAME = "ArenaSandbox"
@@ -98,13 +98,6 @@ local noticeUntil = 0
 -- LES GARDE-FOUS
 --------------------------------------------------------------------------------
 
--- Studio, ou un serveur prive. `PrivateServerId` est rempli pour un serveur
--- prive comme pour un serveur reserve, ce qui suffit : le garde-fou qui porte
--- vraiment est celui du nombre de joueurs.
-local function isPrivate(): boolean
-	return RunService:IsStudio() or game.PrivateServerId ~= ""
-end
-
 -- Vrai si le bac a sable peut s'ouvrir maintenant. Renvoie aussi la raison du
 -- refus, pour que la console le dise au lieu de ne rien faire.
 function SandboxService.availability(): (boolean, string)
@@ -120,7 +113,10 @@ function SandboxService.availability(): (boolean, string)
 	if #players > rules.maxPlayers then
 		return false, "plus d'un joueur en jeu"
 	end
-	if rules.privateOnly and not isPrivate() then
+	-- La reponse a « sommes-nous en prive » vient de Venue : la progression et
+	-- la boucle de partie posent la meme question, et trois copies de la meme
+	-- condition finissent par ne plus dire la meme chose.
+	if rules.privateOnly and not Venue.isPrivate() then
 		return false, "partie publique (Config.sandbox.privateOnly)"
 	end
 

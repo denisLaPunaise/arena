@@ -36,6 +36,10 @@
 		{
 			"name": "Sandbox",
 			"className": "RemoteEvent"
+		},
+		{
+			"name": "Side",
+			"className": "RemoteEvent"
 		}
 	]
 }

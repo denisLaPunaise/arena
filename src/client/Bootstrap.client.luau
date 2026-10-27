@@ -29,6 +29,7 @@ local Remotes = Arena:WaitForChild("Remotes")
 local attackRemote = Remotes:WaitForChild("Attack") :: RemoteEvent
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
 local abilityRemote = Remotes:WaitForChild("Ability") :: RemoteEvent
+local sideRemote = Remotes:WaitForChild("Side") :: RemoteEvent
 
 local Config = require(Arena:WaitForChild("Config"))
 
@@ -145,6 +146,23 @@ for index, name in Config.loadout.useKeys do
 end
 local EDIT_KEY = (Enum.KeyCode :: any)[Config.loadout.editKey]
 local SANDBOX_KEY = (Enum.KeyCode :: any)[Config.sandbox.toggleKey]
+
+-- LE CAMP DEMANDE, en partie privee. Une seule touche, qui fait tourner A, B,
+-- puis auto : 1 a 4 servent deja aux objets, et une touche qui fait deux choses
+-- selon le moment coute une manche.
+--
+-- Le serveur a le dernier mot — il ignore la demande hors partie privee — et
+-- c'est LUI qui affiche le camp retenu, dans la ligne du bas. Donc cette touche
+-- appuyee en partie classee ne change rien et n'affiche rien : elle ne peut pas
+-- mentir sur un camp qu'on n'aurait pas.
+local SIDE_KEY = (Enum.KeyCode :: any)[Config.seating.sideKey]
+local sideStep = 0
+
+local function cycleSide()
+	-- Un cran de plus que le nombre de camps, et le dernier est « auto ».
+	sideStep = (sideStep + 1) % (#Config.seating.teams + 1)
+	sideRemote:FireServer({ side = Config.seating.teams[sideStep] })
+end
 
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
 hint.Text = string.format(
@@ -357,6 +375,8 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		LoadoutPanel.toggle()
 	elseif input.KeyCode == Enum.KeyCode.P then
 		ProgressPanel.toggle()
+	elseif input.KeyCode == SIDE_KEY then
+		cycleSide()
 	elseif input.KeyCode == SANDBOX_KEY then
 		-- Le panneau ne s'ouvre que si le serveur a dit que le bac a sable
 		-- tourne : en partie, cette touche ne fait rien du tout.
