@@ -1051,6 +1051,60 @@ doublons de Rojo. C'est corrigé et revérifié en jeu : une articulation par ar
 zéro à mains nues. **Ce bug était là depuis le 26 octobre et aucun test ne
 pouvait le voir** ; il a fallu aller regarder dans la main.
 
+## 27 octobre 2026 — Le palier 6 de la Peste, qui attendait les armures
+
+Sur les quarante-deux paliers 6 du jeu, deux étaient déclarés mais pas codés,
+parce qu'ils dépendaient d'un système qui n'existait pas. **L'un des deux
+n'attend plus** : « la propagation ignore les armures » attendait qu'il y ait
+des armures, et elles sont arrivées à l'étape 6 avec l'équipement. Il est codé.
+
+**Un, et pas un demi.** L'arc composite ignore la **moitié** de la réduction de
+sa cible, et c'est déjà le seul contre aux armures lourdes du catalogue. La
+Peste au palier 6 l'ignore **entièrement** : le libellé du palier dit
+« ignore » et pas « traverse une partie », et un palier 6 qui coûte deux points
+et demande sept manches doit valoir davantage qu'une arme à six points.
+
+**Ça ne touche que la propagation.** Le coup qui la déclenche reste réduit
+normalement. Sinon la branche deviendrait un contre universel aux armures, au
+lieu d'un contre aux **groupes** armurés — ce qui est le sujet de la Peste.
+
+**Le calcul de perforation est sorti du serveur.** Il vivait dans
+`CombatService`, en trois lignes au milieu d'une fonction, et rien ne le
+testait. Maintenant que **deux** effets s'en servent, il est en logique pure
+dans `Combat.piercedRatio`, avec ses deux garde-fous testés :
+
+- **on ne perce que ce qui EST une réduction.** Une cible déjà plus fragile que
+  la normale a un ratio positif : la percer la rendrait *moins* fragile, donc
+  frapper une cible vulnérable ferait moins mal qu'un coup normal. C'est
+  l'inverse de ce que le mot veut dire.
+- **une perforation ne dépasse pas 100 %.** Percer 150 % d'une armure
+  transformerait la réduction en augmentation.
+
+**Les perforations ne s'additionnent pas, on garde la plus forte.** Une Peste
+armée de l'arc composite percerait sinon 150 % d'une armure, par le chemin
+qu'on vient de fermer.
+
+**Un test se mordait la queue, et il fallait le voir.** La suite vérifiait
+qu'un effet non codé ne s'active pas, et elle prenait la Peste comme exemple,
+nommée en dur. Coder la Peste faisait donc **échouer le test sur son propre
+exemple**, pas sur un bug. Il demande maintenant à `Config` quels effets
+attendent encore, et il dit explicitement « plus aucun » le jour où il n'y en
+aura plus — sans cette ligne, la boucle cesserait de vérifier quoi que ce soit
+en silence.
+
+**Ce que je n'ai pas pu vérifier.** Que la propagation arrose vraiment un
+deuxième joueur armuré : ça demande deux joueurs, et le mannequin du bac à sable
+ne déclenche volontairement aucun pouvoir qui demande un vrai adversaire. J'ai
+vérifié en jeu ce qui se vérifie seul : le serveur démarre, l'effet s'active au
+sixième palier, et le calcul donne les bons chiffres dans la machine virtuelle
+du jeu.
+
+**Le second attend toujours**, et pour une bonne raison : « immunisé aux
+projectiles » (Monolithe) demande qu'il y ait des projectiles. Les armes à feu
+et l'arc touchent instantanément à portée ; rien ne vole dans ce jeu. Lui
+donner un sens demande un système de projectiles, donc une décision de
+conception, donc toi.
+
 ---
 
 ## Ce qui reste à Josh de toute façon

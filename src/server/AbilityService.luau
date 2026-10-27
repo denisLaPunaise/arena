@@ -354,6 +354,7 @@ local HANDLED_TIER6: { [string]: boolean } = {
 	-- CombatService
 	dash = true,
 	chargePierces = true,
+	spreadPiercesArmor = true,
 	thrownLeavesCover = true,
 	leechFromZone = true,
 	-- Traqueur, Artificier, Spectre

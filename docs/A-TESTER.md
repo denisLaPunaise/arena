@@ -772,6 +772,43 @@ c'est une décision à prendre ensemble.
 
 ---
 
+## 17. La Peste ignore les armures — **à deux, et seulement à deux**
+
+Le palier 6 de la branche Peste était déclaré et affiché **indisponible** depuis
+le début, parce qu'il attendait qu'il y ait des armures à ignorer. Elles sont
+arrivées à l'étape 6. Il est codé.
+
+**Ce que ça fait.** Un Vampire qui monte la branche Peste jusqu'au bout voit sa
+propagation **ignorer entièrement** la réduction de dégâts de ceux qu'elle
+arrose. Pas le coup lui-même — seulement ce qui se propage aux voisins. C'est
+la réponse de la branche aux équipes qui empilent de l'armure, et ce n'est pas
+un contre universel : frapper **un** adversaire armuré fait toujours aussi peu.
+
+**Ce que j'ai pu vérifier seul**, en jeu : le serveur démarre, l'effet s'active
+bien au sixième palier (il renvoyait « rien » avant aujourd'hui), et le calcul
+donne les bons chiffres dans la machine virtuelle du jeu. **Ce que je n'ai pas
+pu vérifier** : que ça arrose vraiment quelqu'un. La propagation demande un
+deuxième joueur, et le mannequin du bac à sable ne déclenche volontairement
+aucun pouvoir de ce genre.
+
+135. **À trois, idéalement.** Un Vampire branche Peste, et deux adversaires
+     côte à côte dont **un seul** porte l'armure lourde (5 points). Frappe
+     celui qui n'en porte pas, et regarde les dégâts qui s'affichent sur
+     l'armuré à côté.
+136. **Refais-le sans le sixième palier** (cinq paliers, pas six). L'armuré doit
+     prendre nettement moins. C'est la seule comparaison qui dit si le palier
+     vaut ses deux points.
+137. **Est-ce que ça se comprend ?** Rien à l'écran ne dit « l'armure est
+     ignorée » : le joueur voit seulement un nombre plus gros. Si l'effet est
+     invisible une fois en jeu, c'est un problème d'affichage à régler, pas un
+     problème de calcul.
+138. **Et est-ce que c'est trop fort ?** La Peste paie son pouvoir par « aucun
+     vol de vie », ce qui est cher pour un Vampire. Mais contre une équipe
+     groupée et armurée, elle ignore maintenant la défense de tout le monde à
+     la fois.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -805,7 +842,11 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   si tu veux que je regarde quelque chose à l'écran, il faut que Studio soit
   devant. Aucune erreur ne le signale, les captures reviennent simplement
   identiques.
-- **deux paliers 6 sur quarante-deux** attendent un système qui n'existe pas :
-  « immunisé aux projectiles » (Monolithe) et « la propagation traverse les
-  armures » (Peste). Ils s'affichent comme indisponibles, c'est voulu.
-- **le pilotage du clone du Leurre** — voir la section suivante.
+- **un palier 6 sur quarante-deux** attend encore un système qui n'existe pas :
+  « immunisé aux projectiles » (Monolithe). Les armes à feu et l'arc touchent
+  instantanément à portée, donc **rien ne vole dans ce jeu** : lui donner un
+  sens demande un système de projectiles, donc une décision à prendre ensemble.
+  Il s'affiche comme indisponible, c'est voulu. Celui de la Peste, lui, est codé
+  depuis le 27 octobre — section 17.
+- **le pilotage du clone du Leurre** — le clone est posé, pas piloté. Le
+  pourquoi est dans `docs/DECISIONS.md`, et le point à regarder est le 57.

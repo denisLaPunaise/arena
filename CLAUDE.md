@@ -378,6 +378,25 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   jamais. **Une sonde relit `player.Character` a chaque mesure**, jamais une
   seule fois au demarrage.
 
+- **Un test qui nomme son exemple en dur se mord la queue.** La suite verifiait
+  qu'un palier 6 non code ne s'active pas, et elle prenait la Peste comme
+  exemple, nommee en dur. Coder la Peste faisait donc ECHOUER le test sur son
+  propre exemple, et pas sur un bug : on cherche alors une regression qui
+  n'existe pas. Un test qui verifie « ce qui n'est pas encore fait » doit
+  demander a `Config` ce qui ne l'est pas, et dire explicitement « plus rien »
+  le jour ou la liste se vide — sinon sa boucle cesse de verifier quoi que ce
+  soit en silence.
+
+- **Les perforations d'armure ne s'additionnent pas, on garde la plus forte.**
+  Deux effets percent : l'arc composite de moitie, et la propagation de la
+  Peste au palier 6 entierement. Une Peste armee de l'arc percerait sinon 150 %
+  d'une armure, ce qui transforme une reduction en augmentation. Le calcul vit
+  en logique pure dans `Combat.piercedRatio`, avec ses deux garde-fous testes :
+  on ne perce que ce qui EST une reduction (percer une cible deja fragile la
+  rendrait moins fragile), et jamais plus de 100 %. Ne pas en recopier une
+  deuxieme version ailleurs — c'est la meme regle que les planchers de
+  `Modifiers.luau`.
+
 - **Rien de visuel ne touche a l'equilibrage.** Le bloc `look` d'un objet ne
   contient que des tailles, des couleurs et des angles, et aucun de ses
   chiffres n'entre dans un calcul de degats, de portee ou de budget. C'est le
@@ -483,7 +502,9 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    butée mesurée, donc un geste ample est impossible par ce moyen. Reste à
    savoir si c'est beau, et ça ne se mesure pas
 11. Ce qui reste : le reste du corps, les quarante-neuf autres objets, les
-   skins, et l'achat de pièces en Robux
+   skins, et l'achat de pièces en Robux. Plus **un seul** palier 6 sur
+   quarante-deux, « immunisé aux projectiles », qui attend un système de
+   projectiles — donc une décision de conception, donc Josh
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans

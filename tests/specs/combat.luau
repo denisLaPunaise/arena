@@ -209,4 +209,51 @@ return function(t: harness.Harness)
 	local pushless = table.clone(charging)
 	pushless.knockbackStuds = 0
 	t.equal("sans poussee, pas de charge", Combat.rawDamage(pushless), pushless.attackDamage)
+
+	t.section("Percer une armure")
+
+	-- CE CALCUL VIVAIT DANS LE SERVEUR, OU RIEN NE LE TESTAIT. Il est sorti en
+	-- logique pure le 27 octobre 2026 parce que DEUX effets s'en servent
+	-- maintenant : l'arc composite, qui ignore la moitie de la reduction, et la
+	-- propagation de la Peste au palier 6, qui l'ignore entierement.
+	t.equal("sans perforation, la reduction reste entiere", Combat.piercedRatio(-0.28, 0), -0.28)
+	t.equal("l'arc composite en ignore la moitie", Combat.piercedRatio(-0.28, 0.5), -0.14)
+	t.equal("la Peste l'ignore entierement", Combat.piercedRatio(-0.28, 1), 0)
+
+	-- LE GARDE-FOU QUI COMPTE. Une cible deja plus fragile que la normale a un
+	-- ratio POSITIF : la percer la rendrait moins fragile, donc frapper une cible
+	-- vulnerable ferait moins mal qu'un coup normal. C'est l'inverse de ce que le
+	-- mot « percer » veut dire.
+	t.equal("on ne perce pas une cible deja fragile", Combat.piercedRatio(0.4, 1), 0.4)
+	t.equal("ni avec une perforation partielle", Combat.piercedRatio(0.4, 0.5), 0.4)
+	t.equal("et une cible normale reste normale", Combat.piercedRatio(0, 1), 0)
+
+	-- Et la borne haute : percer 150 % d'une armure transformerait la reduction
+	-- en augmentation, donc un coup perce ferait PLUS mal que la cible nue.
+	t.equal("une perforation ne depasse pas 100 %", Combat.piercedRatio(-0.28, 2.5), 0)
+
+	t.section("La propagation de la Peste contre une armure")
+
+	-- Le chemin complet, avec les vrais chiffres du catalogue : la cible porte
+	-- l'armure lourde du jeu, et on regarde ce que la propagation lui passe.
+	local armored = table.clone(colossus)
+	local heavy = nil
+	for _, item in Config.items do
+		if item.id == "heavyArmor" then
+			heavy = item
+		end
+	end
+	t.check("l'armure lourde existe toujours dans le catalogue", heavy ~= nil)
+	armored.damageTakenRatio = heavy.offset.damageTakenRatio
+
+	local share = 10
+	local reduced = Combat.damageTaken(Config, armored, share)
+	local piercedStats = table.clone(armored)
+	piercedStats.damageTakenRatio =
+		Combat.piercedRatio(armored.damageTakenRatio, Config.tier6.spreadPiercesArmor.pierceRatio)
+	local full = Combat.damageTaken(Config, piercedStats, share)
+
+	t.check("l'armure lourde retire bien quelque chose", reduced < share)
+	t.equal("la propagation du palier 6 passe la part entiere", full, share)
+	t.check("donc elle fait strictement plus mal que sans le palier", full > reduced)
 end

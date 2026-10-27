@@ -137,6 +137,26 @@ function Combat.damageTaken(config, defenderStats: Stats, amount: number): numbe
 	return math.max(amount * ratio, 0)
 end
 
+-- CE QUE DEVIENT LA REDUCTION DE DEGATS D'UNE CIBLE QUAND ON PERCE SON ARMURE.
+-- `pierce` vaut 0,5 pour l'arc composite, et 1 pour la propagation de la Peste
+-- au palier 6, qui ignore l'armure entierement.
+--
+-- DEUX GARDE-FOUS, ET LES DEUX COMPTENT. On ne perce que ce qui EST une
+-- reduction : percer une cible deja plus fragile que la normale la rendrait
+-- moins fragile, ce qui n'a aucun sens et donnerait un bonus a frapper les
+-- cibles vulnerables. Et `pierce` est borne a 1 : percer 150 % d'une armure
+-- transformerait la reduction en augmentation.
+--
+-- Ce calcul vivait dans `CombatService`, ou il n'etait teste par rien. Il est
+-- ici parce que c'est de l'arithmetique pure, et que c'est desormais DEUX
+-- effets qui s'en servent.
+function Combat.piercedRatio(ratio: number, pierce: number): number
+	if pierce <= 0 or ratio >= 0 then
+		return ratio
+	end
+	return ratio * (1 - math.clamp(pierce, 0, 1))
+end
+
 -- Ce qu'un coup repercute sur un ennemi proche (branche Peste). Se calcule sur
 -- les degats VRAIMENT passes sur la cible principale, pas sur les degats bruts :
 -- frapper un adversaire a un PV ne doit pas arroser ses coequipiers.

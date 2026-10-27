@@ -310,13 +310,19 @@ end
 -- invitent : le Leurre encaisse davantage tant que son clone vit, et le
 -- Duelliste de palier 6 traverse la resistance adverse.
 --
+-- `extraPierce` est la perforation que CE COUP-CI apporte, en plus de celle de
+-- l'arme : la propagation de la Peste au palier 6 ignore l'armure alors que
+-- l'arme qui l'a declenchee ne perce rien. On garde la plus forte des deux et
+-- on ne les additionne pas, parce que percer deux fois la meme armure ne veut
+-- rien dire.
+--
 -- On lit une copie, jamais l'original : ecrire dans entry.stats laisserait la
 -- modification en place pour tous les coups suivants, et l'effet se cumulerait
 -- jusqu'a la fin de la manche.
-local function defenderReading(target: Entry, attacker: Entry?): Combat.Stats
+local function defenderReading(target: Entry, attacker: Entry?, extraPierce: number?): Combat.Stats
 	local extra = AbilityService.extraDamageTakenRatio(target.player)
 	local pierced = attacker ~= nil and AbilityService.piercesResistance(attacker)
-	local armorPierce = strikingPierce(attacker)
+	local armorPierce = math.max(strikingPierce(attacker), extraPierce or 0)
 
 	if extra == 0 and not pierced and armorPierce <= 0 then
 		return target.stats
@@ -328,21 +334,20 @@ local function defenderReading(target: Entry, attacker: Entry?): Combat.Stats
 		return reading
 	end
 
-	local ratio = (reading.damageTakenRatio or 0) + extra
-
 	-- L'arc composite ignore la moitie de la REDUCTION, pas la moitie des
-	-- degats, et seulement quand c'en est une. Sans la condition, percer une
-	-- cible deja plus fragile la rendrait moins fragile, ce qui n'a aucun sens.
-	if armorPierce > 0 and ratio < 0 then
-		ratio *= (1 - armorPierce)
-	end
-
-	reading.damageTakenRatio = ratio
+	-- degats. Le calcul lui-meme est dans `Combat`, avec ses garde-fous.
+	reading.damageTakenRatio =
+		Combat.piercedRatio((reading.damageTakenRatio or 0) + extra, armorPierce)
 	return reading
 end
 
-local function damageTakenBy(target: Entry, amount: number, attacker: Entry?): number
-	return Combat.damageTaken(Config, defenderReading(target, attacker), amount)
+local function damageTakenBy(
+	target: Entry,
+	amount: number,
+	attacker: Entry?,
+	extraPierce: number?
+): number
+	return Combat.damageTaken(Config, defenderReading(target, attacker, extraPierce), amount)
 end
 
 -- Garde-fou du Lien : partager des degats inflige des degats, qui pourraient
@@ -453,12 +458,20 @@ local function spreadFrom(entry: Entry, target: Entry, damageDealt: number)
 		return
 	end
 
+	-- PESTE, PALIER 6 : la propagation ignore les armures. C'est la reponse de
+	-- la branche aux cibles qui empilent de la reduction, et elle ne touche que
+	-- la propagation : le coup qui l'a declenchee reste reduit normalement.
+	local pierce = 0
+	if SkillTreeService.hasEffect(entry.player, "spreadPiercesArmor") then
+		pierce = Config.tier6.spreadPiercesArmor.pierceRatio
+	end
+
 	local nearby = standingEnemiesNear(entry, targetRoot.Position, stats.spreadRadiusStuds, target)
 	for index, other in nearby do
 		if index > Config.combat.spreadMaxTargets then
 			break
 		end
-		local passed = dealDamage(other, damageTakenBy(other, share, entry))
+		local passed = dealDamage(other, damageTakenBy(other, share, entry, pierce))
 		local point = effectPoint(other)
 		if passed > 0 and point ~= nil then
 			EffectsService.spread(point, passed, other.player)

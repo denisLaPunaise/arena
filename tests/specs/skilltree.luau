@@ -210,19 +210,42 @@ return function(t: harness.Harness)
 
 	t.section("Le palier 6 ne ment pas")
 
-	local complete = SkillTree.create("vampire")
-	SkillTree.chooseBranch(Config, complete, "plague")
-	complete.pointsEarned = 20
-	while SkillTree.advance(Config, complete) do
+	-- UN EFFET MARQUE NON CODE NE DOIT PAS S'ACTIVER. Il doit se declarer
+	-- indisponible, pas ne rien faire en silence : un palier 6 coute deux points
+	-- et demande une serie de sept manches, donc un effet creux ne se verrait
+	-- jamais en jouant.
+	--
+	-- On ne nomme PAS la branche en dur. Celle qui servait d'exemple ici etait la
+	-- Peste, et elle a ete codee le 27 octobre 2026 des que les armures ont
+	-- existe : le test tombait alors sur son propre exemple, pas sur un bug. On
+	-- demande donc a Config qui attend encore.
+	local pending = 0
+	for classId, branches in tree.branches do
+		for _, branch in branches do
+			if branch.tier6 == nil or branch.tier6.implemented then
+				continue
+			end
+			pending += 1
+			local waiting = SkillTree.create(classId)
+			SkillTree.chooseBranch(Config, waiting, branch.id)
+			waiting.pointsEarned = 20
+			while SkillTree.advance(Config, waiting) do
+			end
+			t.equal(
+				"« "
+					.. branch.tier6.effect
+					.. " » est decrit mais pas code, donc il ne s'active pas",
+				SkillTree.activeTier6Effect(Config, waiting),
+				nil
+			)
+		end
 	end
 
-	-- La Peste du palier 6 ignore les armures, et il n'y a pas encore
-	-- d'armures : l'effet doit se declarer indisponible, pas ne rien faire.
-	t.equal(
-		"un effet decrit mais pas code ne s'active pas",
-		SkillTree.activeTier6Effect(Config, complete),
-		nil
-	)
+	-- Sans cette ligne, le jour ou tout sera code, la boucle ci-dessus ne
+	-- verifierait plus rien et le dirait en passant.
+	if pending == 0 then
+		t.check("plus aucun palier 6 n'attend un systeme absent", true)
+	end
 
 	local coded = SkillTree.create("vampire")
 	SkillTree.chooseBranch(Config, coded, "leech")

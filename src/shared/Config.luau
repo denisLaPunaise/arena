@@ -276,8 +276,10 @@ Config.skillTree = {
 				tier6 = {
 					label = "La propagation ignore les armures",
 					effect = "spreadPiercesArmor",
-					-- Il n'y a pas encore d'armures a ignorer.
-					implemented = false,
+					-- Les armures sont arrivees avec l'equipement, donc cet
+					-- effet a enfin quelque chose a ignorer : code le
+					-- 27 octobre 2026.
+					implemented = true,
 				},
 			},
 		},
@@ -1546,10 +1548,10 @@ Config.effects = {
 -- LES EFFETS DE PALIER 6
 --------------------------------------------------------------------------------
 
--- Chaque effet nomme du dernier palier a ses chiffres ici. Les deux effets qui
--- attendent un systeme absent du jeu (armures, projectiles) n'en ont pas : leur
--- drapeau `implemented` est a false dans skillTree.branches, et l'interface les
--- affiche comme indisponibles.
+-- Chaque effet nomme du dernier palier a ses chiffres ici. Le seul effet qui
+-- attend encore un systeme absent du jeu (les projectiles) n'en a pas : son
+-- drapeau `implemented` est a false dans skillTree.branches, et l'interface
+-- l'affiche comme indisponible.
 Config.tier6 = {
 	-- Fauve : un bond court vers la cible. La longue recharge est ce qui
 	-- l'empeche d'etre une simple augmentation de vitesse.
@@ -1581,6 +1583,16 @@ Config.tier6 = {
 	-- en restant au centre a regarder la zone travailler pour lui.
 	leechFromZone = {
 		ratioOfLifesteal = 0.5,
+	},
+
+	-- Peste : la propagation ignore les armures. UN, et pas 0,5 comme l'arc
+	-- composite : le libelle du palier dit « ignore », pas « traverse une
+	-- partie », et un palier 6 qui coute deux points doit valoir davantage
+	-- qu'une arme a six points. Ca ne touche que la propagation — le coup qui
+	-- la declenche reste reduit normalement, sinon la branche deviendrait un
+	-- contre universel aux armures au lieu d'un contre aux groupes armures.
+	spreadPiercesArmor = {
+		pierceRatio = 1,
 	},
 }
 
