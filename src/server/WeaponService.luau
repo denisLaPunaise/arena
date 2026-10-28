@@ -357,6 +357,15 @@ local R6_FOR: { [string]: string } = {
 	UpperTorso = "Torso",
 	LowerTorso = "Torso",
 	Head = "Head",
+	-- Les quatre membres d'une armure complete. HABILLER une jambe n'a rien a
+	-- voir avec l'ANIMER : la piece est soudee au membre et suit l'animation
+	-- de marche sans la contrarier, exactement comme l'arme dans la main. Le
+	-- refus de l'etape 10 portait sur les `IKControl`, qui eux gagnent contre
+	-- l'animation et font glisser le personnage sur une jambe figee.
+	RightUpperArm = "Right Arm",
+	LeftUpperArm = "Left Arm",
+	RightUpperLeg = "Right Leg",
+	LeftUpperLeg = "Left Leg",
 }
 
 local function limbOf(character: Model, name: string): BasePart?
@@ -509,12 +518,18 @@ end
 -- Renvoie aussi le repere de la premiere piece, parce que c'est lui qu'il faut
 -- composer avec la prise : sans ca, une premiere piece qui n'est pas a
 -- l'origine deplacerait tout l'objet dans la main.
+-- `only` restreint la construction a un sous-ensemble de pieces. C'est ce qui
+-- permet a UNE armure de couvrir CINQ membres : chaque membre recoit son
+-- propre modele, bati avec ses seules pieces et mis a l'echelle de SA taille.
+-- Un seul modele ne pourrait pas, parce que toutes ses pieces pendent de la
+-- premiere par un `Motor6D` et suivraient donc le meme membre.
 local function buildModel(
 	modelName: string,
 	look: any,
-	scale: Vector3?
+	scale: Vector3?,
+	only: { any }?
 ): (Model?, BasePart?, CFrame?)
-	local pieces = look.pieces
+	local pieces = if only ~= nil then only else look.pieces
 	if pieces == nil or #pieces == 0 then
 		return nil, nil, nil
 	end
@@ -626,6 +641,31 @@ function WeaponService.attach(character: Model, item: any): Motor6D?
 	return grip
 end
 
+-- UNE ARMURE COUVRE PLUSIEURS MEMBRES, et c'est ce qui la fait lire comme
+-- une armure. Une plaque posee sur le seul torse decore l'avant d'une boite :
+-- la silhouette du personnage ne change pas, donc l'oeil continue de voir un
+-- corps nu avec un rectangle dessus. Chaque piece peut donc nommer son
+-- `limb` ; celles qui n'en nomment pas vont sur le membre par defaut, celui
+-- de `look.worn.limb`.
+--
+-- Chaque groupe est mis a l'echelle de SON membre, parce qu'un bras ne fait
+-- pas la taille d'un torse : mesure sur un avatar reel le 28 octobre 2026,
+-- un torse de 1,27 stud de large porte des bras de 0,40. Une epauliere ecrite
+-- en fraction du bras serait minuscule, d'ou des facteurs superieurs a 1.
+local function groupByLimb(look: any): { [string]: { any } }
+	local groups: { [string]: { any } } = {}
+	for _, piece in look.pieces do
+		local limbName: string = piece.limb or look.worn.limb
+		local group = groups[limbName]
+		if group == nil then
+			group = {}
+			groups[limbName] = group
+		end
+		table.insert(group, piece)
+	end
+	return groups
+end
+
 -- REGARDER CE QU'ON FABRIQUE. Pose les pieces d'une allure dans le monde,
 -- sans personnage et sans articulation, pour pouvoir l'examiner en mode
 -- edition. C'est le seul moyen de verifier une allure autrement qu'en la
@@ -643,20 +683,66 @@ function WeaponService.preview(look: any, pivot: CFrame, parent: Instance): Mode
 		return nil
 	end
 
-	local scale: Vector3? = nil
-	if look.worn ~= nil and look.worn.fit == true then
-		scale = triple(Config.loadout.previewTorsoStuds)
-	end
-
 	local model = Instance.new("Model")
 	model.Name = "ArenaPreview"
-	for _, piece in pieces do
-		local part = makePiece(piece, scale)
+
+	-- Une armure se regarde SUR UN CORPS. Posee en tas elle ne dit rien : la
+	-- question qu'on lui pose est justement de savoir quelle silhouette elle
+	-- donne. Chaque groupe part donc a la place de son membre, a l'echelle de
+	-- ce membre, d'apres le squelette mesure de `Config`.
+	local function placeAt(group: { any }, where: CFrame, scale: Vector3?)
+		for _, piece in group do
+			local part = makePiece(piece, scale)
+			part.Anchored = true
+			part.CFrame = where * frameOf(piece, scale)
+			part.Parent = model
+		end
+	end
+
+	if look.worn ~= nil then
+		local fit = look.worn.fit == true
+		local origin = triple(look.worn.at)
+		for limbName, group in groupByLimb(look) do
+			local bone = nil
+			for _, entry in Config.loadout.previewRig do
+				if entry.limb == limbName then
+					bone = entry
+				end
+			end
+			if bone == nil then
+				continue
+			end
+			placeAt(
+				group,
+				pivot * CFrame.new(triple(bone.at) + origin),
+				if fit then triple(bone.size) else nil
+			)
+		end
+	else
+		placeAt(pieces, pivot, nil)
+	end
+
+	model.PrimaryPart = model:FindFirstChildWhichIsA("BasePart")
+	model.Parent = parent
+	return model
+end
+
+-- Le corps nu qui va dessous, aux memes mesures. Sans lui on ne voit pas si
+-- l'armure couvre : c'est tout l'enjeu.
+function WeaponService.previewBody(pivot: CFrame, parent: Instance): Model
+	local model = Instance.new("Model")
+	model.Name = "ArenaPreviewBody"
+	for _, bone in Config.loadout.previewRig do
+		local part = Instance.new("Part")
+		part.Name = bone.limb
+		part.Size = triple(bone.size)
+		part.CFrame = pivot * CFrame.new(triple(bone.at))
 		part.Anchored = true
-		part.CFrame = pivot * frameOf(piece, scale)
+		part.CanCollide = false
+		part.Color = Color3.fromRGB(196, 158, 128)
+		part.Material = Enum.Material.SmoothPlastic
 		part.Parent = model
 	end
-	model.PrimaryPart = model:FindFirstChildWhichIsA("BasePart")
 	model.Parent = parent
 	return model
 end
@@ -680,7 +766,8 @@ local function attachAt(
 	jointName: string,
 	limbName: string,
 	origin: Vector3,
-	fit: boolean
+	fit: boolean,
+	only: { any }?
 ): boolean
 	local limb = limbOf(character, limbName)
 	if limb == nil then
@@ -688,7 +775,7 @@ local function attachAt(
 	end
 
 	local scale = if fit then limb.Size else nil
-	local model, root, rootFrame = buildModel(modelName, look, scale)
+	local model, root, rootFrame = buildModel(modelName, look, scale, only)
 	if model == nil or root == nil or rootFrame == nil then
 		return false
 	end
@@ -715,15 +802,11 @@ local function dressWorn(character: Model, items: { any })
 		if look == nil or look.worn == nil then
 			continue
 		end
-		attachAt(
-			character,
-			look,
-			WORN_MODEL,
-			WORN_NAME,
-			look.worn.limb,
-			triple(look.worn.at),
-			look.worn.fit == true
-		)
+		local origin = triple(look.worn.at)
+		local fit = look.worn.fit == true
+		for limbName, group in groupByLimb(look) do
+			attachAt(character, look, WORN_MODEL, WORN_NAME, limbName, origin, fit, group)
+		end
 	end
 end
 

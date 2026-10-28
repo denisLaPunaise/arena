@@ -1617,6 +1617,20 @@ function LoadoutService.init()
 						)
 					)
 				end
+				-- Une piece d'armure peut nommer SON membre. Un nom inconnu ne
+				-- leve rien : le groupe est simplement saute, et la piece
+				-- n'apparait nulle part. C'est la faute la plus discrete de la
+				-- famille, parce que le reste de l'armure s'affiche tres bien.
+				if piece.limb ~= nil and not WeaponService.knowsLimb(piece.limb) then
+					error(
+						string.format(
+							"[Arena] La piece « %s » de « %s » se porte sur « %s », qui n'est un membre sur aucun rig.",
+							tostring(piece.name),
+							item.name,
+							tostring(piece.limb)
+						)
+					)
+				end
 			end
 			if look.worn ~= nil and not WeaponService.knowsLimb(look.worn.limb) then
 				error(

@@ -1132,6 +1132,37 @@ Saturne, et un marteau dispersé sur toute sa longueur.
 
 ---
 
+## 23. L'armure sur cinq membres — **et le problème des avatars**
+
+L'armure de plaques couvre maintenant le torse, les deux bras et les deux
+cuisses : vingt-neuf pièces, cinq modèles, un par membre. Vérifié en jeu sur un
+R15 propre — la silhouette est celle d'un chevalier, plus celle d'un corps avec
+une plaque dessus.
+
+**Ce qui est vérifié :** le vrai chemin, `WeaponService.wear` sur un personnage
+vivant, pose bien cinq modèles portés et six articulations, et rien ne reste
+derrière quand on change d'équipement.
+
+**Ce qui ne l'est pas, et que toi seul peux trancher :**
+
+- **ton avatar est un pigeon**, et l'armure disparaît dessous. Ce n'est pas un
+  bug : le maillage visible d'un *bundle* n'a aucun rapport avec la taille de
+  la part à laquelle l'armure se fixe. Aucun chiffre ne corrige ça. La question
+  est dans `docs/DECISIONS.md` : est-ce qu'on impose un corps standard dans
+  l'arène ?
+- **le R6.** L'armure se met à l'échelle de la part qu'elle habille, et un
+  torse R6 fait 2 x 2 x 1 là où un R15 fait 1,94 x 1,70 x 1. L'armure sera donc
+  plus haute sur un R6. Pas regardé.
+- **l'armure en mouvement.** Elle est soudée aux membres, donc elle suit la
+  marche et les gestes d'arme. À l'arrêt c'est propre ; en courant, personne ne
+  l'a vue.
+- **les tibias restent nus.** Les genoux sont couverts, pas les mollets : une
+  pièce de mollet soudée à la cuisse traverserait la jambe au pliage du genou.
+  Si tu en veux, il faut habiller le bas de jambe séparément, et c'est un autre
+  chantier.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

@@ -581,6 +581,18 @@ return function(t: harness.Harness)
 	local badSlot: string? = nil
 	local twiceNamed: string? = nil
 	local pointless: string? = nil
+	local unseated: string? = nil
+
+	-- UNE ARMURE NE SE REGARDE QUE SUR UN CORPS, donc tout membre qu'une piece
+	-- nomme doit avoir sa place dans le squelette d'examen. Sans ca `preview`
+	-- saute le groupe en silence et on conclut que la piece n'existe pas,
+	-- alors qu'elle s'afficherait tres bien en jeu. C'est la meme panne que
+	-- deux listes de garde-fous qui divergent : deux listes qui doivent
+	-- s'accorder finissent toujours par ne plus s'accorder.
+	local seated: { [string]: boolean } = {}
+	for _, bone in Config.loadout.previewRig do
+		seated[bone.limb] = true
+	end
 
 	for _, item in Config.items do
 		local look = item.look
@@ -620,6 +632,8 @@ return function(t: harness.Harness)
 			slots += 1
 			if look.worn.limb == nil or #look.worn.at ~= 3 then
 				badSlot = item.id .. " : armure sans membre ou sans position"
+			elseif not seated[look.worn.limb] then
+				unseated = item.id .. " : " .. look.worn.limb
 			end
 		end
 		if slots ~= 1 then
@@ -647,6 +661,9 @@ return function(t: harness.Harness)
 				twiceNamed = item.id .. " : " .. piece.name
 			end
 			seen[piece.name] = true
+			if piece.limb ~= nil and not seated[piece.limb] then
+				unseated = item.id .. " : " .. piece.limb
+			end
 			reach = math.max(reach, -(piece.at[3] - piece.size[3] / 2))
 			reach = math.max(reach, piece.at[2] + piece.size[2] / 2)
 		end
@@ -663,6 +680,7 @@ return function(t: harness.Harness)
 	t.equal("aucune arme sans allure", missing, nil)
 	t.equal("aucun mouvement inconnu", unknownSwing, nil)
 	t.equal("un seul emplacement par objet", badSlot, nil)
+	t.equal("aucun membre sans place dans le squelette d'examen", unseated, nil)
 	t.equal("aucune piece incomplete", badPiece, nil)
 	t.equal("aucun nom de piece en double", twiceNamed, nil)
 	t.equal("aucune arme tenue par le mauvais bout", pointless, nil)

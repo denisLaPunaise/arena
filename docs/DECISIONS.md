@@ -1679,6 +1679,54 @@ où je l'ai essayé.
 
 ---
 
+## 28 octobre 2026 — L'armure couvre cinq membres, et une question pour Josh
+
+Josh a regardé les six objets d'essai et n'a trouvé qu'un défaut : l'armure.
+J'ai dit qu'on pouvait faire nettement mieux, et pourquoi ma première tentative
+était faible — **je décorais l'avant d'une boîte**. Une armure se lit par sa
+silhouette, pas par sa face avant, et tant que la silhouette reste celle du
+corps nu, aucun rivet n'y change rien.
+
+Trois changements, et le troisième est du code : la coque est plus **grande**
+que le membre au lieu d'être plus petite, la silhouette est cassée par des
+épaulières, une jupe évasée et un gorgerin, et surtout **une armure couvre
+maintenant plusieurs membres** — torse, bras, cuisses. Vérifié en jeu : c'est
+un chevalier.
+
+**LA QUESTION QUI RESTE, ET QUI N'EST PAS LA MIENNE.** L'avatar de Josh est un
+pigeon, et l'armure disparaît dessous. Ce n'est pas réglable par des chiffres :
+un *bundle* remplace le maillage du membre, et ce maillage n'a aucun rapport
+avec la taille de la part à laquelle l'armure se fixe. Il n'existe pas de liste
+des bundles, il en sort en permanence, donc « tenir compte de tous les skins »
+n'est pas une option qui existe.
+
+Les deux vraies options :
+
+1. **Dessiner pour le corps standard et accepter que les bundles exotiques
+   soient ratés.** Rien à coder. L'armure sera juste sur la grande majorité des
+   corps — standard, mis à l'échelle, bundles humanoïdes — et avalée sur les
+   autres.
+2. **Imposer un corps standard dans l'arène**, en appliquant une
+   `HumanoidDescription` neutre à l'apparition. Tout le monde a la même
+   silhouette.
+
+Mon avis, et l'argument n'est pas esthétique : c'est le **sixième principe**
+appliqué au corps. Dans un jeu PvP, lire son adversaire fait partie du savoir
+jouer — sa classe, son armure, la portée de son arme. Un pigeon de trois studs
+et un humanoïde standard ne se lisent pas pareil, et ça n'a rien à voir avec
+l'habileté de personne. C'est le même raisonnement que « deux exemplaires du
+même objet sont strictement identiques ».
+
+Et il y a un effet de bord qui va dans le même sens : **les skins que Josh veut
+vendre ne sont visibles que si le corps en dessous est prévisible.** Un corps
+imposé rend les skins lisibles au lieu de les noyer.
+
+Mais c'est une décision de conception, donc elle est à Josh et pas à moi. En
+attendant, l'armure est dessinée pour le corps standard, ce qui est le bon
+choix dans les deux cas.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

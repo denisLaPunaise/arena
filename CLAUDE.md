@@ -710,6 +710,34 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   passer un maillet, une grenade à anneaux de Saturne et une armure en porte de
   frigo. **Regarder fait partie du travail.**
 
+- **UNE ARMURE SE PORTE SUR PLUSIEURS MEMBRES, et c'est ce qui la fait
+  exister.** Une plaque posée sur le seul torse décore l'avant d'une boîte :
+  la silhouette du personnage ne change pas, donc l'oeil continue de voir un
+  corps nu avec un rectangle dessus. Chaque pièce peut nommer son `limb`, et
+  chaque groupe reçoit son propre modèle, à l'échelle de **son** membre — un
+  seul modèle ne pourrait pas, puisque toutes ses pièces pendent de la
+  première par un `Motor6D` et suivraient donc le même membre.
+
+  Deux conséquences à ne pas perdre. **La coque doit être plus GRANDE que le
+  membre**, pas plus petite : c'est ce qui fait disparaître le corps derrière
+  elle. Et **habiller une jambe n'a rien à voir avec l'animer** — la pièce est
+  soudée et suit l'animation de marche sans la contrarier. Le refus de
+  l'étape 10 portait sur les `IKControl`, qui eux gagnent contre l'animation.
+
+- **LES PROPORTIONS DE RÉFÉRENCE SE PRENNENT SUR UN CORPS STANDARD, JAMAIS SUR
+  L'AVATAR QU'ON A SOUS LA MAIN.** La première mesure a été prise sur l'avatar
+  de Josh, qui est un **pigeon** : torse de 1,27 stud de large et bras de 0,40.
+  L'armure dessinée là-dessus portait des facteurs calculés pour des bras
+  minces, et sur un corps normal ses épaulières faisaient deux studs. Le rig de
+  référence se fabrique avec `CreateHumanoidModelFromDescription` et une
+  `HumanoidDescription` vide ; ses mesures sont dans `Config.loadout.previewRig`.
+
+  Mais les tailles restent des **fractions du membre**, parce que l'avatar d'un
+  joueur peut être n'importe quoi. Et un *bundle* non humanoïde avale l'armure
+  quoi qu'on fasse : son maillage visible n'a aucun rapport avec la taille de
+  la part. Ça ne se règle pas par des chiffres — c'est une décision de
+  conception, notée dans `docs/DECISIONS.md`.
+
 - **DANS CE JEU UNE ARME POINTE VERS -Z**, et ce n'est pas un choix : c'est ce
   que les 34 armes disaient déjà avant le changement de format. De là les deux
   angles, nommés par leur effet et convertis **à un seul endroit** dans
