@@ -41,6 +41,7 @@ local Config = require(Arena:WaitForChild("Config"))
 local Combat = require(Arena:WaitForChild("Combat"))
 local Loadout = require(Arena:WaitForChild("Loadout"))
 local Modifiers = require(Arena:WaitForChild("Modifiers"))
+local Status = require(Arena:WaitForChild("Status"))
 
 local Remotes = Arena:WaitForChild("Remotes")
 local loadoutRemote = Remotes:WaitForChild("Loadout") :: RemoteEvent
@@ -48,6 +49,7 @@ local loadoutRemote = Remotes:WaitForChild("Loadout") :: RemoteEvent
 local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
+local StatusService = require(script.Parent:WaitForChild("StatusService"))
 local WeaponService = require(script.Parent:WaitForChild("WeaponService"))
 
 export type Entry = {
@@ -88,11 +90,31 @@ type Grenade = {
 	explodesAt: number,
 	damage: number,
 	radius: number,
+	-- L'effet que l'explosion colle, quand elle en colle un. C'est ce qui
+	-- distingue la grenade aveuglante : elle ne retire pas un PV.
+	status: any,
+}
+
+-- UNE ZONE POSEE AU SOL. Six objets du catalogue en posent une, et ils ne
+-- different que par `effect` : fumee, revelation, ralentissement, feu, soin,
+-- brouillage. Six types separes auraient donne six boucles de mise a jour qui
+-- auraient diverge a la premiere correction.
+type Zone = {
+	owner: Player,
+	team: string,
+	part: BasePart,
+	until_: number,
+	effect: string,
+	radius: number,
+	magnitude: number,
+	holdSeconds: number,
+	hurtsOwner: boolean,
 }
 
 type Cast = {
 	itemId: string,
 	kind: string,
+	use: any,
 	amount: number,
 	endsAt: number,
 	interruptedByDamage: boolean,
@@ -107,10 +129,19 @@ local casting: { [Player]: Cast } = {}
 
 local mines: { Mine } = {}
 local grenades: { Grenade } = {}
+local zones: { Zone } = {}
+
+-- COMBIEN DE COUPS IL RESTE A CETTE ARME, pour la manche. Quatre armes du
+-- catalogue ont un chargeur — le fusil de chasse, le revolver lourd, le
+-- revolver court, le pistolet de poche — et c'est le seul etat d'arme qui ne
+-- vit pas dans les statistiques. Il se remplit avec les charges des
+-- consommables, au meme moment et pour la meme raison : une manche commence
+-- toujours au complet.
+local shotsLeft: { [Player]: { [string]: number } } = {}
 
 local active = false
 
-local damageSink: ((Entry, number) -> number)? = nil
+local damageSink: ((Entry, number, string?) -> number)? = nil
 local healSink: ((Player, number) -> ())? = nil
 
 --------------------------------------------------------------------------------
@@ -163,12 +194,41 @@ local function enemiesNear(team: string, position: Vector3, radius: number): { E
 	return found
 end
 
-local function dealTo(entry: Entry, amount: number): number
+local function dealTo(entry: Entry, amount: number, kind: string?): number
 	local sink = damageSink
 	if sink == nil then
 		return 0
 	end
-	return sink(entry, amount)
+	return sink(entry, amount, kind)
+end
+
+-- Les allies debout a portee, celui qui pose compris quand on le demande. Le
+-- pendant exact d'`enemiesNear`, parce que trois objets soignent plutot que de
+-- blesser : la transfusion, le dome de soin, et le feu qui brule les deux
+-- equipes.
+local function alliesNear(
+	team: string,
+	position: Vector3,
+	radius: number,
+	except: Player?
+): { Entry }
+	local found: { Entry } = {}
+	if radius <= 0 then
+		return found
+	end
+	for _, entry in roster do
+		if entry.team ~= team or entry.player == except then
+			continue
+		end
+		if not DownedService.isStanding(entry.player) then
+			continue
+		end
+		local root = rootOf(entry.player)
+		if root ~= nil and (root.Position - position).Magnitude <= radius then
+			table.insert(found, entry)
+		end
+	end
+	return found
 end
 
 local function healPlayer(player: Player, amount: number)
@@ -276,6 +336,32 @@ local function refillCharges(player: Player)
 	end
 	charges[player] = stock
 	casting[player] = nil
+
+	-- LES CHARGEURS SE REMPLISSENT AU MEME MOMENT QUE LES CHARGES, et c'est le
+	-- meme raisonnement : une manche commence toujours au complet, sinon la
+	-- premiere manche et la quatrieme ne se jouent pas avec la meme arme.
+	local magazines: { [string]: number } = {}
+	for _, itemId in LoadoutService.chosenFor(player) do
+		local item = Loadout.find(Config, itemId)
+		if item ~= nil and item.shotsPerRound ~= nil then
+			magazines[itemId] = item.shotsPerRound
+		end
+	end
+	shotsLeft[player] = magazines
+end
+
+-- Combien de coups il reste a cette arme. `math.huge` pour une arme sans
+-- chargeur : c'est la reponse juste, et elle evite un cas particulier a chaque
+-- appel.
+function LoadoutService.shotsFor(player: Player, item: any): number
+	if item == nil or item.shotsPerRound == nil then
+		return math.huge
+	end
+	local magazines = shotsLeft[player]
+	if magazines == nil then
+		return 0
+	end
+	return magazines[item.id] or 0
 end
 
 function LoadoutService.chargesLeft(player: Player, itemId: string): number
@@ -352,48 +438,95 @@ function LoadoutService.searchRange(entry: Entry): number
 	return range
 end
 
--- Avec quelle arme ce coup part. La principale des que la cible est dedans :
--- elle est toujours la plus chere, donc elle a la priorite. La secondaire
--- seulement pour ce que la principale n'atteint pas.
-function LoadoutService.strikeWith(entry: Entry, distance: number?): (Combat.Stats, number)
-	local profile = profiles[entry.player]
-	if profile == nil then
-		return entry.stats, 0
+-- CETTE ARME PEUT-ELLE TIRER MAINTENANT. Trois raisons de dire non, et les
+-- trois sont arrivees avec le catalogue complet :
+--
+--   - la cible est trop LOIN. C'etait la seule regle jusqu'ici ;
+--   - la cible est trop PRES. Le fusil de precision ne tire pas en dessous de
+--     dix-huit studs, et c'est tout ce qui justifie ses sept points ;
+--   - le CHARGEUR est vide. Quatre armes n'ont qu'un nombre de coups par
+--     manche.
+--
+-- Quand la principale dit non, la secondaire sort. C'etait deja le cas pour la
+-- distance ; c'est maintenant vrai pour les trois, et c'est ce qui fait du
+-- couple « fusil de precision plus fusil a canon scie » un assemblage qui se
+-- tient.
+local function weaponFires(
+	player: Player,
+	item: any,
+	stats: Combat.Stats,
+	distance: number?
+): boolean
+	if LoadoutService.shotsFor(player, item) <= 0 then
+		return false
 	end
-
-	local secondary = profile.secondary
-	if
-		distance ~= nil
-		and secondary ~= nil
-		and distance > profile.primary.attackRangeStuds
-		and distance <= secondary.attackRangeStuds
-	then
-		return secondary, profile.secondaryPierce
+	if distance == nil then
+		return true
 	end
-
-	return profile.primary, profile.primaryPierce
+	if distance > stats.attackRangeStuds then
+		return false
+	end
+	local minimum = if item ~= nil then item.minRangeStuds else nil
+	if minimum ~= nil and distance < minimum then
+		return false
+	end
+	return true
 end
 
--- L'objet qui porte ce coup. La meme regle de distance que `strikeWith`,
--- separee parce que les deux ne sont pas appelees au meme moment : l'arme est
--- choisie AVANT la verification de recharge, le geste ne part qu'APRES.
-local function weaponAt(entry: Entry, distance: number?): any
+-- Laquelle des deux armes porte ce coup. UN SEUL ENDROIT : la regle etait
+-- ecrite deux fois, une pour les chiffres et une pour l'objet, et trois regles
+-- qui se croisent en double exemplaire n'auraient pas tenu une correction.
+local function chooseWeapon(entry: Entry, distance: number?): (Combat.Stats, number, any)
 	local profile = profiles[entry.player]
 	if profile == nil then
-		return nil
+		return entry.stats, 0, nil
+	end
+
+	if weaponFires(entry.player, profile.primaryItem, profile.primary, distance) then
+		return profile.primary, profile.primaryPierce, profile.primaryItem
 	end
 
 	local secondary = profile.secondary
 	if
-		distance ~= nil
-		and secondary ~= nil
-		and distance > profile.primary.attackRangeStuds
-		and distance <= secondary.attackRangeStuds
+		secondary ~= nil and weaponFires(entry.player, profile.secondaryItem, secondary, distance)
 	then
-		return profile.secondaryItem
+		return secondary, profile.secondaryPierce, profile.secondaryItem
 	end
 
-	return profile.primaryItem
+	-- Aucune des deux ne peut tirer : on rend quand meme la principale. Le coup
+	-- partira dans le vide, ce qui est exactement ce qu'on veut voir — un
+	-- chargeur vide doit se sentir, pas disparaitre.
+	return profile.primary, profile.primaryPierce, profile.primaryItem
+end
+
+function LoadoutService.strikeWith(entry: Entry, distance: number?): (Combat.Stats, number)
+	local stats, pierce = chooseWeapon(entry, distance)
+	return stats, pierce
+end
+
+-- L'objet qui porte ce coup, pour ce que les statistiques ne disent pas :
+-- l'effet colle a la cible, l'explosion du lance-grenades, le ralentissement
+-- que la mitrailleuse s'inflige.
+function LoadoutService.weaponFor(entry: Entry, distance: number?): any
+	local _, _, item = chooseWeapon(entry, distance)
+	return item
+end
+
+local function weaponAt(entry: Entry, distance: number?): any
+	return LoadoutService.weaponFor(entry, distance)
+end
+
+-- L'exosquelette ne se fait plus repousser. La reponse vit ici parce que c'est
+-- l'equipement qui la porte ; celle des pouvoirs est dans AbilityService, et
+-- CombatService demande aux deux.
+function LoadoutService.resistsKnockback(player: Player): boolean
+	for _, itemId in LoadoutService.chosenFor(player) do
+		local item = Loadout.find(Config, itemId)
+		if item ~= nil and item.resistsKnockback == true then
+			return true
+		end
+	end
+	return false
 end
 
 -- Le coup est accepte : on montre l'arme qui le porte, on la fait bouger, et
@@ -403,6 +536,27 @@ end
 -- croit que ses coups partent dans le vide.
 function LoadoutService.swingWeapon(entry: Entry, distance: number?): string?
 	local item = weaponAt(entry, distance)
+
+	-- LA BALLE SE CONSOMME ICI, et nulle part ailleurs. C'est le seul point du
+	-- code ou un coup est a la fois accepte et compte une seule fois :
+	-- `strikeWith` est appelee avant la recharge et parfois deux fois, `onAttack`
+	-- ne sait pas quelle arme a servi.
+	if item ~= nil and item.shotsPerRound ~= nil then
+		local magazines = shotsLeft[entry.player]
+		if magazines ~= nil and (magazines[item.id] or 0) > 0 then
+			magazines[item.id] -= 1
+			LoadoutService.push(entry.player)
+		end
+	end
+
+	-- La mitrailleuse se cloue sur place le temps de sa rafale. Ce n'est PAS un
+	-- etourdissement : le plancher de vitesse s'applique, donc elle laisse
+	-- toujours de quoi se decaler d'un pas. L'immobilisation complete existe,
+	-- elle s'appelle grenade aveuglante et elle se paie trois points.
+	if item ~= nil and item.selfSlowSeconds ~= nil then
+		StatusService.apply(entry.player, Status.SLOW, item.selfSlowSeconds, 0)
+	end
+
 	if item == nil then
 		-- Sans arme, le bras part quand meme : un coup de poing qui ne se voit
 		-- pas est un coup qu'on croit avoir rate.
@@ -417,6 +571,43 @@ end
 --------------------------------------------------------------------------------
 -- LES OBJETS QUI SE POSENT
 --------------------------------------------------------------------------------
+
+-- CE QUI EXPLOSE, pour les mines, les grenades et la hachette de lancer. Une
+-- seule formule : les trois posent la meme question — qui est dans le rayon, et
+-- de combien il recule.
+local function blast(
+	position: Vector3,
+	team: string,
+	damage: number,
+	radius: number,
+	knockbackStuds: number,
+	knockbackUpStuds: number,
+	status: any
+)
+	EffectsService.blast(position + Vector3.new(0, 1.5, 0))
+
+	for _, victim in enemiesNear(team, position, radius) do
+		-- UNE EXPLOSION EST UNE SORTE DE DEGAT, et c'est ce qui donne un sens au
+		-- gilet pare-eclats : sans ce troisieme argument, l'armure qui resiste
+		-- aux explosions ne resisterait a rien.
+		local passed = dealTo(victim, damage, Combat.BLAST)
+		if status ~= nil then
+			StatusService.apply(victim.player, status.kind, status.seconds, status.magnitude or 0)
+		end
+		local root = rootOf(victim.player)
+		if passed > 0 and root ~= nil then
+			EffectsService.hit(root.Position + Vector3.new(0, 1.5, 0), passed, victim.player)
+		end
+		if root ~= nil and knockbackStuds > 0 then
+			local away = root.Position - position
+			local flat = Vector3.new(away.X, 0, away.Z)
+			if flat.Magnitude > 0 then
+				root.AssemblyLinearVelocity = (flat.Unit * knockbackStuds)
+					+ Vector3.new(0, knockbackUpStuds, 0)
+			end
+		end
+	end
+end
 
 local function placeMine(entry: Entry, use: any): boolean
 	local root = rootOf(entry.player)
@@ -485,6 +676,7 @@ local function throwGrenade(entry: Entry, use: any): boolean
 		explodesAt = os.clock() + use.fuseSeconds,
 		damage = use.damage,
 		radius = use.radiusStuds,
+		status = use.status,
 	})
 
 	return true
@@ -530,11 +722,347 @@ end
 -- UTILISER UN OBJET
 --------------------------------------------------------------------------------
 
+-- LES SIX ZONES EN UNE SEULE FONCTION. Ce qui change d'un objet a l'autre est
+-- la couleur, la hauteur et la transparence ; ce qui ne change pas est qu'une
+-- zone est une part posee au sol, qui ne gene aucun deplacement et qui s'efface
+-- toute seule.
+--
+-- La fumee est la seule qui soit PLEINE : c'est tout son effet, et elle marche
+-- parce que le moteur ne dessine pas a travers. Les cinq autres sont des
+-- galettes au sol, parce qu'un cylindre opaque de soin cacherait le combat
+-- qu'il est cense soutenir.
+local ZONE_LOOKS: { [string]: { color: Color3, height: number, transparency: number } } = {
+	smoke = { color = Color3.fromRGB(196, 198, 202), height = 16, transparency = 0.12 },
+	reveal = { color = Color3.fromRGB(240, 206, 110), height = 0.5, transparency = 0.6 },
+	slow = { color = Color3.fromRGB(150, 140, 120), height = 0.4, transparency = 0.45 },
+	burn = { color = Color3.fromRGB(240, 120, 50), height = 0.6, transparency = 0.45 },
+	heal = { color = Color3.fromRGB(120, 220, 150), height = 0.5, transparency = 0.6 },
+	jam = { color = Color3.fromRGB(120, 150, 200), height = 0.5, transparency = 0.6 },
+}
+
+-- Les sortes de zone qui posent un effet temporaire sur quelqu'un, et qui
+-- doivent donc dire combien de temps il tient apres qu'on en soit sorti. Le feu
+-- n'y est pas : il fait mal au passage, il ne colle rien.
+local HOLDING_ZONES = { slow = true, heal = true }
+
+local function placeZone(entry: Entry, use: any): boolean
+	local root = rootOf(entry.player)
+	if root == nil then
+		return false
+	end
+
+	local look = ZONE_LOOKS[use.effect]
+	if look == nil then
+		-- Une sorte de zone inconnue ne pose rien plutot que de poser une part
+		-- invisible qui ne ferait rien : le demarrage du serveur refuse deja
+		-- cet objet, et ceci est la deuxieme barriere.
+		return false
+	end
+
+	local radius = use.radiusStuds
+	local part = Instance.new("Part")
+	part.Name = "ArenaZone"
+	part.Size = Vector3.new(radius * 2, look.height, radius * 2)
+	part.CFrame = CFrame.new(root.Position - Vector3.new(0, 2.6 - look.height / 2, 0))
+	part.Shape = Enum.PartType.Cylinder
+	part.Orientation = Vector3.new(0, 0, 90)
+	part.Color = look.color
+	part.Material = if use.effect == "smoke"
+		then Enum.Material.SmoothPlastic
+		else Enum.Material.Neon
+	part.Transparency = look.transparency
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Parent = parentFolder()
+
+	local seconds = use.seconds
+	table.insert(zones, {
+		owner = entry.player,
+		team = entry.team,
+		part = part,
+		until_ = os.clock() + seconds,
+		effect = use.effect,
+		radius = radius,
+		magnitude = use.magnitude or 0,
+		holdSeconds = use.holdSeconds or 1,
+		hurtsOwner = use.hurtsOwner == true,
+	})
+
+	-- Le brouilleur agit a la pose, pas au battement : il efface ce qui etait
+	-- deja revele. Attendre le battement suivant le ferait passer pour casse.
+	if use.effect == "jam" then
+		AbilityService.addJammer(part.Position, radius, entry.team, seconds)
+	end
+
+	Debris:AddItem(part, seconds)
+	return true
+end
+
+-- Le grappin et les bottes a ressort. Un seul code, parce que la difference
+-- entre « ca monte » et « ca avance » tient dans deux chiffres de Config et pas
+-- dans deux mecaniques.
+-- UN CHIFFRE NOMME EN STUDS DOIT DONNER DES STUDS, et c'est cette conversion
+-- qui le rend vrai. Elle vit ici, a un seul endroit, comme le signe du tangage
+-- du buste vit a un seul endroit dans WeaponService.
+--
+-- Vu en jeu le 27 octobre 2026, et seule une mesure pouvait le montrer :
+-- `upStuds = 40` donnait QUATRE STUDS de hauteur. Les bottes a ressort
+-- sautaient donc moins haut qu'un saut ordinaire, qui monte a 7,2. Le chiffre
+-- partait directement dans la vitesse, et une vitesse de 40 studs par seconde
+-- contre une gravite de 196 monte a 40 au carre sur deux fois 196, soit 4,07 —
+-- exactement ce qui a ete mesure. C'est la meme panne que les angles nommes
+-- par leur axe au lieu de leur effet.
+local function leapVelocity(use: any): (Vector3, number, number)
+	local gravity = math.max(Workspace.Gravity, 1)
+
+	-- Hauteur voulue -> vitesse de depart : v = racine(2 g h).
+	local height = math.max(use.upStuds or 0, 0)
+	local upward = math.sqrt(2 * gravity * height)
+
+	if upward <= 0 then
+		return Vector3.zero, 0, 0
+	end
+
+	-- Temps de vol : monter puis redescendre a la meme hauteur. C'est lui qui
+	-- transforme une distance horizontale en vitesse horizontale, et c'est
+	-- pour ca que les deux chiffres d'un bond ne sont PAS independants : un
+	-- bond plus bas est aussi un bond plus court a vitesse egale.
+	local airtime = (2 * upward) / gravity
+	return Vector3.new(0, upward, 0), airtime, math.max(use.forwardStuds or 0, 0)
+end
+
+-- CE QUI TIENT L'HORIZONTALE PENDANT LE VOL, et pourquoi il faut quelque chose.
+--
+-- Poser la vitesse horizontale une fois ne marche PAS, et ce n'est pas une
+-- question de reglage. L'Humanoid de Roblox pousse en permanence la vitesse du
+-- personnage vers celle que le joueur demande au clavier — zero quand personne
+-- n'appuie — et il gagne, lentement pour une vitesse rapide et tout de suite
+-- pour une vitesse lente que la marche. Mesures du 27 octobre 2026, 38 studs
+-- demandes avec un simple coup de vitesse :
+--
+--   rattrapage 1,37  ->  22,8 studs parcourus
+--   rattrapage 2,44  ->  67,8 studs parcourus
+--
+-- Pas le double pour le double : la relation n'est pas lineaire, donc AUCUN
+-- facteur unique ne peut faire d'une vitesse une distance. Chercher le bon
+-- chiffre etait le mauvais chantier.
+--
+-- Un `LinearVelocity` en mode Plan, lui, est resolu par le moteur physique et
+-- pas par l'animateur : il TIENT la vitesse horizontale pendant tout le vol, et
+-- laisse l'axe vertical libre pour la gravite. La distance parcourue redevient
+-- alors vitesse fois duree, donc un chiffre nomme en studs donne des studs.
+--
+-- Le prix assume : on ne se dirige plus pendant un bond. C'est meme ce que le
+-- commentaire d'a cote demandait deja — un deplacement qui ne fait pas deux
+-- fois la meme chose ne s'apprend pas.
+local movers: { [Player]: { attachment: Attachment, mover: LinearVelocity } } = {}
+
+-- L'attache ET la contrainte s'en vont ensemble, ici et nulle part ailleurs.
+-- Une contrainte posee sur un personnage qui survit a ce qu'elle tient est
+-- exactement le piege des quatre `ArenaGrip` dans la meme main.
+local function clearMover(player: Player)
+	local held = movers[player]
+	if held == nil then
+		return
+	end
+	movers[player] = nil
+	held.mover:Destroy()
+	held.attachment:Destroy()
+end
+
+local function holdForward(
+	player: Player,
+	root: BasePart,
+	direction: Vector3,
+	speed: number,
+	seconds: number
+)
+	clearMover(player)
+
+	-- DEUX NOMS DIFFERENTS, et ce n'est pas de la coquetterie. Les deux objets
+	-- vivent sous la meme part : en les appelant tous les deux « ArenaLeap »,
+	-- un `FindFirstChild` en designe un au hasard — exactement le piege des
+	-- doublons de Rojo et des quatre `ArenaGrip` dans la meme main. La sonde
+	-- qui cherchait la contrainte a lu l'attache et a conclu que la vitesse
+	-- demandee valait zero.
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "ArenaLeapAnchor"
+	attachment.Parent = root
+
+	local mover = Instance.new("LinearVelocity")
+	mover.Name = "ArenaLeapMover"
+	mover.Attachment0 = attachment
+	mover.RelativeTo = Enum.ActuatorRelativeTo.World
+
+	-- UNE LIGNE, PAS UN PLAN, et surtout SANS PLAFOND DE FORCE.
+	--
+	-- Le mode Ligne ne contraint que la composante le long de la direction
+	-- donnee : la verticale reste de la gravite pure, et c'est ce qui garde la
+	-- hauteur juste. Le mode Plan ferait la meme chose, en demandant deux axes
+	-- au lieu d'un.
+	--
+	-- `ForceLimitsEnabled` vaut VRAI par defaut, avec `MaxForce` a 1000, et
+	-- c'est ce qui a coute la premiere version : 1000 ne suffit pas a lancer un
+	-- personnage, donc la contrainte epinglait la vitesse horizontale a presque
+	-- zero au lieu de la pousser. Les bottes a ressort faisaient 1,8 stud au
+	-- lieu de 38, et aucune erreur ne le disait. Verifie le 27 octobre 2026 en
+	-- relisant la propriete : elle etait bien a 66,6, c'etait la force qui
+	-- manquait.
+	mover.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
+	mover.LineDirection = direction
+	mover.LineVelocity = speed
+	mover.ForceLimitsEnabled = false
+	mover.Parent = root
+
+	movers[player] = { attachment = attachment, mover = mover }
+
+	task.delay(seconds, function()
+		local held = movers[player]
+		if held ~= nil and held.mover == mover then
+			clearMover(player)
+		end
+	end)
+end
+
+local function leap(entry: Entry, use: any): boolean
+	local root = rootOf(entry.player)
+	if root == nil then
+		return false
+	end
+
+	local upward, airtime, reach = leapVelocity(use)
+	if upward.Magnitude <= 0 then
+		return false
+	end
+
+	-- On ECRASE la vitesse au lieu de l'ajouter : un bond qui s'additionne a
+	-- une chute donne une trajectoire differente selon qu'on saute ou pas, et
+	-- un deplacement qui ne fait pas deux fois la meme chose ne s'apprend pas.
+	root.AssemblyLinearVelocity = upward
+
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	-- Un personnage qui regarde droit en haut n'a pas d'avant : sans ce test,
+	-- `.Unit` rendrait un vecteur de NaN et le personnage disparaitrait de la
+	-- carte. Il monte alors sur place, ce qui est la reponse la moins
+	-- surprenante.
+	if reach > 0 and flat.Magnitude > 1e-3 then
+		holdForward(entry.player, root, flat.Unit, reach / airtime, airtime)
+	end
+	return true
+end
+
+-- La hachette de lancer : un coup porte a distance, tout de suite. Elle ne vole
+-- pas — RIEN NE VOLE DANS CE JEU, c'est une decision de conception qui tient
+-- depuis le debut — donc elle touche a l'instant ou on la lance, comme l'arc et
+-- comme les armes a feu, et le trait dessine dit au joueur ou elle est allee.
+local function throwAt(entry: Entry, use: any): boolean
+	local root = rootOf(entry.player)
+	if root == nil then
+		return false
+	end
+
+	local origin = root.Position
+	local reach = use.rangeStuds
+
+	-- La cible est le premier ennemi debout dans le cone de tir, le plus proche
+	-- d'abord. C'est la meme idee que `findTarget` de CombatService, en plus
+	-- simple : un objet a deux charges n'a pas besoin de viser aussi bien
+	-- qu'une arme.
+	local best: Entry? = nil
+	local bestDistance = math.huge
+	for _, victim in enemiesNear(entry.team, origin, reach) do
+		local victimRoot = rootOf(victim.player)
+		if victimRoot == nil then
+			continue
+		end
+		local toward = victimRoot.Position - origin
+		local distance = toward.Magnitude
+		if toward.Unit:Dot(root.CFrame.LookVector) < 0.35 then
+			continue
+		end
+		if distance < bestDistance then
+			best = victim
+			bestDistance = distance
+		end
+	end
+
+	local landing = origin + root.CFrame.LookVector * reach
+	local target = best
+	if target ~= nil then
+		local victimRoot = rootOf(target.player)
+		if victimRoot ~= nil then
+			landing = victimRoot.Position
+		end
+	end
+
+	EffectsService.swing(origin + Vector3.new(0, 1.5, 0), landing - origin, target ~= nil, "blade")
+
+	if target == nil then
+		return true
+	end
+
+	blast(landing, entry.team, use.damage, use.radiusStuds, 0, 0)
+	return true
+end
+
+-- UN SOIN, et ses deux variantes. Les trois chemins passent par ici — pose
+-- instantanee, fin de pose, et le soin etale — pour que le nombre monte au meme
+-- endroit : un soin qui se voit a un endroit et pas a l'autre se lit comme une
+-- panne.
+--
+-- `overSeconds` en fait une regeneration plutot qu'un soin : la fiole rend
+-- quarante-huit PV sur douze secondes, et AUCUN coup ne l'arrete. C'est tout ce
+-- qu'elle a pour elle, et c'est ce qui la rend differente de la trousse au meme
+-- prix.
+local function applyHeal(player: Player, use: any)
+	local root = rootOf(player)
+
+	if use.overSeconds ~= nil and use.overSeconds > 0 then
+		StatusService.apply(player, Status.REGEN, use.overSeconds, use.amount / use.overSeconds)
+	else
+		healPlayer(player, use.amount)
+		if root ~= nil then
+			EffectsService.heal(root.Position + Vector3.new(0, 1.5, 0), use.amount, player, "heal")
+		end
+	end
+
+	-- La transfusion soigne aussi autour d'elle. L'allie recoit tout de suite,
+	-- meme quand le porteur se regenere : le partage est le service rendu, et
+	-- l'etaler le rendrait invisible.
+	local allyAmount = use.allyAmount
+	if allyAmount == nil or allyAmount <= 0 or root == nil then
+		return
+	end
+	local entry = roster[player]
+	if entry == nil then
+		return
+	end
+	for _, ally in alliesNear(entry.team, root.Position, use.allyRadiusStuds or 0, player) do
+		healPlayer(ally.player, allyAmount)
+		local allyRoot = rootOf(ally.player)
+		if allyRoot ~= nil then
+			EffectsService.heal(
+				allyRoot.Position + Vector3.new(0, 1.5, 0),
+				allyAmount,
+				ally.player,
+				"heal"
+			)
+		end
+	end
+end
+
 local function startCast(player: Player, usable: any)
 	local use = usable.item.use
 	casting[player] = {
 		itemId = usable.itemId,
 		kind = use.kind,
+		-- L'objet entier et pas seulement son nombre de PV : la transfusion a
+		-- une pose ET un allie a soigner, donc la fin de pose a besoin de tout
+		-- ce que l'objet dit.
+		use = use,
 		amount = use.amount,
 		endsAt = os.clock() + use.castSeconds,
 		interruptedByDamage = use.interruptedByDamage == true,
@@ -589,16 +1117,7 @@ function LoadoutService.use(player: Player, slot: number): string?
 			startCast(player, usable)
 			fired = true
 		else
-			healPlayer(player, use.amount)
-			local root = rootOf(player)
-			if root ~= nil then
-				EffectsService.heal(
-					root.Position + Vector3.new(0, 1.5, 0),
-					use.amount,
-					player,
-					"heal"
-				)
-			end
+			applyHeal(player, use)
 			fired = true
 		end
 	elseif use.kind == "mine" then
@@ -607,6 +1126,12 @@ function LoadoutService.use(player: Player, slot: number): string?
 		fired = throwGrenade(entry, use)
 	elseif use.kind == "shield" then
 		fired = deployShield(entry, use)
+	elseif use.kind == "zone" then
+		fired = placeZone(entry, use)
+	elseif use.kind == "leap" then
+		fired = leap(entry, use)
+	elseif use.kind == "throw" then
+		fired = throwAt(entry, use)
 	end
 
 	if not fired then
@@ -651,16 +1176,7 @@ local function finishCasts(now: number)
 		end
 		casting[player] = nil
 		if cast.kind == "heal" then
-			healPlayer(player, cast.amount)
-			local root = rootOf(player)
-			if root ~= nil then
-				EffectsService.heal(
-					root.Position + Vector3.new(0, 1.5, 0),
-					cast.amount,
-					player,
-					"heal"
-				)
-			end
+			applyHeal(player, cast.use)
 		end
 		LoadoutService.push(player)
 	end
@@ -669,33 +1185,6 @@ end
 --------------------------------------------------------------------------------
 -- LE BATTEMENT
 --------------------------------------------------------------------------------
-
-local function blast(
-	position: Vector3,
-	team: string,
-	damage: number,
-	radius: number,
-	knockbackStuds: number,
-	knockbackUpStuds: number
-)
-	EffectsService.blast(position + Vector3.new(0, 1.5, 0))
-
-	for _, victim in enemiesNear(team, position, radius) do
-		local passed = dealTo(victim, damage)
-		local root = rootOf(victim.player)
-		if passed > 0 and root ~= nil then
-			EffectsService.hit(root.Position + Vector3.new(0, 1.5, 0), passed, victim.player)
-		end
-		if root ~= nil and knockbackStuds > 0 then
-			local away = root.Position - position
-			local flat = Vector3.new(away.X, 0, away.Z)
-			if flat.Magnitude > 0 then
-				root.AssemblyLinearVelocity = (flat.Unit * knockbackStuds)
-					+ Vector3.new(0, knockbackUpStuds, 0)
-			end
-		end
-	end
-end
 
 local function updateMines(now: number)
 	local trigger = Config.abilities.tuning.mineTriggerRadiusStuds
@@ -744,17 +1233,89 @@ local function updateGrenades(now: number)
 		-- l'Artificier. Les degats aux allies sont un sujet que la fiche
 		-- n'ouvre jamais, et l'ouvrir ici en cachette serait une decision de
 		-- conception.
-		blast(position, grenade.team, grenade.damage, grenade.radius, 30, 20)
+		blast(position, grenade.team, grenade.damage, grenade.radius, 30, 20, grenade.status)
 	end
 end
 
-function LoadoutService.step(_deltaSeconds: number)
+-- LE BATTEMENT DES ZONES. Quatre des six font quelque chose a chaque passage ;
+-- la fumee ne fait rien du tout — elle EST son effet, puisqu'on ne voit pas a
+-- travers — et le brouilleur a tout fait a la pose.
+--
+-- POURQUOI LES DUREES SONT COURTES ET PAS LES RAYONS. Un effet colle par une
+-- zone dure `holdSeconds` apres qu'on en soit sorti, et pas une seconde de
+-- plus : c'est ce qui fait qu'en sortir SERT. Une zone qui collerait son effet
+-- pour dix secondes serait une grenade avec un rayon, et on ne saurait plus
+-- pourquoi on est lent.
+local function updateZones(now: number, deltaSeconds: number)
+	for index = #zones, 1, -1 do
+		local zone = zones[index]
+		if now >= zone.until_ or zone.part.Parent == nil then
+			table.remove(zones, index)
+			continue
+		end
+
+		local position = zone.part.Position
+		local effect = zone.effect
+
+		if effect == "slow" then
+			for _, victim in enemiesNear(zone.team, position, zone.radius) do
+				StatusService.apply(victim.player, Status.SLOW, zone.holdSeconds, zone.magnitude)
+			end
+		elseif effect == "reveal" then
+			-- Deux secondes et pas la duree de la zone : celui qui sort de la
+			-- balise redevient invisible presque tout de suite, donc la balise
+			-- dit « il est passe la », pas « je le suis partout ».
+			for _, victim in enemiesNear(zone.team, position, zone.radius) do
+				AbilityService.revealForTeam(zone.team, victim.player, 2)
+			end
+		elseif effect == "burn" then
+			local amount = zone.magnitude * deltaSeconds
+			if amount > 0 then
+				for _, victim in enemiesNear(zone.team, position, zone.radius) do
+					local passed = dealTo(victim, amount, Combat.DOT)
+					local root = rootOf(victim.player)
+					if passed > 0 and root ~= nil then
+						EffectsService.hit(
+							root.Position + Vector3.new(0, 1.5, 0),
+							passed,
+							victim.player
+						)
+					end
+				end
+
+				-- Le feu brule les DEUX equipes, comme les flammes du Pyromane.
+				-- Une zone de feu qui saurait qui l'a posee serait un piege
+				-- magique, pas une zone de feu.
+				if zone.hurtsOwner then
+					for _, friend in alliesNear(zone.team, position, zone.radius, nil) do
+						local passed = dealTo(friend, amount, Combat.DOT)
+						local root = rootOf(friend.player)
+						if passed > 0 and root ~= nil then
+							EffectsService.hit(
+								root.Position + Vector3.new(0, 1.5, 0),
+								passed,
+								friend.player
+							)
+						end
+					end
+				end
+			end
+		elseif effect == "heal" then
+			for _, friend in alliesNear(zone.team, position, zone.radius, nil) do
+				StatusService.apply(friend.player, Status.REGEN, zone.holdSeconds, zone.magnitude)
+			end
+		end
+	end
+end
+
+function LoadoutService.step(deltaSeconds: number)
 	if not active then
 		return
 	end
 	local now = os.clock()
 	updateMines(now)
 	updateGrenades(now)
+	updateZones(now, deltaSeconds)
 	finishCasts(now)
 end
 
@@ -855,7 +1416,7 @@ end
 -- LA BOUCLE DE PARTIE
 --------------------------------------------------------------------------------
 
-function LoadoutService.setDamageSink(sink: (Entry, number) -> number)
+function LoadoutService.setDamageSink(sink: (Entry, number, string?) -> number)
 	damageSink = sink
 end
 
@@ -896,6 +1457,18 @@ function LoadoutService.endRound()
 	for index = #grenades, 1, -1 do
 		grenades[index].part:Destroy()
 		table.remove(grenades, index)
+	end
+	-- Et la contrainte d'un bond en cours : une manche qui s'arrete pendant
+	-- qu'un joueur est en l'air le laisserait filer tout droit dans la
+	-- suivante.
+	for player in movers do
+		clearMover(player)
+	end
+	-- Les zones aussi : une galette de feu qui survit a la manche brule les
+	-- joueurs de la suivante, et personne ne comprendrait pourquoi.
+	for index = #zones, 1, -1 do
+		zones[index].part:Destroy()
+		table.remove(zones, index)
 	end
 	LoadoutService.pushAll()
 end
@@ -954,6 +1527,8 @@ function LoadoutService.init()
 		profiles[player] = nil
 		casting[player] = nil
 		lastUseAt[player] = nil
+		shotsLeft[player] = nil
+		clearMover(player)
 		roster[player] = nil
 	end)
 
@@ -961,9 +1536,74 @@ function LoadoutService.init()
 	-- declare une sorte d'utilisation que ce service ne sait pas executer, il
 	-- coute des points et ne fait rien. Le serveur refuse de demarrer, et le
 	-- message nomme le coupable.
-	local handled = { heal = true, mine = true, grenade = true, shield = true }
+	local handled = {
+		heal = true,
+		mine = true,
+		grenade = true,
+		shield = true,
+		zone = true,
+		leap = true,
+		throw = true,
+	}
+
+	-- LES SIX SORTES DE ZONE, pour la meme raison exactement. Une zone
+	-- « effect = fumigene » au lieu de « smoke » poserait une part invisible et
+	-- ne ferait rien : l'objet couterait un point et le joueur chercherait
+	-- pourquoi il ne voit pas de fumee.
+	local zoneEffects = {
+		smoke = true,
+		reveal = true,
+		slow = true,
+		burn = true,
+		heal = true,
+		jam = true,
+	}
+
 	for _, item in Config.items do
+		-- LA TROISIEME LISTE, et elle manquait. Une arme qui collerait un
+		-- « bleed » a sa cible ne collerait RIEN : `Status.apply` refuse une
+		-- sorte inconnue et renvoie faux, que personne ne lit. La dague
+		-- empoisonnee et le pistolet a flechettes ne valent QUE par cet effet —
+		-- ils frappent moins fort que tout le reste de leur prix — donc une
+		-- faute de frappe les rendrait inutiles sans la moindre erreur.
+		local onHit = item.onHit
+		if onHit ~= nil and not Status.isKnown(onHit.kind) then
+			error(
+				string.format(
+					"[Arena] « %s » colle « %s » a sa cible, que Status ne connait pas.",
+					item.name,
+					tostring(onHit.kind)
+				)
+			)
+		end
+
 		local use = item.use
+
+		-- UNE ZONE QUI COLLE UN EFFET DOIT DIRE COMBIEN DE TEMPS IL TIENT.
+		-- Sans ce test, un oubli retombe sur le repli de `placeZone` et le
+		-- chiffre devient illisible depuis Config — c'est arrive au dome de
+		-- soin.
+		if use ~= nil and use.kind == "zone" and HOLDING_ZONES[use.effect] then
+			if type(use.holdSeconds) ~= "number" or use.holdSeconds <= 0 then
+				error(
+					string.format(
+						"[Arena] La zone de « %s » colle un effet sans dire combien de temps (holdSeconds = %s).",
+						item.name,
+						tostring(use.holdSeconds)
+					)
+				)
+			end
+		end
+
+		if use ~= nil and use.kind == "zone" and not zoneEffects[use.effect] then
+			error(
+				string.format(
+					"[Arena] La zone de « %s » est « %s », que LoadoutService ne sait pas poser.",
+					item.name,
+					tostring(use.effect)
+				)
+			)
+		end
 		if use ~= nil and not handled[use.kind] then
 			error(
 				string.format(

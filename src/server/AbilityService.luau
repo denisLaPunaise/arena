@@ -110,6 +110,12 @@ local slowed: { [Player]: Slow } = {}
 local exposedUntil: { [Player]: { until_: number, ratio: number } } = {}
 local cloaked: { [Player]: boolean } = {}
 local stillSince: { [Player]: number } = {}
+
+-- Depuis quand ce joueur ne bouge plus, pour le Monolithe. SEPARE de
+-- `stillSince`, qui appartient au camouflage du Cameleon : les deux comptent la
+-- meme chose, mais pas avec le meme seuil et pas pour les memes joueurs, et les
+-- melanger donnerait au Monolithe le seuil d'une autre classe.
+local anchoredSince: { [Player]: number } = {}
 local ambushReady: { [Player]: boolean } = {}
 local riposteStacks: { [Player]: number } = {}
 local revealedUntil: { [Player]: { [Player]: number } } = {}
@@ -387,6 +393,8 @@ local HANDLED_TIER6: { [string]: boolean } = {
 	slamDamages = true,
 	slamOnHit = true,
 	bedrockNoKnockback = true,
+	-- Monolithe
+	blastImmunity = true,
 	-- Parasite, Cameleon, Infirmier
 	markJumps = true,
 	markLifesteal = true,
@@ -425,7 +433,58 @@ end
 -- son adversaire. Le serveur envoie donc le fait a UN client, qui dessine. Si
 -- on posait un Highlight sur le serveur, tout le monde le verrait, et le
 -- pouvoir reviendrait a prevenir sa cible qu'elle est reperee.
+-- LES BROUILLEURS. Le quatrieme objet a quatre points du catalogue efface les
+-- revelations ennemies dans une zone, et empeche d'en poser de nouvelles tant
+-- qu'il tient. Il vit ici plutot que dans LoadoutService pour une raison qui ne
+-- se negocie pas : la revelation n'a le droit d'exister qu'a un seul endroit,
+-- sinon un objet pourrait reveler par une porte que le brouilleur ne ferme pas.
+--
+-- `team` est l'equipe PROTEGEE, celle qui a pose le brouilleur. Un brouilleur
+-- ne cache pas ses adversaires : il cache les siens.
+type Jammer = {
+	position: Vector3,
+	radius: number,
+	team: string,
+	until_: number,
+}
+
+local jammers: { Jammer } = {}
+
+local function jammedFor(target: Player, viewer: Player): boolean
+	local targetEntry = roster[target]
+	local viewerEntry = roster[viewer]
+	if targetEntry == nil or viewerEntry == nil then
+		return false
+	end
+	if targetEntry.team == viewerEntry.team then
+		return false
+	end
+
+	local root = rootOf(target)
+	if root == nil then
+		return false
+	end
+
+	local now = os.clock()
+	for _, jammer in jammers do
+		if now >= jammer.until_ or jammer.team ~= targetEntry.team then
+			continue
+		end
+		if (root.Position - jammer.position).Magnitude <= jammer.radius then
+			return true
+		end
+	end
+	return false
+end
+
 local function revealTo(viewer: Player, target: Player, seconds: number)
+	-- Le brouilleur passe AVANT tout le reste : une revelation deja envoyee ne
+	-- se reprend pas, donc la seule facon de le faire tenir est de ne jamais
+	-- l'envoyer.
+	if jammedFor(target, viewer) then
+		return
+	end
+
 	local byViewer = revealedUntil[viewer]
 	if byViewer == nil then
 		byViewer = {}
@@ -451,6 +510,48 @@ local function revealToTeam(entry: Entry, target: Player, seconds: number)
 		local other = roster[player]
 		if other ~= nil and other.team == entry.team then
 			revealTo(player, target, seconds)
+		end
+	end
+end
+
+-- Ce que l'equipement appelle. La balise et le detecteur revelent pour toute
+-- l'equipe de celui qui les a poses, exactement comme le pouvoir du Traqueur :
+-- une deuxieme facon de reveler serait une deuxieme facon d'oublier le
+-- brouilleur.
+function AbilityService.revealForTeam(team: string, target: Player, seconds: number)
+	for _, player in order do
+		local other = roster[player]
+		if other ~= nil and other.team == team then
+			revealTo(player, target, seconds)
+		end
+	end
+end
+
+-- Pose un brouilleur, et efface tout de suite ce qui etait deja revele. Sans
+-- cet effacement, le brouilleur ne ferait rien pendant les dix secondes qu'une
+-- revelation en cours peut durer, et on le croirait casse.
+function AbilityService.addJammer(position: Vector3, radius: number, team: string, seconds: number)
+	table.insert(jammers, {
+		position = position,
+		radius = radius,
+		team = team,
+		until_ = os.clock() + seconds,
+	})
+
+	for viewer, byTarget in revealedUntil do
+		local viewerEntry = roster[viewer]
+		if viewerEntry == nil or viewerEntry.team == team then
+			continue
+		end
+		for target in byTarget do
+			if jammedFor(target, viewer) then
+				byTarget[target] = nil
+				abilityRemote:FireClient(viewer, {
+					kind = "reveal",
+					target = target,
+					seconds = 0,
+				})
+			end
 		end
 	end
 end
@@ -1533,6 +1634,17 @@ function AbilityService.onDamaged(target: Entry, amount: number)
 end
 
 -- Le Socle du Sismique ne bouge plus d'un pouce.
+-- Le Monolithe ancre ignore les explosions entierement. CombatService demande
+-- ici plutot que de lire l'effet lui-meme : le compte des secondes vit a un
+-- seul endroit, et c'est celui qui le tient.
+function AbilityService.ignoresBlast(player: Player): boolean
+	local since = anchoredSince[player]
+	if since == nil then
+		return false
+	end
+	return (os.clock() - since) >= Config.tier6.blastImmunity.stillSeconds
+end
+
 function AbilityService.resistsKnockback(player: Player): boolean
 	return has(player, "bedrockNoKnockback")
 end
@@ -1702,6 +1814,28 @@ function AbilityService.step(deltaSeconds: number)
 			continue
 		end
 
+		-- MONOLITHE, palier 6 : qui ne bouge plus ne craint plus les
+		-- explosions. Compte ici pour tout le monde qui a l'effet, quelle que
+		-- soit la classe — un palier 6 appartient a sa branche, pas a son
+		-- pouvoir.
+		if has(player, "blastImmunity") then
+			local root = rootOf(player)
+			local tuning = Config.tier6.blastImmunity
+			if root == nil or not DownedService.isStanding(player) then
+				anchoredSince[player] = nil
+			else
+				local velocity = root.AssemblyLinearVelocity
+				local flat = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+				if flat > tuning.speedThreshold then
+					anchoredSince[player] = nil
+				elseif anchoredSince[player] == nil then
+					anchoredSince[player] = now
+				end
+			end
+		else
+			anchoredSince[player] = nil
+		end
+
 		local id = abilityOf(entry)
 		if id == "footprints" then
 			updateFootprints(entry, now)
@@ -1837,6 +1971,7 @@ function AbilityService.endRound()
 	end
 	mines = {}
 	fires = {}
+	jammers = {}
 
 	for player in slowed do
 		local humanoid = humanoidOf(player)
@@ -1850,6 +1985,7 @@ function AbilityService.endRound()
 	for _, player in order do
 		phaseUntil[player] = nil
 		exposedUntil[player] = nil
+		anchoredSince[player] = nil
 		setBodyTransparency(player, nil)
 	end
 

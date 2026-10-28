@@ -50,6 +50,19 @@ export type Stats = {
 	spreadRatio: number,
 	spreadRadiusStuds: number,
 
+	-- REDUCTIONS PAR SORTE DE DEGAT, ouvertes par l'equipement seulement et
+	-- nulles partout ailleurs. Elles s'ajoutent a `damageTakenRatio`, qui
+	-- s'applique a tout.
+	--
+	-- Elles existent parce que deux armures du catalogue ne se distinguent que
+	-- par la : le plastron de cuir est une armure legere qui tient contre les
+	-- poisons, le gilet pare-eclats une armure moyenne qui tient contre les
+	-- explosions. Sans sorte de degat, les deux seraient des copies de l'armure
+	-- legere avec un autre nom — et le cinquieme principe dit que deux objets
+	-- identiques sont le meme objet.
+	blastTakenRatio: number,
+	dotTakenRatio: number,
+
 	-- LES CHIFFRES DES POUVOIRS DE CLASSE.
 	--
 	-- Facultatifs, parce qu'une classe ne porte que les siens : le Traqueur n'a
@@ -116,6 +129,11 @@ export type HitResult = {
 -- branche qui annule la poussee (la Catapulte) ne doit pas encaisser au passage
 -- des degats de charge qu'elle ne porte plus. C'est aussi ce qui rend la phrase
 -- « la poussee devient une charge qui blesse » litteralement vraie.
+-- LES SORTES DE DEGAT. Un coup ordinaire n'en a pas : c'est le cas par defaut,
+-- et lui donner un nom obligerait les quinze appels existants a le repeter.
+Combat.BLAST = "blast"
+Combat.DOT = "dot"
+
 function Combat.rawDamage(stats: Stats): number
 	local damage = stats.attackDamage
 	if stats.knockbackStuds > 0 then
@@ -126,8 +144,25 @@ end
 
 -- Les degats reellement recus par une cible, reduction comprise. Tout ce qui
 -- retire des PV passe par ici : les coups, la zone, la propagation.
-function Combat.damageTaken(config, defenderStats: Stats, amount: number): number
+--
+-- `kind` nomme la SORTE de degat quand elle n'est pas un coup ordinaire :
+-- Combat.BLAST pour une explosion, Combat.DOT pour un poison ou des flammes.
+-- Il est facultatif, et c'est voulu — les quinze appels qui existaient avant
+-- les armures specialisees parlent tous de coups, et aucun n'a eu a changer.
+--
+-- LES DEUX REDUCTIONS S'ADDITIONNENT AVANT D'ETRE BORNEES, pas apres. Un gilet
+-- pare-eclats porte par qui a deja une reduction generale ne doit pas pouvoir
+-- descendre sous le plancher de Config.combat : c'est ce plancher qui garantit
+-- qu'aucun assemblage ne devient intouchable, et il ne sert a rien s'il
+-- s'applique deux fois a deux moities.
+function Combat.damageTaken(config, defenderStats: Stats, amount: number, kind: string?): number
 	local ratio = 1 + (defenderStats.damageTakenRatio or 0)
+
+	if kind == Combat.BLAST then
+		ratio += defenderStats.blastTakenRatio or 0
+	elseif kind == Combat.DOT then
+		ratio += defenderStats.dotTakenRatio or 0
+	end
 
 	if config ~= nil then
 		ratio =

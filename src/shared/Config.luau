@@ -200,7 +200,7 @@ Config.draft = {
 	-- compenser l'absence de marge en 5v5.
 	allowTeammateSwap = false,
 
-	-- Le temps laisse pour accepter ou refuser le relancement. Court exprès :
+	-- Le temps laisse pour accepter ou refuser le relancement. Court expres :
 	-- le relancement est aveugle, donc il n'y a rien a peser. C'est un pari,
 	-- pas une decision, et un long compte a rebours ferait croire le contraire.
 	rerollSeconds = 6,
@@ -375,10 +375,9 @@ Config.skillTree = {
 				onUnlock = { walkSpeed = -2 },
 				perTier = { damageTakenRatio = -0.05 },
 				tier6 = {
-					label = "Immobile deux secondes : immunité aux projectiles",
-					effect = "projectileImmunity",
-					-- Il n'y a pas encore de projectiles.
-					implemented = false,
+					label = "Immobile deux secondes : immunité aux explosions",
+					effect = "blastImmunity",
+					implemented = true,
 				},
 			},
 		},
@@ -1017,6 +1016,20 @@ Config.loadout = {
 	-- l'Artificier. Une manche est l'unite de reserve du jeu.
 	chargesRefillBetweenRounds = true,
 
+	-- La hauteur d'un saut ordinaire dans Roblox, avec la gravite et le
+	-- `JumpHeight` par defaut. Ce n'est pas un reglage, c'est une CONSTANTE DE
+	-- COMPARAISON : un objet de deplacement qui monte moins haut que la barre
+	-- d'espace ne vaut pas un point, et un test refuse desormais qu'un bond
+	-- passe sous cette ligne. Elle est ici et pas dans le test pour que les
+	-- deux ne puissent pas diverger.
+	ordinaryJumpStuds = 7.2,
+
+	-- La gravite de Roblox, telle qu'elle vaut dans une place neuve. Le serveur
+	-- lit la vraie valeur de `Workspace.Gravity` quand il convertit un bond ;
+	-- celle-ci n'existe que pour que les tests puissent refaire le calcul sans
+	-- Roblox.
+	referenceGravity = 196.2,
+
 	-- L'ARME SE VOIT DANS LA MAIN, et elle bouge quand on frappe.
 	--
 	-- Ce n'est pas de la decoration : avec treize objets, savoir qu'on a en
@@ -1150,16 +1163,17 @@ Config.loadout = {
 -- LE CATALOGUE D'OBJETS
 --------------------------------------------------------------------------------
 
--- Cible a terme et contenu du prototype. Douze objets suffisent a tester si le
--- systeme de budget est bon : s'il n'est pas amusant a douze, il ne le sera pas
--- davantage a soixante-deux.
+-- Combien d'objets chaque categorie doit compter. C'etait une cible et un
+-- contenu de prototype tant que le catalogue n'en avait que treize ; le
+-- prototype a repondu a sa question — le budget a douze points tient — donc il
+-- ne reste que la cible, et elle est atteinte.
 --
--- Il y en a treize et pas douze, pour une raison precise : avec un seul soin,
--- la question « est-ce que je paie un point ou deux pour me soigner » ne se
--- pose pas, et c'est exactement la question que le budget doit faire naitre.
+-- Cette table n'a pas disparu avec le prototype parce qu'elle est le seul
+-- endroit qui dit combien d'objets le catalogue DOIT contenir. Un test compare
+-- ces chiffres au catalogue reel : un objet oublie ou ajoute en double se voit
+-- tout de suite, au lieu de se decouvrir en jouant.
 Config.itemCounts = {
 	target = { primary = 24, secondary = 10, armor = 8, heal = 6, utility = 14 },
-	prototype = { primary = 4, secondary = 2, armor = 2, heal = 2, utility = 3 },
 }
 
 -- LES OBJETS.
@@ -1261,6 +1275,400 @@ Config.items = {
 		},
 	},
 
+	{
+		id = "fastPistol",
+		category = "primary",
+		cost = 4,
+		name = "Pistolet rapide",
+		summary = "Tir léger, cadence élevée, dégâts faibles",
+		-- L'arme principale la moins chere qui tire : elle rend moins de la
+		-- moitie des degats d'un coup de classe, trois fois plus souvent. A
+		-- quatre points elle laisse huit points pour tout le reste, et c'est
+		-- tout son interet.
+		scale = { attackDamage = 0.59, attackCooldownSeconds = 0.5, attackRangeStuds = 1.9 },
+		look = {
+			size = { 0.24, 0.5, 1 },
+			color = { 64, 68, 76 },
+			grip = { 0, -0.7, -0.5 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.14, 0.14, 0.8 }, color = { 92, 96, 104 }, atStuds = -0.8 },
+		},
+	},
+	{
+		id = "lightCrossbow",
+		category = "primary",
+		cost = 4,
+		name = "Arbalète légère",
+		summary = "Un carreau précis, rechargement lent",
+		-- Presque deux fois les degats d'un coup, mais il faut attendre entre
+		-- deux. Rater un carreau coute une seconde et demie, donc elle punit
+		-- l'approximation comme aucune autre arme a quatre points.
+		scale = { attackDamage = 1.75, attackCooldownSeconds = 1.6, attackRangeStuds = 2.6 },
+		look = {
+			size = { 0.2, 0.3, 1.8 },
+			color = { 102, 78, 56 },
+			grip = { 0, -0.7, -0.8 },
+			swing = "draw",
+			voice = "bow",
+			head = { size = { 1.9, 0.09, 0.09 }, color = { 180, 184, 192 }, atStuds = -0.6 },
+		},
+	},
+	{
+		id = "club",
+		category = "primary",
+		cost = 4,
+		name = "Gourdin",
+		summary = "Mêlée lente, repousse légèrement",
+		-- La poussee est son vrai texte : elle ne tue pas, elle donne de
+		-- l'espace. C'est l'arme de qui joue autour d'une couverture.
+		scale = { attackDamage = 1.4, attackCooldownSeconds = 1.15, attackRangeStuds = 0.9 },
+		offset = { knockbackStuds = 14, knockbackUpStuds = 4 },
+		look = {
+			size = { 0.34, 0.34, 2.6 },
+			color = { 110, 84, 58 },
+			grip = { 0, -0.9, -1 },
+			swing = "overhead",
+			voice = "blunt",
+			head = { size = { 0.56, 0.56, 0.7 }, color = { 124, 96, 66 }, atStuds = -1.1 },
+		},
+	},
+	{
+		id = "sling",
+		category = "primary",
+		cost = 4,
+		name = "Fronde",
+		summary = "Projectile en cloche, longue portée, dégâts faibles",
+		-- Trois fois la portee de la classe pour des degats par seconde en
+		-- dessous de tout le reste : on achete de la distance, et on la paie.
+		scale = { attackDamage = 0.7, attackCooldownSeconds = 0.75, attackRangeStuds = 3 },
+		look = {
+			size = { 0.12, 1.5, 0.12 },
+			color = { 128, 104, 76 },
+			grip = { 0, -0.6, -0.4 },
+			swing = "slash",
+			voice = "bow",
+			head = { size = { 0.3, 0.26, 0.3 }, color = { 92, 88, 84 }, atStuds = 0.9 },
+		},
+	},
+	{
+		id = "claws",
+		category = "primary",
+		cost = 4,
+		name = "Griffes",
+		summary = "Deux coups très rapides, portée minimale",
+		-- Les degats par seconde les plus eleves des armes a quatre points, pour
+		-- une portee de moins de quatre studs : il faut etre colle, et y rester.
+		scale = { attackDamage = 0.64, attackCooldownSeconds = 0.46, attackRangeStuds = 0.5 },
+		look = {
+			size = { 0.5, 0.1, 1.1 },
+			color = { 188, 190, 196 },
+			grip = { 0, -0.5, -0.4 },
+			swing = "slash",
+			voice = "blade",
+			head = { size = { 0.44, 0.08, 0.5 }, color = { 212, 214, 220 }, atStuds = 0.5 },
+		},
+	},
+	{
+		id = "shortSword",
+		category = "primary",
+		cost = 5,
+		name = "Épée courte",
+		summary = "Mêlée équilibrée, sans défaut ni éclat",
+		-- Volontairement sans particularite. Le catalogue a besoin d'au moins
+		-- une arme qui ne demande rien a personne : c'est elle qu'on prend quand
+		-- les sept points restants servent ailleurs.
+		scale = { attackDamage = 1.1, attackCooldownSeconds = 0.8, attackRangeStuds = 1 },
+		look = {
+			size = { 0.14, 0.44, 3.2 },
+			color = { 186, 190, 198 },
+			grip = { 0, -0.9, -1.1 },
+			swing = "slash",
+			voice = "blade",
+			head = { size = { 0.5, 0.2, 0.3 }, color = { 128, 104, 72 }, atStuds = 1.5 },
+		},
+	},
+	{
+		id = "bow",
+		category = "primary",
+		cost = 5,
+		name = "Arc",
+		summary = "Tir chargé, précis, silencieux",
+		-- L'arc composite sans la perforation, pour un point de moins. C'est la
+		-- paire qui dit le mieux ce que vaut un point dans ce jeu.
+		scale = { attackDamage = 1.5, attackCooldownSeconds = 1.3, attackRangeStuds = 2.8 },
+		look = {
+			size = { 0.14, 4, 0.4 },
+			color = { 118, 90, 58 },
+			grip = { 0, -0.6, -0.9 },
+			swing = "draw",
+			voice = "bow",
+			head = { size = { 0.06, 3.7, 0.06 }, color = { 236, 234, 226 }, atStuds = 0.5 },
+		},
+	},
+	{
+		id = "spear",
+		category = "primary",
+		cost = 5,
+		name = "Lance",
+		summary = "Portée de mêlée longue, coups lents",
+		-- Dix studs et demi sur un Vampire : elle touche depuis l'endroit ou une
+		-- machette ne touche pas encore. La lenteur est le prix de ce pas
+		-- d'avance.
+		scale = { attackDamage = 1.5, attackCooldownSeconds = 1.15, attackRangeStuds = 1.5 },
+		look = {
+			size = { 0.16, 0.16, 5.4 },
+			color = { 116, 92, 64 },
+			grip = { 0, -0.8, -1.6 },
+			swing = "overhead",
+			voice = "blade",
+			head = { size = { 0.22, 0.3, 0.9 }, color = { 192, 196, 204 }, atStuds = 2.6 },
+		},
+	},
+	{
+		id = "submachineGun",
+		category = "primary",
+		cost = 5,
+		name = "Mitraillette",
+		summary = "Cadence élevée, dégâts faibles, imprécise",
+		-- Le plus fort rendement du palier a cinq points, pour une portee a
+		-- peine superieure a une lance. « Imprecise » est dit par la portee :
+		-- au-dela, elle ne touche simplement plus.
+		scale = { attackDamage = 0.625, attackCooldownSeconds = 0.5, attackRangeStuds = 1.6 },
+		look = {
+			size = { 0.3, 0.6, 1.7 },
+			color = { 48, 52, 58 },
+			grip = { 0, -0.7, -0.8 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.16, 0.16, 1.4 }, color = { 82, 86, 94 }, atStuds = -1.3 },
+		},
+	},
+	{
+		id = "throwingAxe",
+		category = "primary",
+		cost = 5,
+		name = "Hachette de lancer",
+		summary = "Mêlée correcte, plus deux lancers par manche",
+		-- La seule arme principale qui porte un objet utilisable. Les deux
+		-- lancers reviennent entre deux manches, comme toutes les charges : une
+		-- hachette qu'on ramasserait au sol demanderait de suivre un objet dans
+		-- le monde, et ca ne vaut pas ce que ca coute.
+		scale = { attackDamage = 1.1, attackCooldownSeconds = 0.85, attackRangeStuds = 0.95 },
+		use = {
+			kind = "throw",
+			charges = 2,
+			damage = 38,
+			rangeStuds = 60,
+			radiusStuds = 3,
+		},
+		look = {
+			size = { 0.2, 0.3, 2 },
+			color = { 108, 82, 56 },
+			grip = { 0, -0.8, -0.8 },
+			swing = "overhead",
+			voice = "blade",
+			head = { size = { 0.7, 0.26, 0.6 }, color = { 176, 180, 188 }, atStuds = 0.9 },
+		},
+	},
+	{
+		id = "longSword",
+		category = "primary",
+		cost = 6,
+		name = "Épée longue",
+		summary = "Mêlée forte, coups lents",
+		scale = { attackDamage = 1.8, attackCooldownSeconds = 1.25, attackRangeStuds = 1.2 },
+		look = {
+			size = { 0.16, 0.5, 4.4 },
+			color = { 198, 202, 210 },
+			grip = { 0, -1, -1.4 },
+			swing = "overhead",
+			voice = "blade",
+			head = { size = { 0.7, 0.22, 0.32 }, color = { 120, 98, 66 }, atStuds = 2 },
+		},
+	},
+	{
+		id = "huntingRifle",
+		category = "primary",
+		cost = 6,
+		name = "Fusil de chasse",
+		summary = "Deux balles par manche, précis à distance moyenne",
+		-- Deux coups par manche et rien apres : c'est ce que « deux balles »
+		-- veut dire, et c'est la seule arme principale a qui le chargeur peut
+		-- manquer. Avec une secondaire, c'est un choix ; sans, c'est un risque.
+		scale = { attackDamage = 1.9, attackCooldownSeconds = 1.5, attackRangeStuds = 2.9 },
+		shotsPerRound = 2,
+		look = {
+			size = { 0.26, 0.4, 3.4 },
+			color = { 88, 66, 48 },
+			grip = { 0, -0.7, -1.3 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.15, 0.15, 2.4 }, color = { 60, 64, 72 }, atStuds = -2.4 },
+		},
+	},
+	{
+		id = "mace",
+		category = "primary",
+		cost = 6,
+		name = "Masse d'armes",
+		summary = "Dégâts forts et repoussement",
+		scale = { attackDamage = 1.9, attackCooldownSeconds = 1.4, attackRangeStuds = 0.95 },
+		offset = { knockbackStuds = 26, knockbackUpStuds = 8 },
+		look = {
+			size = { 0.26, 0.26, 2.8 },
+			color = { 78, 72, 66 },
+			grip = { 0, -0.9, -1.1 },
+			swing = "overhead",
+			voice = "blunt",
+			head = { size = { 0.7, 0.7, 0.7 }, color = { 96, 100, 110 }, atStuds = -1.2 },
+		},
+	},
+	{
+		id = "scythe",
+		category = "primary",
+		cost = 6,
+		name = "Faux",
+		summary = "Arc de mêlée large, touche plusieurs ennemis",
+		-- Elle se sert de la propagation, qui existait deja pour la Peste : le
+		-- coup repercute une part de ses degats sur les ennemis proches de la
+		-- cible. A un contre un elle ne vaut pas la masse d'armes, et c'est
+		-- exactement ce qu'on veut d'une arme de nombre.
+		scale = { attackDamage = 1.5, attackCooldownSeconds = 1.2, attackRangeStuds = 1.3 },
+		offset = { spreadRatio = 0.45, spreadRadiusStuds = 9 },
+		look = {
+			size = { 0.18, 0.18, 5 },
+			color = { 96, 76, 54 },
+			grip = { 0, -0.9, -1.5 },
+			swing = "slash",
+			voice = "blade",
+			head = { size = { 2.6, 0.16, 0.5 }, color = { 182, 186, 194 }, atStuds = 2.3 },
+		},
+	},
+	{
+		id = "heavyRevolver",
+		category = "primary",
+		cost = 6,
+		name = "Revolver lourd",
+		summary = "Gros dégâts par balle, six coups par manche",
+		scale = { attackDamage = 2.2, attackCooldownSeconds = 1.55, attackRangeStuds = 2.3 },
+		shotsPerRound = 6,
+		look = {
+			size = { 0.3, 0.62, 1.3 },
+			color = { 72, 66, 60 },
+			grip = { 0, -0.7, -0.6 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.18, 0.18, 1 }, color = { 106, 110, 118 }, atStuds = -1 },
+		},
+	},
+	{
+		id = "heavyRifle",
+		category = "primary",
+		cost = 7,
+		name = "Fusil lourd",
+		summary = "Dégâts forts à toute distance, très lent",
+		-- L'arme de l'assemblage du tireur de la fiche : sept points, et il
+		-- reste cinq points pour une armure legere, une trousse et un fumigene.
+		scale = { attackDamage = 2.6, attackCooldownSeconds = 1.8, attackRangeStuds = 3 },
+		look = {
+			size = { 0.3, 0.48, 4 },
+			color = { 54, 58, 64 },
+			grip = { 0, -0.7, -1.5 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.18, 0.18, 2.8 }, color = { 86, 90, 98 }, atStuds = -2.8 },
+		},
+	},
+	{
+		id = "sniperRifle",
+		category = "primary",
+		cost = 7,
+		name = "Fusil de précision",
+		summary = "Très fort au loin, ne tire pas au contact",
+		-- LE SEUL OBJET DU CATALOGUE AVEC UNE PORTEE MINIMALE. En dessous, il ne
+		-- tire pas du tout et c'est l'arme secondaire qui sort — donc il demande
+		-- d'en porter une, et sept plus deux font neuf des douze points. C'est
+		-- l'assemblage le plus contraint du jeu, et c'est voulu.
+		scale = { attackDamage = 3.6, attackCooldownSeconds = 2.4, attackRangeStuds = 4.5 },
+		minRangeStuds = 18,
+		look = {
+			size = { 0.28, 0.46, 5 },
+			color = { 44, 50, 58 },
+			grip = { 0, -0.7, -1.8 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.16, 0.16, 3.6 }, color = { 78, 82, 90 }, atStuds = -3.6 },
+		},
+	},
+	{
+		id = "grenadeLauncher",
+		category = "primary",
+		cost = 7,
+		name = "Lance-grenades",
+		summary = "Dégâts de zone, se blesse soi-même de près",
+		-- Le coup explose autour de la cible, et l'explosion ne fait pas le tri :
+		-- tirer sur quelqu'un de colle a soi, c'est se tirer dessus. Sa
+		-- faiblesse n'est pas decorative, elle est dans le meme calcul que ses
+		-- degats.
+		scale = { attackDamage = 1.9, attackCooldownSeconds = 1.7, attackRangeStuds = 2.4 },
+		weaponBlast = { radiusStuds = 11, selfRatio = 0.6 },
+		look = {
+			size = { 0.38, 0.6, 2.6 },
+			color = { 68, 76, 62 },
+			grip = { 0, -0.7, -1.1 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.42, 0.42, 1.4 }, color = { 54, 60, 50 }, atStuds = -1.8 },
+		},
+	},
+	{
+		id = "katana",
+		category = "primary",
+		cost = 7,
+		name = "Katana",
+		summary = "Mêlée très rapide et très forte, aucune portée",
+		-- Les degats par seconde les plus eleves du catalogue, pour quatre studs
+		-- de portee sur un Vampire. C'est l'arme qui demande d'etre dans le
+		-- visage de l'adversaire en permanence.
+		scale = { attackDamage = 1.5, attackCooldownSeconds = 0.75, attackRangeStuds = 0.6 },
+		look = {
+			size = { 0.1, 0.4, 4 },
+			color = { 224, 226, 232 },
+			grip = { 0, -0.9, -1.2 },
+			swing = "slash",
+			voice = "blade",
+			head = { size = { 0.26, 0.26, 0.6 }, color = { 40, 42, 48 }, atStuds = 2.2 },
+		},
+	},
+	{
+		id = "machineGun",
+		category = "primary",
+		cost = 7,
+		name = "Mitrailleuse",
+		summary = "Cadence très élevée, cloue presque sur place pendant le tir",
+		-- ELLE RALENTIT AU PLANCHER, ELLE N'IMMOBILISE PAS, et la nuance est
+		-- une decision. Une immobilisation complete existe deja dans le jeu —
+		-- c'est l'etourdissement, et la grenade aveuglante le fait payer trois
+		-- points. En donner une deuxieme version a une arme aurait fait deux
+		-- mecaniques pour une seule idee, et la premiere a un plancher que la
+		-- seconde n'aurait pas eu.
+		--
+		-- Concretement : a 35 % de sa vitesse, on se decale d'un pas, on ne
+		-- rompt pas le combat. Tenir une position devient tres fort, partir
+		-- devient cher.
+		scale = { attackDamage = 1.06, attackCooldownSeconds = 0.46, attackRangeStuds = 2.1 },
+		selfSlowSeconds = 0.45,
+		look = {
+			size = { 0.42, 0.66, 3.6 },
+			color = { 50, 54, 60 },
+			grip = { 0, -0.7, -1.4 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.2, 0.2, 2.6 }, color = { 80, 84, 92 }, atStuds = -2.6 },
+		},
+	},
+
 	------------------------------------------------------------------ secondaires
 	{
 		id = "knife",
@@ -1295,6 +1703,160 @@ Config.items = {
 		},
 	},
 
+	{
+		id = "pocketPistol",
+		category = "secondary",
+		cost = 2,
+		name = "Pistolet de poche",
+		summary = "Deux balles par manche, puis plus rien",
+		-- Deux coups, et il devient un objet mort pour le reste de la manche.
+		-- C'est le pari a deux points : de quoi finir un adversaire a dix studs,
+		-- a condition de ne pas les avoir gaspilles.
+		scale = { attackDamage = 1.1, attackCooldownSeconds = 1.1, attackRangeStuds = 2 },
+		shotsPerRound = 2,
+		look = {
+			size = { 0.22, 0.44, 0.8 },
+			color = { 58, 62, 70 },
+			grip = { 0, -0.6, -0.4 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.12, 0.12, 0.6 }, color = { 88, 92, 100 }, atStuds = -0.6 },
+		},
+	},
+	{
+		id = "shuriken",
+		category = "secondary",
+		cost = 2,
+		name = "Shuriken",
+		summary = "Lancer court, silencieux",
+		-- Il ne demande aucune touche : l'arme secondaire sort toute seule quand
+		-- la cible est hors de portee de la principale. C'est ce qui fait d'un
+		-- objet a deux points la reponse la moins chere au « il recule ».
+		scale = { attackDamage = 0.55, attackCooldownSeconds = 0.6, attackRangeStuds = 1.9 },
+		look = {
+			size = { 0.9, 0.06, 0.9 },
+			color = { 168, 172, 180 },
+			grip = { 0, -0.5, -0.3 },
+			swing = "slash",
+			voice = "blade",
+			head = { size = { 0.3, 0.05, 0.3 }, color = { 200, 204, 212 }, atStuds = 0.4 },
+		},
+	},
+	{
+		id = "shortRevolver",
+		category = "secondary",
+		cost = 3,
+		name = "Revolver court",
+		summary = "Six coups par manche, dégâts moyens",
+		scale = { attackDamage = 1, attackCooldownSeconds = 0.85, attackRangeStuds = 2.2 },
+		shotsPerRound = 6,
+		look = {
+			size = { 0.26, 0.5, 1 },
+			color = { 76, 70, 64 },
+			grip = { 0, -0.6, -0.5 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.15, 0.15, 0.8 }, color = { 110, 114, 122 }, atStuds = -0.8 },
+		},
+	},
+	{
+		id = "poisonDagger",
+		category = "secondary",
+		cost = 3,
+		name = "Dague empoisonnée",
+		summary = "Dégâts continus légers après le coup",
+		-- Le poison ne s'empile pas : toucher dix fois ne fait pas dix poisons,
+		-- ca rafraichit le meme. Sans cette regle, une arme a trois points
+		-- deviendrait la plus forte du catalogue des le deuxieme coup.
+		scale = { attackDamage = 0.5, attackCooldownSeconds = 0.55, attackRangeStuds = 0.7 },
+		onHit = { kind = "poison", seconds = 5, magnitude = 4 },
+		look = {
+			size = { 0.1, 0.3, 1.4 },
+			color = { 120, 170, 120 },
+			grip = { 0, -0.8, -0.6 },
+			swing = "slash",
+			voice = "blade",
+			head = { size = { 0.14, 0.2, 0.44 }, color = { 60, 100, 64 }, atStuds = 0.55 },
+		},
+	},
+	{
+		id = "handCrossbow",
+		category = "secondary",
+		cost = 3,
+		name = "Arbalète de poing",
+		summary = "Un carreau qui traverse les armures légères",
+		-- La deuxieme perforation du catalogue, apres l'arc composite. Les deux
+		-- ne s'additionnent pas si on les porte ensemble : on garde la plus
+		-- forte, et le calcul vit dans Combat.piercedRatio.
+		scale = { attackDamage = 1.2, attackCooldownSeconds = 1.2, attackRangeStuds = 2.4 },
+		armorPierceRatio = 0.5,
+		look = {
+			size = { 0.18, 0.24, 1.1 },
+			color = { 96, 74, 54 },
+			grip = { 0, -0.6, -0.5 },
+			swing = "draw",
+			voice = "bow",
+			head = { size = { 1.2, 0.07, 0.07 }, color = { 182, 186, 194 }, atStuds = -0.4 },
+		},
+	},
+	{
+		id = "shortAxe",
+		category = "secondary",
+		cost = 4,
+		name = "Hache courte",
+		summary = "Dégâts de mêlée notables",
+		-- La secondaire de qui a pris une arme principale a longue portee et se
+		-- fait rattraper. Elle frappe presque aussi fort qu'une epee courte.
+		scale = { attackDamage = 1.2, attackCooldownSeconds = 0.78, attackRangeStuds = 0.85 },
+		look = {
+			size = { 0.18, 0.26, 1.8 },
+			color = { 104, 80, 56 },
+			grip = { 0, -0.8, -0.7 },
+			swing = "overhead",
+			voice = "blade",
+			head = { size = { 0.62, 0.24, 0.55 }, color = { 170, 174, 182 }, atStuds = 0.8 },
+		},
+	},
+	{
+		id = "sawedOff",
+		category = "secondary",
+		cost = 4,
+		name = "Fusil à canon scié",
+		summary = "Un coup dévastateur à bout portant",
+		-- Le contraire exact du shuriken : il ne couvre pas le trou du loin, il
+		-- couvre celui du tres pres. C'est la secondaire du fusil de precision.
+		scale = { attackDamage = 2.5, attackCooldownSeconds = 1.5, attackRangeStuds = 0.6 },
+		look = {
+			size = { 0.3, 0.42, 1.4 },
+			color = { 84, 68, 54 },
+			grip = { 0, -0.7, -0.6 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.24, 0.24, 1 }, color = { 58, 62, 70 }, atStuds = -1 },
+		},
+	},
+	{
+		id = "dartPistol",
+		category = "secondary",
+		cost = 4,
+		name = "Pistolet à fléchettes",
+		summary = "Dégâts faibles, ralentit la cible",
+		-- Il ne tue personne : il empeche de partir. Quatre points pour une arme
+		-- qui touche a peine, parce que ce qu'on achete est le ralentissement —
+		-- et le ralentissement a un plancher, donc deux ne valent pas mieux
+		-- qu'un.
+		scale = { attackDamage = 0.4, attackCooldownSeconds = 0.7, attackRangeStuds = 2.2 },
+		onHit = { kind = "slow", seconds = 2.5, magnitude = 0.65 },
+		look = {
+			size = { 0.2, 0.44, 1.1 },
+			color = { 74, 92, 104 },
+			grip = { 0, -0.6, -0.5 },
+			swing = "recoil",
+			voice = "gun",
+			head = { size = { 0.11, 0.11, 0.9 }, color = { 120, 150, 166 }, atStuds = -0.9 },
+		},
+	},
+
 	---------------------------------------------------------------------- armures
 	{
 		id = "lightArmor",
@@ -1312,6 +1874,70 @@ Config.items = {
 		summary = "Très forte réduction, grosse perte de vitesse",
 		offset = { damageTakenRatio = -0.28 },
 		scale = { walkSpeed = 0.78 },
+	},
+
+	{
+		id = "paddedVest",
+		category = "armor",
+		cost = 1,
+		name = "Veste rembourrée",
+		summary = "Réduction très légère, aucun malus",
+		-- L'armure du budget serre : un point, aucune perte de vitesse, et de
+		-- quoi survivre a un coup de justesse. Elle existe pour que « pas
+		-- d'armure » ne soit jamais le choix par defaut.
+		offset = { damageTakenRatio = -0.04 },
+	},
+	{
+		id = "leatherChest",
+		category = "armor",
+		cost = 2,
+		name = "Plastron de cuir",
+		summary = "Réduction légère, bien meilleure contre les poisons et le feu",
+		-- Meme prix que l'armure legere, et volontairement moins bonne contre
+		-- les coups : ce qu'elle achete est ailleurs. C'est la reponse a la
+		-- Peste, au Pyromane et a la dague empoisonnee, et c'est la seule.
+		offset = { damageTakenRatio = -0.06, dotTakenRatio = -0.35 },
+	},
+	{
+		id = "chainmail",
+		category = "armor",
+		cost = 3,
+		name = "Cotte de mailles",
+		summary = "Réduction moyenne, légère perte de vitesse",
+		offset = { damageTakenRatio = -0.14 },
+		scale = { walkSpeed = 0.94 },
+	},
+	{
+		id = "fragVest",
+		category = "armor",
+		cost = 3,
+		name = "Gilet pare-éclats",
+		summary = "Forte contre les explosions, faible contre le reste",
+		-- La reponse a l'Artificier, au lance-grenades et aux grenades. Comme le
+		-- plastron de cuir, elle se paie en reduction ordinaire : une armure
+		-- specialisee qui serait aussi bonne partout ne serait pas un choix.
+		offset = { damageTakenRatio = -0.06, blastTakenRatio = -0.45 },
+	},
+	{
+		id = "plateArmor",
+		category = "armor",
+		cost = 4,
+		name = "Armure de plaques",
+		summary = "Forte réduction, perte de vitesse notable",
+		offset = { damageTakenRatio = -0.22 },
+		scale = { walkSpeed = 0.85 },
+	},
+	{
+		id = "exoskeleton",
+		category = "armor",
+		cost = 4,
+		name = "Exosquelette",
+		summary = "Réduction moyenne, et ne se fait plus repousser",
+		-- Elle annule la poussee, pas les degats de la poussee. C'est la reponse
+		-- au Colosse, au Sismique, au marteau et a la masse — quatre choses qui
+		-- gagnent en deplacant les gens plutot qu'en les blessant.
+		offset = { damageTakenRatio = -0.14 },
+		resistsKnockback = true,
 	},
 
 	------------------------------------------------------------------------ soins
@@ -1339,6 +1965,80 @@ Config.items = {
 			amount = 45,
 			castSeconds = 1.6,
 			interruptedByDamage = true,
+		},
+	},
+
+	{
+		id = "bandage",
+		category = "heal",
+		cost = 1,
+		name = "Bandage",
+		summary = "Petit soin, pose lente, deux charges",
+		-- Le meme prix que le stimulant, et l'inverse exact : plus de PV en
+		-- tout, mais il faut deux secondes et demie a l'abri, et un seul coup
+		-- recu annule la pose. C'est la question que le budget doit faire
+		-- naitre — est-ce que j'ai le temps, ou est-ce que je paie pour ne pas
+		-- en avoir besoin.
+		use = {
+			kind = "heal",
+			charges = 2,
+			amount = 30,
+			castSeconds = 2.5,
+			interruptedByDamage = true,
+		},
+	},
+	{
+		id = "regenVial",
+		category = "heal",
+		cost = 2,
+		name = "Fiole régénérante",
+		summary = "Soin étalé dans le temps, continue même en courant",
+		-- LE SEUL SOIN QU'UN COUP N'ARRETE PAS. Il rend quarante-huit PV, mais
+		-- sur douze secondes : si l'echange dure trois secondes, il n'en aura
+		-- rendu que douze. Il ne sauve pas d'un coup, il gagne une guerre
+		-- d'usure.
+		use = {
+			kind = "heal",
+			charges = 2,
+			amount = 48,
+			overSeconds = 12,
+			castSeconds = 0,
+		},
+	},
+	{
+		id = "fullHeal",
+		category = "heal",
+		cost = 3,
+		name = "Soin complet",
+		summary = "Gros soin, une charge, pose très lente",
+		-- Trois secondes immobile, annulees par le moindre degat. C'est l'objet
+		-- de l'assemblage du tank de la fiche, et il demande de rompre le
+		-- combat pour de vrai.
+		use = {
+			kind = "heal",
+			charges = 1,
+			amount = 90,
+			castSeconds = 3,
+			interruptedByDamage = true,
+		},
+	},
+	{
+		id = "transfusion",
+		category = "heal",
+		cost = 3,
+		name = "Transfusion",
+		summary = "Soin moyen qui soigne aussi un allié proche",
+		-- Le seul soin qui sort du joueur qui le porte. A un contre un il ne
+		-- vaut pas la trousse ; a trois contre trois il en vaut deux, et c'est
+		-- le genre d'objet qui rend un format different d'un autre.
+		use = {
+			kind = "heal",
+			charges = 2,
+			amount = 40,
+			castSeconds = 1.2,
+			interruptedByDamage = true,
+			allyAmount = 32,
+			allyRadiusStuds = 22,
 		},
 	},
 
@@ -1396,34 +2096,263 @@ Config.items = {
 			aheadStuds = 6,
 		},
 	},
+	{
+		id = "smokeBomb",
+		category = "utility",
+		cost = 1,
+		name = "Fumigène",
+		summary = "Bloque la vue quelques secondes",
+		-- Le seul objet du catalogue qui ne touche ni aux PV ni aux
+		-- statistiques : il pose un mur qu'on ne voit pas a travers, et les
+		-- balles le traversent. C'est de la couverture pretee, pas de la
+		-- protection.
+		use = {
+			kind = "zone",
+			effect = "smoke",
+			charges = 2,
+			seconds = 8,
+			radiusStuds = 11,
+		},
+	},
+	{
+		id = "beacon",
+		category = "utility",
+		cost = 1,
+		name = "Balise",
+		summary = "Révèle une petite zone en continu",
+		-- Posee ou on ne regarde pas : un couloir, un angle. Elle ne sert a rien
+		-- seul, et beaucoup a plusieurs — c'est voulu, la categorie des
+		-- utilitaires est celle qui fabrique les styles de jeu.
+		use = {
+			kind = "zone",
+			effect = "reveal",
+			charges = 1,
+			seconds = 45,
+			radiusStuds = 16,
+		},
+	},
+	{
+		id = "grapple",
+		category = "utility",
+		cost = 2,
+		name = "Grappin",
+		summary = "Déplacement vertical, recharge longue",
+		-- Il monte, il n'avance pas : c'est ce qui le distingue des bottes a
+		-- ressort, et ce qui le rend bon sur une map a etages et nul sur une map
+		-- plate. Les deux coexistent pour cette raison.
+		-- VINGT STUDS DE HAUT POUR DE VRAI, soit presque trois sauts
+		-- ordinaires empiles. Les anciens chiffres etaient des vitesses prises
+		-- pour des distances : « 85 » montait a 18, et « 15 » vers l'avant
+		-- portait a 0,3 stud. Ceux-ci sont ce que le commentaire ci-dessus
+		-- demandait depuis le debut.
+		--
+		-- Mesure en jeu du 27 octobre 2026 : 19,8 de haut et 3,1 devant. Neuf
+		-- dixiemes de seconde de vol, et on redescend ou on est parti : c'est
+		-- long quand on est a decouvert, et c'est le prix du raccourci.
+		use = {
+			kind = "leap",
+			charges = 2,
+			upStuds = 20,
+			-- Trois studs devant, et pas zero : le grappin monte, il n'avance
+			-- pas, mais retomber exactement sur sa propre trace est penible
+			-- quand on cherchait un rebord.
+			forwardStuds = 3,
+		},
+	},
+	{
+		id = "detector",
+		category = "utility",
+		cost = 2,
+		name = "Détecteur",
+		summary = "Révèle les ennemis proches de soi, un moment",
+		-- La balise qu'on emporte : elle part de la ou on est au moment de
+		-- l'allumer. Plus courte et plus large que la balise, et deux fois plus
+		-- chere, parce qu'elle revele la ou le combat est.
+		use = {
+			kind = "zone",
+			effect = "reveal",
+			charges = 2,
+			seconds = 10,
+			radiusStuds = 34,
+		},
+	},
+	{
+		id = "caltrops",
+		category = "utility",
+		cost = 2,
+		name = "Chausse-trappes",
+		summary = "Ralentissent qui marche dessus",
+		-- Le ralentissement ne s'empile pas avec celui du pistolet a
+		-- flechettes : on garde le plus fort. Deux objets qui se multiplieraient
+		-- donneraient une immobilisation a quatre points, et l'immobilisation
+		-- est ce que la grenade aveuglante fait payer trois.
+		use = {
+			kind = "zone",
+			effect = "slow",
+			charges = 2,
+			seconds = 20,
+			radiusStuds = 9,
+			magnitude = 0.6,
+			holdSeconds = 1.5,
+		},
+	},
+	{
+		id = "flashbang",
+		category = "utility",
+		cost = 3,
+		name = "Grenade aveuglante",
+		summary = "Étourdit brièvement, ne blesse pas",
+		-- Elle ne retire aucun PV : ce qu'elle achete est une seconde et demie
+		-- ou l'adversaire ne peut ni frapper ni avancer. C'est le seul objet du
+		-- catalogue qui prive quelqu'un de ses commandes, et c'est pour ca
+		-- qu'elle est courte.
+		use = {
+			kind = "grenade",
+			charges = 2,
+			damage = 0,
+			radiusStuds = 14,
+			fuseSeconds = 1.2,
+			throwStuds = 50,
+			status = { kind = "stun", seconds = 1.5, magnitude = 0 },
+		},
+	},
+	{
+		id = "heavyMine",
+		category = "utility",
+		cost = 3,
+		name = "Mine lourde",
+		summary = "Gros dégâts, une charge",
+		-- Trois fois les degats de la mine legere pour trois fois le prix. Le
+		-- catalogue garde les deux parce qu'a un point on peut en poser une « au
+		-- cas ou », et qu'a trois points on la pose ou on sait qu'ils passeront.
+		use = {
+			kind = "mine",
+			charges = 1,
+			damage = 62,
+			radiusStuds = 11,
+			armSeconds = 1.6,
+			knockbackStuds = 40,
+			knockbackUpStuds = 24,
+		},
+	},
+	{
+		id = "springBoots",
+		category = "utility",
+		cost = 3,
+		name = "Bottes à ressort",
+		summary = "Un bond long, recharge moyenne",
+		-- Elles avancent, le grappin monte. Trois charges parce que c'est un
+		-- objet de deplacement : une seule et on ne l'achete jamais, on la garde
+		-- pour le moment parfait qui n'arrive pas.
+		-- Un bond plat et long : huit studs de haut, trente-huit devant. Huit,
+		-- c'est a peine plus qu'un saut ordinaire (7,2), et c'est voulu — ce
+		-- qu'on achete ici est la distance, pas la hauteur.
+		--
+		-- Mesure en jeu du 27 octobre 2026 : 7,9 de haut et 43 devant. Les cinq
+		-- studs de trop sont le GLISSEMENT A L'ATTERRISSAGE : la contrainte
+		-- s'arrete pile a la fin du vol, et le personnage emporte encore sa
+		-- vitesse un dixieme de seconde. C'est la seule part de ces deux
+		-- chiffres qui ne se commande pas, et elle grandit avec la vitesse.
+		use = {
+			kind = "leap",
+			charges = 3,
+			upStuds = 8,
+			forwardStuds = 38,
+		},
+	},
+	{
+		id = "jammer",
+		category = "utility",
+		cost = 4,
+		name = "Brouilleur",
+		summary = "Annule les révélations ennemies dans une zone",
+		-- Le contre du Traqueur, du Parasite, de la balise et du detecteur. Il
+		-- ne rend invisible personne : il efface ce qui avait ete revele, et
+		-- empeche de reveler tant qu'il tient.
+		use = {
+			kind = "zone",
+			effect = "jam",
+			charges = 1,
+			seconds = 16,
+			radiusStuds = 26,
+		},
+	},
+	{
+		id = "incendiaryGrenade",
+		category = "utility",
+		cost = 4,
+		name = "Grenade incendiaire",
+		summary = "Crée une zone de feu temporaire",
+		-- Elle brule les deux equipes, comme les flammes du Pyromane : une zone
+		-- de feu qui saurait qui l'a posee serait un piege magique, pas une
+		-- zone de feu.
+		use = {
+			kind = "zone",
+			effect = "burn",
+			charges = 1,
+			seconds = 12,
+			radiusStuds = 13,
+			magnitude = 11,
+			hurtsOwner = true,
+		},
+	},
+	{
+		id = "healDome",
+		category = "utility",
+		cost = 4,
+		name = "Dôme de soin",
+		summary = "Zone qui soigne lentement les alliés",
+		-- Quatre points pour quatre-vingt-dix PV rendus si on y reste tout le
+		-- temps, ce que personne ne fait. C'est un objet de position : il dit a
+		-- son equipe ou se replier, et a l'autre ou aller.
+		use = {
+			kind = "zone",
+			effect = "heal",
+			charges = 1,
+			seconds = 15,
+			radiusStuds = 18,
+			magnitude = 6,
+			-- Une seconde apres etre sorti, et pas plus : le dome est un objet
+			-- de POSITION, donc ce qu'il achete est d'y rester. Une
+			-- regeneration qui suivrait le joueur dix secondes ferait de lui
+			-- une trousse de soin a quatre points, et plus personne ne se
+			-- replierait sur le dome.
+			--
+			-- Ce chiffre etait absent et retombait sur un repli cache dans
+			-- LoadoutService : meme valeur, mais personne ne pouvait la lire
+			-- ici. Un test le refuse maintenant.
+			holdSeconds = 1,
+		},
+	},
 }
 
 -- LES AFFINITES DE CLASSE : un point de moins sur deux ou trois objets.
 --
--- Le catalogue n'en compte que treize, donc plusieurs classes n'ont ici qu'une
--- seule affinite, et certaines pointent vers l'equivalent le plus proche de
--- l'objet que la fiche leur donnait — le Vampire a la machette plutot qu'aux
--- griffes, qui n'existent pas encore. La liste complete est dans
--- docs/OBJETS.md et se remplira avec le catalogue.
+-- Trois objets par classe, exactement comme la fiche les donne. Les affinites
+-- etaient provisoires tant que le catalogue n'en comptait que treize : plusieurs
+-- classes pointaient vers l'equivalent le plus proche de ce qu'elles devaient
+-- avoir, le Vampire ayant la machette plutot que les griffes. Le catalogue est
+-- complet, donc ce tableau est maintenant celui de docs/OBJETS.md, sans
+-- substitution.
 --
 -- Aucune affinite ne porte sur un objet a un point : avec la remise il
 -- deviendrait gratuit, et un objet gratuit est pris par tout le monde. Un test
--- le verifie.
+-- le verifie, et c'est ce qui interdit de donner le fumigene au Spectre.
 Config.itemAffinities = {
-	vampire = { "machete", "knife" },
+	vampire = { "claws", "katana", "poisonDagger" },
 	colossus = { "warhammer", "deployableShield", "heavyArmor" },
-	tracker = { "compositeBow" },
-	artificer = { "grenade" },
-	spectre = { "machete" },
-	link = { "medkit" },
-	duelist = { "smg", "lightArmor" },
-	smith = { "deployableShield", "lightArmor" },
-	pyromaniac = { "grenade" },
-	decoy = { "smg" },
-	seismic = { "warhammer" },
-	parasite = { "knife" },
-	chameleon = { "knife", "compositeBow" },
-	medic = { "medkit" },
+	tracker = { "compositeBow", "bow", "detector" },
+	artificer = { "heavyMine", "grenadeLauncher", "grenade" },
+	spectre = { "shuriken", "machete", "springBoots" },
+	link = { "transfusion", "healDome", "shortSword" },
+	duelist = { "longSword", "heavyRevolver", "springBoots" },
+	smith = { "mace", "deployableShield", "exoskeleton" },
+	pyromaniac = { "incendiaryGrenade", "grenadeLauncher", "fragVest" },
+	decoy = { "smg", "flashbang", "submachineGun" },
+	seismic = { "warhammer", "caltrops", "exoskeleton" },
+	parasite = { "poisonDagger", "handCrossbow", "sling" },
+	chameleon = { "sniperRifle", "knife", "shuriken" },
+	medic = { "medkit", "fullHeal", "regenVial" },
 }
 
 --------------------------------------------------------------------------------
@@ -1445,7 +2374,7 @@ Config.draws = {
 	counterResetsOnAnyNewItem = true,
 
 	-- Trois tirages garantis a l'ouverture du compte, un objet de chaque type
-	-- essentiel, piochés uniquement parmi les objets a cout faible : sinon un
+	-- essentiel, pioches uniquement parmi les objets a cout faible : sinon un
 	-- debutant tire l'arme a sept points et se retrouve avec un assemblage
 	-- impossible a completer dans le budget.
 	-- Le plafond doit rester AU MOINS egal a l'arme principale la moins chere,
@@ -1614,6 +2543,34 @@ Config.combat = {
 }
 
 --------------------------------------------------------------------------------
+-- CE QUI COLLE A UN COMBATTANT
+--------------------------------------------------------------------------------
+
+-- Les quatre effets temporaires — ralentissement, etourdissement, poison,
+-- regeneration — que onze objets du catalogue posent. Leurs durees et leurs
+-- forces sont dans les objets eux-memes ; ici ne vivent que les bornes
+-- communes, pour la meme raison que les planchers de Modifiers : une borne
+-- semee dans onze objets ne se relit pas.
+Config.status = {
+	-- Le plancher de vitesse. Un ralentissement ne peut pas descendre en
+	-- dessous, meme pose par l'objet le plus fort : en dessous d'un tiers de sa
+	-- vitesse, un joueur ne joue plus, il attend. L'immobilisation existe, elle
+	-- s'appelle etourdissement et elle se paie trois points.
+	minSpeedRatio = 0.35,
+
+	-- Le plafond d'etourdissement. Aucun objet ne depasse une seconde et demie
+	-- aujourd'hui ; ce chiffre existe pour que ca reste vrai si un jour on en
+	-- ajoute un, parce que c'est le seul effet qui retire ses commandes au
+	-- joueur.
+	maxStunSeconds = 2,
+
+	-- A quelle frequence les poisons et les regenerations retirent ou rendent
+	-- des PV. Quatre fois par seconde : assez pour que ca se voie monter, assez
+	-- peu pour ne pas noyer l'ecran de nombres.
+	tickSeconds = 0.25,
+}
+
+--------------------------------------------------------------------------------
 -- CE QUI REND LE COMBAT LISIBLE
 --------------------------------------------------------------------------------
 
@@ -1655,11 +2612,27 @@ Config.effects = {
 -- LES EFFETS DE PALIER 6
 --------------------------------------------------------------------------------
 
--- Chaque effet nomme du dernier palier a ses chiffres ici. Le seul effet qui
--- attend encore un systeme absent du jeu (les projectiles) n'en a pas : son
--- drapeau `implemented` est a false dans skillTree.branches, et l'interface
--- l'affiche comme indisponible.
+-- Chaque effet nomme du dernier palier a ses chiffres ici. Les quarante-deux
+-- sont maintenant executes : le dernier qui attendait, celui du Monolithe,
+-- promettait une « immunite aux projectiles » dans un jeu ou RIEN NE VOLE. Il
+-- promet maintenant l'immunite aux EXPLOSIONS, ce que les sortes de degat
+-- rendent possible, et ce qui est la lecture la plus proche de son intention :
+-- une classe qui s'ancre pour ne plus craindre ce qui arrive de loin.
+--
+-- C'est une decision prise sans Josh, et elle est notee dans docs/DECISIONS.md.
 Config.tier6 = {
+	-- Monolithe : s'ancrer deux secondes rend insensible aux explosions —
+	-- grenades, mines, lance-grenades, hachette de lancer. Deux secondes parce
+	-- que c'est assez long pour etre un choix (on renonce a se deplacer) et
+	-- assez court pour etre atteignable dans un combat reel.
+	blastImmunity = {
+		stillSeconds = 2,
+		-- En dessous de cette vitesse, on compte comme immobile. Pas zero : un
+		-- personnage pose sur un sol irregulier derive de quelques centiemes,
+		-- et une condition a zero exact ne se declencherait jamais.
+		speedThreshold = 1.5,
+	},
+
 	-- Fauve : un bond court vers la cible. La longue recharge est ce qui
 	-- l'empeche d'etre une simple augmentation de vitesse.
 	dash = {
@@ -2024,6 +2997,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "lifesteal",
 	},
 	colossus = {
@@ -2042,6 +3019,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "knockback",
 	},
 
@@ -2064,6 +3045,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "footprints",
 		-- Jusqu'ou il lit les traces, et jusqu'a quel age. Le rayon est large
 		-- expres : une information qui n'arrive qu'au contact arrive trop tard.
@@ -2086,6 +3071,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "mines",
 		abilityCooldownSeconds = 3,
 		-- Sa faiblesse, l'autre moitie : le stock est limite et ne se recharge
@@ -2109,6 +3098,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "phase",
 		abilityCooldownSeconds = 14,
 		-- Court expres : traverser un mur doit servir a arriver quelque part,
@@ -2130,6 +3123,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "bond",
 		abilityCooldownSeconds = 6,
 		-- Sa faiblesse : la moitie des degats de l'allie lui reviennent. C'est
@@ -2152,6 +3149,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "isolation",
 		-- Son pouvoir et sa faiblesse sont le meme chiffre vu des deux cotes :
 		-- seul contre un, il frappe plus fort ; des qu'un deuxieme ennemi est
@@ -2176,6 +3177,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "wall",
 		abilityCooldownSeconds = 10,
 		-- Le mur bloque tout le monde, son equipe comprise : c'est la faiblesse
@@ -2199,6 +3204,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "fire",
 		abilityCooldownSeconds = 9,
 		-- Sa faiblesse : ses flammes ne font pas la difference entre lui et les
@@ -2222,6 +3231,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "clone",
 		abilityCooldownSeconds = 16,
 		-- Sa faiblesse : pendant que le clone vit, lui ne bouge plus et encaisse
@@ -2244,6 +3257,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "slam",
 		abilityCooldownSeconds = 11,
 		-- Sa faiblesse : rien de tout ca n'atteint quelqu'un qui ne touche pas
@@ -2268,6 +3285,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "mark",
 		abilityCooldownSeconds = 12,
 		-- L'autre moitie de sa faiblesse : la marque se voit, et celui qui la
@@ -2292,6 +3313,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "cloak",
 		-- Sa faiblesse : le moindre deplacement le revele. Le delai est ce qui
 		-- l'empeche de clignoter en se repositionnant d'un pas.
@@ -2314,6 +3339,10 @@ Config.classStats = {
 		spreadRadiusStuds = 0,
 		knockbackDamage = 0,
 		damageTakenRatio = 0,
+		-- Les deux reductions par sorte de degat. A zero pour tout le monde : une
+		-- classe n'en porte jamais, seules deux armures du catalogue en donnent.
+		blastTakenRatio = 0,
+		dotTakenRatio = 0,
 		ability = "mend",
 		-- Il releve deux fois plus vite que n'importe qui, et rend plus de PV.
 		-- Le relevement reste long, visible et interruptible : la faiblesse est

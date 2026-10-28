@@ -29,22 +29,21 @@ end
 return function(t: harness.Harness)
 	t.section("Le catalogue")
 
-	t.equal("treize objets", #Config.items, 13)
-
-	local prototype = Config.itemCounts.prototype
-	for category, expected in prototype do
+	-- LE NOMBRE N'EST PAS ECRIT ICI, et c'est delibere : un test qui nomme son
+	-- chiffre en dur se mord la queue le jour ou le catalogue change, et on
+	-- cherche alors une regression qui n'existe pas. C'est Config qui dit
+	-- combien d'objets chaque categorie doit contenir.
+	local target = Config.itemCounts.target
+	local totalAnnounced = 0
+	for category, expected in target do
 		t.equal(
 			string.format("%s : %d objets comme annonce", category, expected),
 			countOf(category),
 			expected
 		)
-	end
-
-	local totalAnnounced = 0
-	for _, expected in prototype do
 		totalAnnounced += expected
 	end
-	t.equal("le total annonce fait bien treize", totalAnnounced, 13)
+	t.equal("et le catalogue tient dans ce total", #Config.items, totalAnnounced)
 
 	local ids: { [string]: boolean } = {}
 	local duplicateId = false
@@ -348,12 +347,38 @@ return function(t: harness.Harness)
 		return (item.scale or {}).attackRangeStuds or 1
 	end
 
+	-- DEUX AXES QUE LES DEGATS PAR SECONDE NE MONTRENT PAS, et sans lesquels ce
+	-- test accuse a tort. Une arme qui ralentit sa cible, qui perce une armure
+	-- ou qui pousse n'est pas « moins bonne » parce qu'elle frappe moins fort :
+	-- elle achete autre chose. Et une arme qui ne tire que six fois par manche,
+	-- qui ne tire pas au contact ou qui cloue sur place n'est pas « meilleure »
+	-- parce qu'elle frappe plus fort : elle le paie ailleurs.
+	--
+	-- Donc la regle est : A n'ecrase B que si A n'a aucun inconvenient de plus
+	-- que B, et B aucun atout de plus que A. Sur les armes sans particularite —
+	-- la moitie du catalogue, et celles ou le danger est reel — le test garde
+	-- exactement les dents qu'il avait.
+	local PERKS = { "armorPierceRatio", "onHit", "weaponBlast", "use", "offset" }
+	local DRAWBACKS = { "minRangeStuds", "selfSlowSeconds", "shotsPerRound" }
+
+	local function hasExtra(left: any, right: any, keys: { string }): boolean
+		for _, key in keys do
+			if left[key] ~= nil and right[key] == nil then
+				return true
+			end
+		end
+		return false
+	end
+
 	local dominated: string? = nil
 	for _, category in { "primary", "secondary" } do
 		local weapons = Loadout.byCategory(Config, category)
 		for _, a in weapons do
 			for _, b in weapons do
 				if a.id == b.id or a.cost > b.cost then
+					continue
+				end
+				if hasExtra(a, b, DRAWBACKS) or hasExtra(b, a, PERKS) then
 					continue
 				end
 				local betterDps = dpsFactor(a) >= dpsFactor(b)
@@ -373,11 +398,36 @@ return function(t: harness.Harness)
 			if a.id == b.id or a.cost > b.cost then
 				continue
 			end
-			local reductionA = -((a.offset or {}).damageTakenRatio or 0)
-			local reductionB = -((b.offset or {}).damageTakenRatio or 0)
-			local speedA = (a.scale or {}).walkSpeed or 1
-			local speedB = (b.scale or {}).walkSpeed or 1
-			if reductionA >= reductionB and speedA >= speedB then
+			-- QUATRE AXES, PAS DEUX. Deux armures du catalogue ne se
+			-- distinguent QUE par une reduction specialisee : le plastron de
+			-- cuir tient contre les poisons, le gilet pare-eclats contre les
+			-- explosions, et les deux ont la meme reduction ordinaire. En ne
+			-- regardant que la reduction et la vitesse, ce test declarait l'une
+			-- ecrasee par l'autre alors qu'elles repondent a deux menaces
+			-- differentes.
+			local function axes(item: any): { number }
+				local offset = item.offset or {}
+				return {
+					-(offset.damageTakenRatio or 0),
+					-(offset.dotTakenRatio or 0),
+					-(offset.blastTakenRatio or 0),
+					(item.scale or {}).walkSpeed or 1,
+				}
+			end
+
+			local left, right = axes(a), axes(b)
+			local everywhere = true
+			for index, value in left do
+				if value < right[index] then
+					everywhere = false
+				end
+			end
+			-- Un atout que les chiffres ne portent pas : l'exosquelette ne se
+			-- fait plus repousser, ce qui ne se lit dans aucune statistique.
+			if a.resistsKnockback == nil and b.resistsKnockback ~= nil then
+				everywhere = false
+			end
+			if everywhere then
 				armorDominated = string.format("%s ecrase %s", a.id, b.id)
 			end
 		end
@@ -482,11 +532,38 @@ return function(t: harness.Harness)
 		if use.kind == "heal" and (use.amount or 0) <= 0 then
 			broken = item.id .. " : soigne zero"
 		end
+		-- UNE GRENADE PEUT NE FAIRE AUCUN DEGAT, a condition de faire autre
+		-- chose. La grenade aveuglante ne retire pas un PV : ce qu'elle achete
+		-- est une seconde et demie sans commandes. Sans ce cas, ce test refuse
+		-- le seul objet du catalogue qui prive quelqu'un de ses touches.
 		if (use.kind == "mine" or use.kind == "grenade") and (use.damage or 0) <= 0 then
-			broken = item.id .. " : aucun degat"
+			if use.status == nil then
+				broken = item.id .. " : aucun degat et aucun effet"
+			end
 		end
 		if use.kind == "shield" and (use.seconds or 0) <= 0 then
 			broken = item.id .. " : aucune duree"
+		end
+		if use.kind == "zone" then
+			if (use.seconds or 0) <= 0 or (use.radiusStuds or 0) <= 0 then
+				broken = item.id .. " : une zone sans duree ni rayon"
+			end
+			-- Trois des six sortes de zone ont besoin d'une force : ralentir de
+			-- rien, bruler de rien ou soigner de rien ne se voit pas en jouant,
+			-- et ne leve aucune erreur. La fumee, la revelation et le brouillage
+			-- n'ont pas de force : ils sont ou ils ne sont pas.
+			local needsMagnitude = use.effect == "slow"
+				or use.effect == "burn"
+				or use.effect == "heal"
+			if needsMagnitude and (use.magnitude or 0) <= 0 then
+				broken = item.id .. " : une zone sans force"
+			end
+		end
+		if use.kind == "leap" and (use.upStuds or 0) + (use.forwardStuds or 0) <= 0 then
+			broken = item.id .. " : un bond qui ne va nulle part"
+		end
+		if use.kind == "throw" and (use.damage or 0) <= 0 then
+			broken = item.id .. " : un lancer sans degat"
 		end
 	end
 	t.equal("aucun consommable sans effet", broken, nil)
@@ -900,4 +977,103 @@ return function(t: harness.Harness)
 		end
 	end
 	t.equal("et c'est le seul geste qui la tourne", turning, 1)
+
+	t.section("Les bonds montent vraiment de ce qu'ils annoncent")
+
+	--[[
+		CE TEST A LA STRUCTURE DE CELUI DE LA POINTE DE L'ARME, et pour la meme
+		raison : il REFAIT le calcul de Roblox avant de juger quoi que ce soit.
+
+		Ce qu'il attrape est arrive. `upStuds = 40` donnait quatre studs de
+		hauteur, parce que le chiffre partait tel quel dans la vitesse du
+		personnage. Les bottes a ressort sautaient donc moins haut que la barre
+		d'espace, et les mille verifications passaient : aucune ne savait ce que
+		« stud » voulait dire.
+
+		La premiere moitie verifie que la simulation retrouve la physique de
+		Roblox sur un cas connu. La seconde juge les chiffres de Config. Retirer
+		la premiere rendrait la seconde sans valeur.
+	]]
+
+	local gravity = Config.loadout.referenceGravity
+
+	local function near(label: string, actual: number, expected: number, tolerance: number)
+		t.check(
+			string.format("%s (%.2f pour %.2f)", label, actual, expected),
+			math.abs(actual - expected) <= tolerance
+		)
+	end
+
+	-- La conversion du serveur, refaite ici : hauteur voulue -> vitesse.
+	local function launchSpeed(height: number): number
+		return math.sqrt(2 * gravity * height)
+	end
+
+	-- Et la physique, pas a pas, sans formule : on lache le personnage avec
+	-- cette vitesse et on regarde ou il monte. Mille pas par seconde.
+	local function simulateApex(speed: number): number
+		local step = 0.001
+		local y = 0
+		local velocity = speed
+		local apex = 0
+		for _ = 1, 5000 do
+			-- La moyenne des deux vitesses du pas, et pas celle d'arrivee : sous
+			-- une acceleration constante c'est exact, alors que prendre l'une des
+			-- deux accumule une erreur qui grandit avec la duree du vol. Vu ici :
+			-- 35 studs demandes rendaient 34,94.
+			local next = velocity - gravity * step
+			y += 0.5 * (velocity + next) * step
+			velocity = next
+			apex = math.max(apex, y)
+			if velocity < 0 and y <= 0 then
+				break
+			end
+		end
+		return apex
+	end
+
+	-- TEMOIN. Une vitesse de 40 studs par seconde monte a 4,08 studs : c'est le
+	-- chiffre mesure en jeu le 27 octobre 2026 (4,0 releve), et c'est ce qui
+	-- prouve que la simulation ci-dessus est celle de Roblox et pas la mienne.
+	near("40 studs par seconde montent a 4,08", simulateApex(40), 4.08, 0.05)
+	near("85 en montent 18,4", simulateApex(85), 18.4, 0.1)
+
+	-- Donc la conversion rend bien la hauteur demandee, et c'est ca qui compte.
+	for _, height in { 7.2, 8, 20, 35 } do
+		near(
+			string.format("demander %g studs en donne %g", height, height),
+			simulateApex(launchSpeed(height)),
+			height,
+			0.05
+		)
+	end
+
+	-- UN BOND QUI MONTE MOINS QU'UN SAUT NE VAUT PAS UN POINT. C'est exactement
+	-- l'etat dans lequel les bottes a ressort ont ete livrees, et c'est la
+	-- seule ligne de ce test qui regarde Config.
+	local leaps = 0
+	for _, item in Config.items do
+		local use = item.use
+		if use == nil or use.kind ~= "leap" then
+			continue
+		end
+		leaps += 1
+		t.check(
+			string.format(
+				"%s monte plus haut que la barre d'espace (%g > %g)",
+				item.id,
+				use.upStuds,
+				Config.loadout.ordinaryJumpStuds
+			),
+			use.upStuds > Config.loadout.ordinaryJumpStuds
+		)
+		-- Et le temps de vol reste un prix payable : au-dela de deux secondes en
+		-- l'air on est une cible, pas un acrobate.
+		local airtime = (2 * launchSpeed(use.upStuds)) / gravity
+		t.check(
+			string.format("%s retombe en moins de deux secondes (%.2f s)", item.id, airtime),
+			airtime < 2
+		)
+	end
+	t.check("il y a bien des bonds a verifier", leaps >= 2)
 end

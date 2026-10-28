@@ -2,20 +2,25 @@
 
 À relire par Josh. Barre ce qui ne te plaît pas, je code ce qui reste.
 
-> **Treize sont codés** depuis le 25 octobre 2026, et jouables : Machette,
-> Fusil à pompe, Arc composite, Marteau de guerre, Couteau,
-> Pistolet-mitrailleur, Armure légère, Armure lourde, Stimulant,
-> Trousse de soin, Mine légère, Grenade, Bouclier déployable.
+> **Les soixante-deux sont codés** depuis le 27 octobre 2026 : chaque objet de
+> ce tableau existe dans `Config.items` avec ses chiffres, et se joue. Ce
+> document ne décrit donc plus une cible, il décrit ce qui est en jeu.
 >
-> Les quarante-neuf autres attendent de savoir si le budget est bon à treize.
-> Leurs chiffres n'existent pas encore : ce document donne leur coût et leur
-> rôle, pas leurs dégâts.
+> **Les affinités de classe sont celles du tableau**, plus celles qui avaient
+> été posées à titre provisoire sur les treize premiers objets : le Vampire a
+> retrouvé ses griffes, et plus personne ne pointe vers « l'équivalent le plus
+> proche ».
 >
-> **Les affinités de classe sont provisoires.** Celles de
-> `Config.itemAffinities` ne portent que sur les treize objets existants, et
-> plusieurs pointent vers l'équivalent le plus proche de ce que ce tableau
-> donne — le Vampire a la machette plutôt que les griffes, qui n'existent pas
-> encore. Le tableau ci-dessous reste la cible.
+> Ce qui reste à faire sur le catalogue n'est plus du code : ce sont les
+> **skins**, et l'**allure** des armes. Chaque arme porte un bloc `look` dans
+> `Config.luau` — des tailles, des couleurs, un point de prise — et rien de ce
+> bloc n'entre dans un calcul de dégâts. La géométrie est honnête mais
+> sommaire, et la rendre belle est un sujet à part.
+>
+> **Aucun de ces chiffres n'a été joué à plusieurs.** Les dominations strictes
+> ont été éliminées par le calcul, pas à la manette : un objet peut très bien
+> n'être dominé par aucun autre et rester inutile. La liste de ce qu'il faut
+> regarder en jouant est à la section 20 de `A-TESTER.md`.
 
 ## Les règles que ce catalogue respecte
 
@@ -187,7 +192,7 @@ coûts, à l'unité près :
 | Celui du tireur | Fusil lourd (7) + Armure légère (2) + Trousse de soin (2) + Fumigène (1) | **12** |
 | Celui du tank | Pistolet rapide (4) + Armure lourde (5) + Soin complet (3) | **12** |
 
-## Trois choses à savoir avant que je code
+## Trois choses à savoir maintenant que c'est codé
 
 **Le « pistolet rapide » de la fiche est devenu une arme principale à 4 points.**
 Dans le deuxième exemple de la fiche, l'assemblage n'avait aucune arme
@@ -204,8 +209,13 @@ dans chaque assemblage reste l'assemblage le plus probable. C'est le premier
 chiffre que je surveillerais : si tout le monde joue trois utilitaires à un
 point, il faut les passer à deux.
 
-**Les 62 objets n'ont pas encore de chiffres.** Ce document donne les coûts et le
-rôle de chaque objet, pas ses dégâts, sa cadence ni sa portée. Ces chiffres-là
-viennent avec le code, et ils se déduisent du coût : à budget égal, deux
-assemblages doivent valoir à peu près autant. C'est exactement ce qu'un test
-peut vérifier tout seul, et c'est ce que je ferai.
+**Les 62 objets ont leurs chiffres, et aucune domination stricte.** Un test
+compare chaque arme à toutes les autres sur tous ses axes à la fois — dégâts,
+cadence, portée, perforation d'armure, effet collé, portée minimale, chargeur —
+et refuse qu'une arme soit meilleure ou égale partout pour un coût inférieur ou
+égal. Même chose pour les armures, sur les quatre réductions et la vitesse.
+
+Ce que ce test **ne dit pas** : qu'un objet est utile. Ne dominer personne et
+n'intéresser personne sont deux choses, et la deuxième ne se voit qu'en jouant.
+L'arbalète de poing, par exemple, ne domine rien et pourrait très bien n'être
+jamais prise.

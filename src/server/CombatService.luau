@@ -52,6 +52,7 @@ local Workspace = game:GetService("Workspace")
 local AbilityService = require(script.Parent:WaitForChild("AbilityService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
+local StatusService = require(script.Parent:WaitForChild("StatusService"))
 local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
@@ -281,7 +282,10 @@ local function applyKnockback(attacker: Entry, target: Entry)
 		return
 	end
 	-- Le Socle du Sismique ne bouge plus d'un pouce.
-	if AbilityService.resistsKnockback(target.player) then
+	if
+		AbilityService.resistsKnockback(target.player)
+		or LoadoutService.resistsKnockback(target.player)
+	then
 		return
 	end
 
@@ -341,13 +345,29 @@ local function defenderReading(target: Entry, attacker: Entry?, extraPierce: num
 	return reading
 end
 
+-- `kind` nomme la SORTE de degat quand ce n'est pas un coup ordinaire : une
+-- explosion, un poison, des flammes. C'est lui qui fait exister le gilet
+-- pare-eclats et le plastron de cuir, deux armures qui ne se distinguent que
+-- par la sorte a laquelle elles resistent.
+--
+-- Il est facultatif, et c'est voulu : les appels qui existaient avant ces deux
+-- armures parlent tous de coups, et aucun n'a eu a changer.
 local function damageTakenBy(
 	target: Entry,
 	amount: number,
 	attacker: Entry?,
-	extraPierce: number?
+	extraPierce: number?,
+	kind: string?
 ): number
-	return Combat.damageTaken(Config, defenderReading(target, attacker, extraPierce), amount)
+	-- LE MONOLITHE ANCRE NE PREND RIEN DU TOUT. C'est une immunite et pas une
+	-- reduction, donc elle court-circuite le calcul plutot que d'y entrer :
+	-- faire passer zero par les bornes de Config.combat le ramenerait a la
+	-- moitie des degats.
+	if kind == Combat.BLAST and AbilityService.ignoresBlast(target.player) then
+		return 0
+	end
+
+	return Combat.damageTaken(Config, defenderReading(target, attacker, extraPierce), amount, kind)
 end
 
 -- Garde-fou du Lien : partager des degats inflige des degats, qui pourraient
@@ -600,6 +620,42 @@ local function tryDash(entry: Entry): boolean
 	return true
 end
 
+-- L'explosion que porte une arme. Elle vit ici et pas dans LoadoutService
+-- parce qu'elle part d'un COUP : elle a besoin de ce qui est vraiment passe, de
+-- la cible deja touchee a ne pas toucher deux fois, et du frappeur a blesser.
+local function blastAround(attacker: Entry, position: Vector3, damage: number, area: any)
+	EffectsService.blast(position + Vector3.new(0, 1.5, 0))
+
+	for _, victim in standingEnemiesNear(attacker.team, position, area.radiusStuds) do
+		local victimRoot = rootOf(victim.player)
+		-- La cible du coup a deja pris ses degats : lui rajouter l'explosion
+		-- ferait payer deux fois le meme tir a celui qui est le plus pres, et
+		-- l'arme deviendrait la plus forte du jeu a bout portant.
+		if victimRoot == nil or (victimRoot.Position - position).Magnitude < 0.5 then
+			continue
+		end
+		local passed = dealDamage(victim, damageTakenBy(victim, damage, nil, nil, Combat.BLAST))
+		if passed > 0 then
+			EffectsService.hit(victimRoot.Position + Vector3.new(0, 1.5, 0), passed, victim.player)
+		end
+	end
+
+	local selfRatio = area.selfRatio or 0
+	local attackerRoot = rootOf(attacker.player)
+	if selfRatio <= 0 or attackerRoot == nil then
+		return
+	end
+	if (attackerRoot.Position - position).Magnitude > area.radiusStuds then
+		return
+	end
+
+	local hurt =
+		dealDamage(attacker, damageTakenBy(attacker, damage * selfRatio, nil, nil, Combat.BLAST))
+	if hurt > 0 then
+		EffectsService.hit(attackerRoot.Position + Vector3.new(0, 1.5, 0), hurt, attacker.player)
+	end
+end
+
 local function onAttack(player: Player)
 	if not active then
 		return
@@ -624,6 +680,12 @@ local function onAttack(player: Player)
 	-- de consommer la recharge : le pouvoir interdit le coup, il ne le gaspille
 	-- pas.
 	if not AbilityService.canAttack(player) then
+		return
+	end
+
+	-- Et un joueur etourdi non plus. Meme endroit et meme raison : la grenade
+	-- aveuglante retire les commandes, elle ne vide pas la recharge.
+	if StatusService.isStunned(player) then
 		return
 	end
 
@@ -788,6 +850,33 @@ local function onAttack(player: Player)
 
 	AbilityService.onHit(entry, target, passed)
 
+	-- CE QUE L'ARME COLLE A SA CIBLE. Deux armes secondaires du catalogue ne
+	-- valent que par la : la dague empoisonnee et le pistolet a flechettes
+	-- frappent moins fort que tout le reste de leur prix.
+	--
+	-- On relit l'arme plutot que de la retenir du debut de la fonction : entre
+	-- les deux, le clone du Leurre a pu s'interposer et le coup a pu partir sur
+	-- quelqu'un d'autre.
+	local weapon = LoadoutService.weaponFor(entry, distance)
+	if weapon ~= nil and passed > 0 then
+		local onHit = weapon.onHit
+		if onHit ~= nil then
+			StatusService.apply(target.player, onHit.kind, onHit.seconds, onHit.magnitude or 0)
+		end
+
+		-- L'EXPLOSION DU LANCE-GRENADES, qui ne fait pas le tri. Elle touche les
+		-- ennemis autour de la cible, et son porteur s'il est dans le rayon :
+		-- c'est sa faiblesse, et elle est dans le meme calcul que ses degats
+		-- plutot que decrite a cote.
+		local area = weapon.weaponBlast
+		if area ~= nil then
+			local center = rootOf(target.player)
+			if center ~= nil then
+				blastAround(entry, center.Position, passed, area)
+			end
+		end
+	end
+
 	applyKnockback(entry, target)
 	spreadFrom(entry, target, passed)
 	pierceFrom(entry, target, Combat.rawDamage(stats))
@@ -894,6 +983,7 @@ local function onHeartbeat(deltaSeconds: number)
 	applyRegen(deltaSeconds)
 	AbilityService.step(deltaSeconds)
 	LoadoutService.step(deltaSeconds)
+	StatusService.step(deltaSeconds)
 end
 
 function CombatService.init()
@@ -932,11 +1022,21 @@ function CombatService.init()
 	-- traversent exactement le meme chemin qu'un coup d'epee, donc la reduction
 	-- d'armure, le plafond aux PV restants et le passage par l'agonie
 	-- s'appliquent sans que LoadoutService ait a les connaitre.
-	LoadoutService.setDamageSink(function(entry: Entry, amount: number): number
-		return dealDamage(entry, damageTakenBy(entry, amount, nil))
+	LoadoutService.setDamageSink(function(entry: Entry, amount: number, kind: string?): number
+		return dealDamage(entry, damageTakenBy(entry, amount, nil, nil, kind))
 	end)
 	LoadoutService.setHealSink(healTo)
 	LoadoutService.init()
+
+	-- Et le meme pour les effets qui collent. Le poison d'une dague et les
+	-- flammes d'une grenade incendiaire traversent donc exactement le chemin
+	-- d'un coup d'epee, reduction d'armure comprise — ce qui est toute la
+	-- raison d'etre du plastron de cuir.
+	StatusService.setDamageSink(function(entry: Entry, amount: number, kind: string?): number
+		return dealDamage(entry, damageTakenBy(entry, amount, nil, nil, kind))
+	end)
+	StatusService.setHealSink(healTo)
+	StatusService.setFreezeSink(CombatService.setFrozen)
 
 	attackRemote.OnServerEvent:Connect(onAttack)
 	RunService.Heartbeat:Connect(onHeartbeat)
@@ -960,6 +1060,7 @@ function CombatService.setRoster(entries: { Entry })
 	end
 	AbilityService.setRoster(entries)
 	LoadoutService.setRoster(entries)
+	StatusService.setRoster(entries)
 end
 
 -- Les blocs de la Catapulte ne survivent pas a la manche. Appele entre deux
@@ -978,6 +1079,7 @@ function CombatService.setActive(value: boolean)
 	active = value
 	AbilityService.setActive(value)
 	LoadoutService.setActive(value)
+	StatusService.setActive(value)
 	if value then
 		AbilityService.beginRound()
 		LoadoutService.beginRound()

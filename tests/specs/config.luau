@@ -120,14 +120,11 @@ return function(t: harness.Harness)
 	end
 	t.equal("soixante-deux objets a terme", targetTotal, 62)
 
-	local prototypeTotal = 0
-	for _, n in Config.itemCounts.prototype do
-		prototypeTotal += n
-	end
-	-- Treize et pas douze : avec un seul soin, la question « est-ce que je
-	-- paie un point ou deux pour me soigner » ne se pose pas, et c'est
-	-- exactement la question que le budget doit faire naitre.
-	t.equal("treize objets dans le prototype", prototypeTotal, 13)
+	-- Et le catalogue reel les contient tous. Ce test et celui de
+	-- tests/specs/loadout.luau disent la meme chose par les deux bouts : celui
+	-- la verifie que la cible annoncee fait bien soixante-deux, l'autre que le
+	-- catalogue la remplit categorie par categorie.
+	t.equal("et le catalogue en compte autant", #Config.items, targetTotal)
 
 	t.section("L'economie des pieces")
 

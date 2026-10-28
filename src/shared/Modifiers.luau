@@ -99,6 +99,8 @@ local LABELS: { [string]: { text: string, unit: string?, better: number } } = {
 	damageTakenRatio = { text = "Dégâts reçus", unit = "ratio", better = -1 },
 	spreadRatio = { text = "Propagation", unit = "ratio", better = 1 },
 	spreadRadiusStuds = { text = "Rayon de propagation", unit = "studs", better = 1 },
+	blastTakenRatio = { text = "Dégâts d'explosion reçus", unit = "ratio", better = -1 },
+	dotTakenRatio = { text = "Dégâts continus reçus", unit = "ratio", better = -1 },
 
 	-- Les pouvoirs de classe. Un joueur ne doit jamais lire `mineCount` dans
 	-- l'interface : il lit « Mines en stock ».

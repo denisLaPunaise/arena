@@ -256,4 +256,125 @@ return function(t: harness.Harness)
 	t.check("l'armure lourde retire bien quelque chose", reduced < share)
 	t.equal("la propagation du palier 6 passe la part entiere", full, share)
 	t.check("donc elle fait strictement plus mal que sans le palier", full > reduced)
+
+	t.section("Les sortes de degat, et les armures qui leur repondent")
+
+	-- CE QUE CES TESTS ATTRAPENT : une armure specialisee dont personne ne lit
+	-- le chiffre. Le gilet pare-eclats coute trois points et ne dit rien de plus
+	-- que « forte contre les explosions » ; si la sorte de degat n'arrive pas
+	-- jusqu'au calcul, il reduit de 6 % comme une chemise et absolument rien
+	-- d'autre, en silence, pendant des semaines.
+	local function armorById(id: string)
+		for _, item in Config.items do
+			if item.id == id then
+				return item
+			end
+		end
+		return nil
+	end
+
+	local leather = armorById("leatherChest")
+	local frag = armorById("fragVest")
+	t.check("le plastron de cuir est toujours au catalogue", leather ~= nil)
+	t.check("le gilet pare-eclats aussi", frag ~= nil)
+
+	local function wearing(item): Combat.Stats
+		local stats = table.clone(colossus)
+		for key, value in item.offset do
+			stats[key] = (stats[key] or 0) + value
+		end
+		return stats
+	end
+
+	local inLeather = wearing(leather)
+	local inFrag = wearing(frag)
+	local share = 100
+
+	-- Chaque armure resiste a SA sorte, et a elle seule. Les quatre comparaisons
+	-- vont par paires croisees exprès : une seule des deux colonnes suffirait a
+	-- passer si `kind` etait ignore partout.
+	t.check(
+		"le cuir encaisse mieux un poison qu'un coup",
+		Combat.damageTaken(Config, inLeather, share, Combat.DOT)
+			< Combat.damageTaken(Config, inLeather, share)
+	)
+	t.equal(
+		"et il ne change rien a une explosion",
+		Combat.damageTaken(Config, inLeather, share, Combat.BLAST),
+		Combat.damageTaken(Config, inLeather, share)
+	)
+	t.check(
+		"le gilet encaisse mieux une explosion qu'un coup",
+		Combat.damageTaken(Config, inFrag, share, Combat.BLAST)
+			< Combat.damageTaken(Config, inFrag, share)
+	)
+	t.equal(
+		"et il ne change rien a un poison",
+		Combat.damageTaken(Config, inFrag, share, Combat.DOT),
+		Combat.damageTaken(Config, inFrag, share)
+	)
+
+	-- Chacune est la MEILLEURE reponse a sa sorte, sinon elle n'a pas de raison
+	-- d'exister a cote de l'armure legere du meme prix.
+	t.check(
+		"contre un poison, le cuir vaut mieux que le gilet",
+		Combat.damageTaken(Config, inLeather, share, Combat.DOT)
+			< Combat.damageTaken(Config, inFrag, share, Combat.DOT)
+	)
+	t.check(
+		"contre une explosion, c'est l'inverse",
+		Combat.damageTaken(Config, inFrag, share, Combat.BLAST)
+			< Combat.damageTaken(Config, inLeather, share, Combat.BLAST)
+	)
+
+	-- UNE SORTE INCONNUE NE DOIT RIEN CHANGER. Un appel qui ecrirait « dot »
+	-- au lieu de Combat.DOT doit se lire comme un coup ordinaire, jamais comme
+	-- une immunite.
+	t.equal(
+		"une sorte inconnue se lit comme un coup",
+		Combat.damageTaken(Config, inFrag, share, "foudre"),
+		Combat.damageTaken(Config, inFrag, share)
+	)
+
+	t.section("Les bornes tiennent aussi pour les sortes")
+
+	-- Deux reductions empilees sur une classe deja resistante doivent rester
+	-- dans les bornes de Config : sans le clamp, une somme de -1,1 RENDRAIT des
+	-- PV a chaque explosion.
+	local stacked = table.clone(colossus)
+	stacked.damageTakenRatio = -0.9
+	stacked.blastTakenRatio = -0.9
+	local floored = Combat.damageTaken(Config, stacked, share, Combat.BLAST)
+	t.check("une somme de reductions ne soigne jamais", floored > 0)
+	t.equal(
+		"elle s'arrete au plancher de Config",
+		floored,
+		share * Config.combat.damageTakenRatioMin
+	)
+
+	-- Et dans l'autre sens : une classe fragile qui prendrait une explosion ne
+	-- depasse pas le plafond.
+	local brittle = table.clone(colossus)
+	brittle.damageTakenRatio = 2
+	brittle.blastTakenRatio = 2
+	t.equal(
+		"et au plafond de l'autre cote",
+		Combat.damageTaken(Config, brittle, share, Combat.BLAST),
+		share * Config.combat.damageTakenRatioMax
+	)
+
+	t.section("Toute classe sait repondre aux deux sortes")
+
+	-- LA PANNE QUE CECI ATTRAPE est celle des branches creuses, un etage plus
+	-- loin : une armure qui pousse `dotTakenRatio` sur une classe ou la cle
+	-- n'existe pas ne pousse rien. Les quatorze classes doivent donc declarer
+	-- les deux, meme a zero.
+	local missing = {}
+	for classId, stats in Config.classStats do
+		if stats.blastTakenRatio == nil or stats.dotTakenRatio == nil then
+			table.insert(missing, classId)
+		end
+	end
+	table.sort(missing)
+	t.equal("aucune classe n'ignore les sortes de degat", table.concat(missing, ", "), "")
 end

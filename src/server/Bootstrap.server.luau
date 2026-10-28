@@ -43,8 +43,9 @@ print("================================================")
 print(string.format("[Arena] Serveur démarré — réglages version %d", Config.version))
 print(
 	string.format(
-		"[Arena] %d classes, %d formats, budget d'équipement %d points",
+		"[Arena] %d classes, %d objets, %d formats, budget d'équipement %d points",
 		count(Classes.all),
+		count(Config.items),
 		count(Config.formats),
 		Config.loadout.budgetPoints
 	)

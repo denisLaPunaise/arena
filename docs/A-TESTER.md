@@ -986,6 +986,115 @@ parcouru par personne.
 
 ---
 
+## 21. Les soixante-deux objets — **la moitié n'a jamais touché personne**
+
+Le catalogue est complet : 62 objets, et les 42 paliers 6 codés. Mais il y a une
+coupure nette dans ce que j'ai pu vérifier, et il faut que tu la connaisses
+avant de tester.
+
+**Ce qui est vérifié en jeu**, dans la vraie machine virtuelle du serveur :
+chacun des 21 objets utilisables s'utilise sans une seule erreur, les 6 soins
+rendent exactement ce qu'ils annoncent, les 7 zones se posent et disparaissent
+toutes à la fin de la manche, les 2 bonds montent et avancent de ce qu'ils
+disent, et les trois couches de statistiques tiennent sur les 62 objets sans un
+chiffre aberrant.
+
+**Ce qui n'est pas vérifiable seul, et ne le sera jamais** : tout ce que ces
+objets font *à un adversaire*. Les zones, les lancers et les effets collés
+cherchent leurs cibles parmi les joueurs — et le mannequin du bac à sable n'est
+pas un joueur. Je n'ai donc jamais vu un ralentissement, un poison, un
+étourdissement, une révélation ni une explosion toucher qui que ce soit. C'est
+la même limite qui rend un bot inabordable, et elle est assumée.
+
+Donc : **cette section se teste à deux, et dans cet ordre.**
+
+### D'abord les quatre effets temporaires, parce que tout le reste s'appuie dessus
+
+165. **Le ralentissement ne s'empile pas.** Pose des chausse-trappes (2 pts) sur
+     quelqu'un que tu touches aussi au pistolet à fléchettes (2 pts). Il doit
+     être ralenti **une fois**, au plus fort des deux, jamais deux fois. Si tu
+     le vois s'arrêter net, dis-le tout de suite : deux objets à deux points ne
+     doivent pas valoir une immobilisation, qui coûte trois.
+166. **L'étourdissement rend la main.** Grenade aveuglante (3 pts) sur quelqu'un
+     qui marche déjà dans des chausse-trappes. Il doit être figé, puis
+     **redevenir ralenti** — et pas retrouver sa pleine vitesse. C'est l'ordre
+     qui casse le plus facilement.
+167. **Le poison ne s'empile pas non plus.** Touche dix fois à la dague
+     empoisonnée (3 pts). Le poison doit se renouveler, pas s'additionner. Dix
+     coups ne doivent pas tuer par le poison seul.
+168. **La fiole régénérante continue en courant.** C'est le seul soin qu'un coup
+     n'arrête pas. 48 PV sur douze secondes : si l'échange dure trois secondes,
+     elle n'en aura rendu que douze. Est-ce que ça se sent, ou est-ce que c'est
+     invisible ?
+
+### Ensuite les deux armures spécialisées, qui n'existent que par là
+
+169. **Le gilet pare-éclats (3 pts) contre l'Artificier.** Il doit encaisser les
+     explosions nettement mieux qu'une armure ordinaire, et les coups nettement
+     moins bien. Si la différence ne se sent pas, le gilet ne sert à rien.
+170. **Le plastron de cuir (2 pts) contre la Peste et le Pyromane.** Même
+     question, pour les poisons et le feu.
+
+### Puis les sept zones, qui sont la vraie nouveauté
+
+171. **Le fumigène (1 pt) coupe-t-il vraiment la vue ?** Les balles le
+     traversent, c'est voulu : c'est de la couverture prêtée, pas de la
+     protection. Est-ce que ça se joue, ou est-ce qu'on tire à travers sans y
+     penser ?
+172. **La balise (1 pt) et le détecteur (2 pts).** La balise est posée et reste
+     45 secondes ; le détecteur part de là où tu es et dure 10 secondes mais
+     voit deux fois plus large. Deux objets pour la même idée — est-ce qu'ils se
+     distinguent vraiment en jouant ?
+173. **Le brouilleur (4 pts) efface-t-il les révélations ?** C'est le contre du
+     Traqueur, du Parasite, de la balise et du détecteur. Il ne rend personne
+     invisible : il efface ce qui était révélé et empêche de révéler tant qu'il
+     tient. Quatre points, c'est cher — est-ce que ça les vaut contre une équipe
+     qui joue l'information ?
+174. **La grenade incendiaire (4 pts) brûle les deux équipes.** Comme les
+     flammes du Pyromane. Vérifie qu'elle te brûle aussi, et que ça se voit
+     assez pour qu'on évite sa propre zone.
+175. **Le dôme de soin (4 pts) dit où se replier.** 90 PV rendus si on y reste
+     les quinze secondes, ce que personne ne fait. La régénération suit une
+     seconde après être sorti, pas plus. Est-ce que l'équipe adverse comprend
+     qu'il faut y aller ?
+
+### Les deux bonds — **mesurés, mais jamais ressentis**
+
+176. **Le grappin (2 pts) monte de 20 studs et n'avance pas.** Mesuré : 19,8 de
+     haut, 3,1 devant, neuf dixièmes de seconde en l'air. Vingt studs, c'est
+     presque trois sauts empilés. **La question est si c'est assez sur ta map**
+     — il est fait pour une map à étages et ne sert à rien sur une map plate.
+177. **Les bottes à ressort (3 pts) font un bond de 43 studs.** Mesuré : 7,9 de
+     haut, 43 devant. **On ne se dirige plus pendant un bond** — c'est un choix,
+     pour qu'il fasse deux fois la même chose. Est-ce que ça se vit comme une
+     ruée ou comme une perte de contrôle ?
+178. **Une seconde en l'air, c'est long.** Les deux bonds te rendent visible et
+     prévisible pendant leur vol. Est-ce qu'on se fait descendre en l'air ?
+
+### Et le palier 6 du Monolithe, qui est une décision à valider
+
+179. **Immunité aux explosions, deux secondes immobile.** Il promettait une
+     « immunité aux projectiles » dans un jeu où rien ne vole, donc je l'ai
+     relu comme ça. **C'est la seule décision de conception que j'ai prise seul
+     dans ce lot**, et elle se défait en une ligne si elle ne te plaît pas. À
+     tester contre un Artificier : le Monolithe ancré doit ignorer mines,
+     grenades et lance-grenades entièrement — pas en prendre moins, n'en prendre
+     aucun.
+
+### Enfin, les deux choses que les tests ne peuvent pas dire
+
+180. **Est-ce qu'un objet est inutile ?** Un test refuse qu'une arme soit
+     meilleure partout qu'une autre moins chère. Il ne peut pas dire qu'une arme
+     n'intéresse personne. Si tu vois un objet que personne ne prend jamais,
+     c'est une information que je n'ai aucun moyen d'obtenir.
+181. **Est-ce que les utilitaires à 1 point sont trop forts ?** Fumigène, mine
+     légère et balise coûtent un point chacun. Avec une arme à 4 points, on peut
+     en prendre trois **et** garder 5 points d'armure. Si tout le monde joue
+     cette combinaison, il faut les passer à deux points. C'est le premier
+     chiffre que je surveillerais.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
@@ -993,8 +1102,13 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
 - **je n'ai pas pu écouter les sons** — je les ai choisis au nom, à la
   bibliothèque et à la durée, et vérifié en jeu qu'ils partent bien. Savoir
   s'ils sonnent juste demande une oreille. Section 12.
-- **les quarante-neuf autres objets** — treize sur soixante-deux sont codés.
-  Les autres attendent de savoir si le budget est bon à treize.
+- **les 62 objets sont codés, et la moitié n'a jamais touché personne** — tout
+  ce qu'ils font à un adversaire est invisible en solo, parce que le mannequin
+  n'est pas un joueur. Section 21.
+- **l'allure des armes** — leur géométrie est honnête mais sommaire. J'ai
+  essayé les outils de génération 3D : les matériaux marchent très bien, les
+  maillages marchent, la recherche d'assets ne marche pas du tout, et **je ne
+  peux pas regarder le résultat**. Le détail est dans `docs/DECISIONS.md`.
 - **les skins** — les fragments s'accumulent et ne servent encore à rien.
   Aucune boutique, aucun skin.
 - **l'achat de pièces en Robux** — rien n'est branché, et c'est volontaire :
@@ -1038,11 +1152,12 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   si tu veux que je regarde quelque chose à l'écran, il faut que Studio soit
   devant. Aucune erreur ne le signale, les captures reviennent simplement
   identiques.
-- **un palier 6 sur quarante-deux** attend encore un système qui n'existe pas :
-  « immunisé aux projectiles » (Monolithe). Les armes à feu et l'arc touchent
-  instantanément à portée, donc **rien ne vole dans ce jeu** : lui donner un
-  sens demande un système de projectiles, donc une décision à prendre ensemble.
-  Il s'affiche comme indisponible, c'est voulu. Celui de la Peste, lui, est codé
-  depuis le 27 octobre — section 17.
+- **les quarante-deux paliers 6 sont codés** depuis le 27 octobre 2026. Le
+  dernier qui attendait, celui du Monolithe, promettait une « immunité aux
+  projectiles » dans un jeu où **rien ne vole** : les armes à feu et l'arc
+  touchent instantanément à portée. Je lui ai donné le sens le plus proche que
+  le jeu sache exprimer — **immunité aux explosions** quand on reste immobile
+  deux secondes — et c'est une décision prise sans toi, détaillée dans
+  `docs/DECISIONS.md`. Si elle ne te plaît pas, elle se défait en une ligne.
 - **le pilotage du clone du Leurre** — le clone est posé, pas piloté. Le
   pourquoi est dans `docs/DECISIONS.md`, et le point à regarder est le 57.

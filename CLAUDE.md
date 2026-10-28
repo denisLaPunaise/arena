@@ -248,6 +248,14 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   AUCUN pouvoir qui demande un vrai adversaire — mieux vaut ne rien faire que
   faire croire que ca marche.
 
+  **LA MEME LIMITE PORTE SUR LES OBJETS, et elle est plus large qu'elle n'en a
+  l'air.** `enemiesNear` et `alliesNear` parcourent le `roster`, indexe par
+  `Player` : une zone, un lancer, un effet colle et une explosion ne peuvent
+  donc RIEN atteindre dans le bac a sable. La moitie offensive du catalogue est
+  invisible en solo, et c'est structurel. En ecrivant une sonde pour un objet
+  qui vise quelqu'un, la premiere question est : est-ce qu'il y a quelqu'un a
+  viser ? Sinon la sonde dira « rien ne se passe » et le code sera juste.
+
 - **Un `Humanoid` mort ne se soigne pas.** Des que ses PV touchent zero, Roblox
   le passe en etat Dead, et lui rendre ses PV ne le releve pas : il reste mort,
   a plein de vie. Un mannequin se RECONSTRUIT, au meme endroit. Vu le
@@ -620,9 +628,66 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 - **Si la lecture d'un profil échoue, on n'écrit pas.** Un profil illisible
   n'est pas un profil vide. `ProgressService` porte ce garde-fou, et c'est la
   seule chose de ce fichier qui peut détruire quelque chose d'irremplaçable.
-- **Les trois listes de garde-fous doivent rester à jour** : `HANDLED` et
-  `HANDLED_TIER6` dans `AbilityService`, et la table `handled` des sortes
-  d'utilisation dans `LoadoutService.init`. Le serveur refuse de démarrer si
+- **UN CHIFFRE NOMME EN STUDS DOIT DONNER DES STUDS, et il a fallu trois
+  essais.** `upStuds = 40` donnait QUATRE studs de hauteur : le chiffre partait
+  tel quel dans la vitesse du personnage, et 40 studs par seconde contre une
+  gravite de 196 monte a 4,07. Les bottes a ressort sautaient donc moins haut
+  que la barre d'espace, et mille quatre cent quatre-vingt-dix tests passaient
+  — aucun ne savait ce que « stud » voulait dire. Vu le 27 octobre 2026.
+
+  La HAUTEUR se convertit par `v = racine(2 g h)`, et c'est exact : 20 demandes
+  donnent 19,8 mesures. L'HORIZONTALE, non, et c'est la le piege. L'Humanoid de
+  Roblox pousse en permanence la vitesse du personnage vers celle que le joueur
+  demande au clavier — zero quand personne n'appuie — donc un simple coup de
+  vitesse est mange, et **pas proportionnellement** : un rattrapage de 1,37
+  donnait 22,8 studs, un de 2,44 en donnait 67,8. Chercher le bon facteur etait
+  le mauvais chantier.
+
+  Ce qui marche est un `LinearVelocity` en mode Ligne, resolu par le moteur
+  physique et pas par l'animateur. **Et il a rate aussi, une fois**, parce que
+  `ForceLimitsEnabled` vaut VRAI par defaut avec `MaxForce` a 1000 : tres loin
+  de ce qu'il faut pour lancer un personnage, donc la contrainte epinglait la
+  vitesse a presque zero au lieu de la pousser, sans la moindre erreur. En
+  posant un `LinearVelocity`, `AngularVelocity` ou n'importe quel acteur
+  physique sur un personnage : **couper la limite de force, ou la regler
+  expres**.
+
+  Deux choses a savoir en prime. `knockbackStuds` et `knockbackUpStuds` sont
+  des vitesses aussi, mais TOUTES, donc elles sont coherentes entre elles : les
+  convertir serait un reequilibrage de la poussee, pas une correction. Et le
+  personnage GLISSE a l'atterrissage, une fraction de seconde apres la fin du
+  vol : 38 studs demandes en parcourent 43, et cette part-la ne se commande pas.
+
+- **UN CHIFFRE QUI SE CACHE DANS UN REPLI EST AUSSI GRAVE QU'UN CHIFFRE EN
+  DUR.** Le dome de soin n'avait pas de `holdSeconds` et retombait sur un
+  `or 1` au fond de `LoadoutService`. La valeur etait bonne, et **illisible
+  depuis `Config`** : personne ne pouvait la regler sans lire le service. Un
+  repli est legitime pour ce qui n'a VRAIMENT pas de valeur (une zone de fumee
+  ne colle rien), jamais pour ce qui en a une. La parade est la meme que pour
+  les listes de pouvoirs : le serveur refuse de demarrer si une zone colle un
+  effet sans dire combien de temps il tient.
+
+- **`search_asset` n'est pas une recherche par le sens.** Verifie le 27 octobre
+  2026 : « katana sword » en Model renvoie un point d'apparition, un ciel, un
+  panneau d'administration et un NPC ; « sword » en MeshPart renvoie une
+  canette, des cheveux d'anime et un fusil G36. **Prendre un objet tout fait
+  dans la bibliotheque n'est pas faisable d'ici**, et il ne faut pas le
+  promettre a Josh.
+
+  Ce qui marche, en revanche : `generate_material` rend QUATRE variantes
+  completes par appel — couleur, relief, metal, rugosite — et c'est ce qui
+  change le plus l'allure d'une map pour le moins d'effort ; `generate_mesh`
+  rend un maillage texture a la taille demandee, publie comme asset reutilisable,
+  en une minute et demie environ. Les variantes arrivent dans
+  `MaterialService.AssistantMaterials`, pas a la racine du service — les chercher
+  par `GetDescendants`, sinon on conclut a tort que l'outil n'a rien fait.
+
+- **Les quatre listes de garde-fous doivent rester à jour** : `HANDLED` et
+  `HANDLED_TIER6` dans `AbilityService`, et dans `LoadoutService.init` la table
+  `handled` des sortes d'utilisation, celle `zoneEffects` des sortes de zone,
+  plus deux vérifications de la même famille — qu'un effet collé par une arme
+  (`onHit`) nomme une sorte que `Status` connaît, et qu'une zone qui colle un
+  effet dise combien de temps il tient. Le serveur refuse de démarrer si
   `Config` annonce quelque chose qu'aucun service n'exécute, et le message
   nomme le coupable. C'est volontairement brutal : un objet qui coûte des
   points et ne fait rien ne se voit jamais en jouant.
@@ -639,8 +704,9 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 5. Les douze autres classes — **fait** : statistiques, pouvoirs, trois branches
    chacune, plus les bans et le tirage au sort
 6. L'équipement et son budget de douze points, les pièces, les tirages et le
-   classement — **fait** : treize objets sur soixante-deux, l'écran
-   d'équipement, l'économie, l'Elo, et les cotes conformes à Roblox
+   classement — **fait** : l'écran d'équipement, l'économie, l'Elo, et les
+   cotes conformes à Roblox. Treize objets d'abord, **les soixante-deux
+   depuis le 27 octobre** — étape 13
 7. L'arme visible dans la main et son geste — **fait**, en géométrie pure,
    sans une seule animation téléversée ; l'arme bouge, le bras non
 8. Le son — **fait** : cinq familles sonores greffées sur les annonces
@@ -674,11 +740,20 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    de Josh : le jeu reste le jeu. Un format imposé ne change jamais QUI joue,
    et un format trop grand fait attendre au lieu de retomber en silence sur le
    format du dessous
-13. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+13. Les quarante-neuf objets qui manquaient, et le dernier palier 6 —
+   **fait** : soixante-deux objets sur soixante-deux, quarante-deux paliers 6
+   sur quarante-deux. Trois sortes d'utilisation de plus (`zone`, `leap`,
+   `throw`), un module de logique pure (`Status`) pour les quatre effets
+   temporaires, et deux résistances nouvelles pour que les armures
+   spécialisées existent. Le palier 6 du Monolithe promettait une immunité
+   aux projectiles dans un jeu où rien ne vole : **relu comme une immunité aux
+   explosions, et c'est une décision prise sans Josh**. Vérifié en jeu pour
+   tout ce qui ne vise personne ; **la moitié offensive n'a jamais touché
+   personne**, section 21 d'`A-TESTER.md`
+14. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
-   une décision de conception), les quarante-neuf autres objets, les skins, et
-   l'achat de pièces en Robux. Plus **un seul** palier 6 sur quarante-deux,
-   « immunisé aux projectiles », qui attend un système de projectiles
+   une décision de conception), **l'allure des armes et des maps**, les skins,
+   et l'achat de pièces en Robux
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans

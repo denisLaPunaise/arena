@@ -1470,6 +1470,184 @@ son premier centimètre. C'est le point 156 d'`A-TESTER.md`.
 
 ---
 
+## 27 octobre 2026 — Les quarante-neuf objets qui manquaient
+
+Le catalogue passe de treize objets à soixante-deux, et le dernier palier 6 non
+codé est codé. Le jeu est complet au sens où plus rien de ce que `Config`
+annonce n'est absent du code.
+
+### Ce que ça a vraiment demandé
+
+Beaucoup moins que prévu, et pour une raison qui mérite d'être notée : **tout ce
+qui était en aval savait déjà faire**. Les quarante-neuf objets n'ont ajouté que
+trois sortes d'utilisation (`zone`, `leap`, `throw`), un module de logique pure
+(`Status`) et un service (`StatusService`). Le reste réemploie ce qui existait :
+
+- la faux de la Peste réutilise le `spreadRatio` que son palier 6 avait déjà ;
+- l'exosquelette réutilise le chemin de résistance à la poussée du Sismique ;
+- la grenade incendiaire réutilise le feu du Pyromane ;
+- le brouilleur réutilise les révélations du Traqueur, en les effaçant.
+
+C'est la même leçon que les équipes : **avant de croire qu'un chantier est gros,
+lire ce qui est en aval.**
+
+### Deux résistances nouvelles, et pourquoi
+
+Les dégâts portent maintenant une **sorte** — un coup, une explosion, un poison.
+Sans ça, le gilet pare-éclats et le plastron de cuir ne pouvaient pas exister :
+une armure « forte contre les explosions » dont le chiffre n'entre dans aucun
+calcul ne réduit rien, en silence. Un test croise les deux armures et les deux
+sortes dans les quatre sens, parce qu'une seule colonne passerait même si la
+sorte était ignorée partout.
+
+### Le palier 6 du Monolithe — **une décision prise sans toi**
+
+Il promettait une « immunité aux projectiles » dans un jeu où **rien ne vole** :
+les armes à feu et l'arc touchent instantanément à portée. Il était déclaré non
+implémenté depuis le début et s'affichait comme indisponible.
+
+Les sortes de dégât ont rendu possible la lecture la plus proche de son
+intention : **immunité aux explosions** quand on reste immobile deux secondes.
+Une classe qui s'ancre pour ne plus craindre ce qui arrive de loin, c'est ce que
+le palier voulait dire. Deux secondes parce que c'est assez long pour être un
+choix — on renonce à se déplacer — et assez court pour être atteignable dans un
+vrai combat.
+
+C'est une immunité et pas une réduction, donc elle court-circuite le calcul au
+lieu d'y entrer : faire passer zéro par les bornes de `Config.combat` le
+ramènerait à la moitié des dégâts.
+
+**Si cette lecture ne te plaît pas, elle se défait en une ligne** — le drapeau
+`implemented` revient à `false` et le palier redevient indisponible.
+
+### Neuf armes rééquilibrées, parce que les tests ont refusé
+
+Les tests de domination ont attrapé quatre dominations strictes en ajoutant les
+quarante-neuf objets : l'arbalète de poing écrasait le pistolet à fléchettes, le
+plastron de cuir écrasait le gilet pare-éclats, la grenade aveuglante ne faisait
+aucun dégât, et le pistolet-mitrailleur sur le Spectre tirait plus vite que son
+propre geste. Les tests ont aussi dû apprendre les nouveaux axes de puissance —
+effet collé, explosion d'arme, portée minimale, chargeur — sinon ils auraient
+déclaré dominées des armes qui ne le sont pas.
+
+**Ce que ces tests ne disent pas** : qu'un objet est utile. Ne dominer personne
+et n'intéresser personne sont deux choses différentes, et la deuxième ne se voit
+qu'en jouant.
+
+### La marge entre la recharge la plus courte et le geste : 23 millisecondes
+
+Le Traqueur avec les griffes frappe toutes les 0,253 seconde, et le geste d'arme
+dure 0,23. Il reste vingt-trois millisecondes pour que le bras revienne au
+repos. C'est légal — un test le vérifie — mais c'est tendu, et c'est le premier
+endroit où un geste paraîtra haché si ça se voit en jouant.
+
+### Les bonds, qui mentaient sur leur unité — et deux corrections ratées avant la bonne
+
+**C'est la trouvaille de la journée, et seule une mesure pouvait la faire.**
+
+`upStuds = 40` donnait **quatre studs** de hauteur. Les bottes à ressort
+sautaient donc moins haut que la barre d'espace, qui monte à 7,2. Le chiffre
+partait directement dans la vitesse du personnage, et une vitesse de 40 studs
+par seconde contre une gravité de 196 monte à 4,07 — exactement ce qui a été
+mesuré. Mille quatre cent quatre-vingt-dix tests passaient : **aucun ne savait
+ce que « stud » voulait dire.**
+
+La première correction a converti la hauteur correctement — et ça marche, 20
+demandés donnent 19,8 mesurés. L'horizontale, non : l'Humanoid de Roblox pousse
+en permanence la vitesse du personnage vers celle que le joueur demande au
+clavier, c'est-à-dire zéro quand personne n'appuie.
+
+La deuxième correction a ajouté un facteur de rattrapage, et c'était le mauvais
+chantier : 1,37 donnait 22,8 studs, 2,44 en donnait 67,8. **Pas le double pour
+le double** — la relation n'est pas linéaire, donc aucun facteur unique ne peut
+faire d'une vitesse une distance.
+
+La bonne correction est un `LinearVelocity` en mode Ligne, résolu par le moteur
+physique et pas par l'animateur : il tient la vitesse horizontale pendant tout
+le vol et laisse l'axe vertical à la gravité. **Et elle a raté aussi, une
+fois**, parce que `ForceLimitsEnabled` vaut vrai par défaut avec `MaxForce` à
+1000 — très loin de ce qu'il faut pour lancer un personnage. Les bottes
+faisaient 1,8 stud au lieu de 38, sans la moindre erreur.
+
+Mesures finales : grappin 20 demandés / **19,8 mesurés** en hauteur et 3 / 3,1
+devant ; bottes 8 / **7,9** en hauteur et 38 / **43** devant. Les cinq studs de
+trop sont le glissement à l'atterrissage, et c'est la seule part de ces chiffres
+qui ne se commande pas.
+
+Le prix assumé : **on ne se dirige plus pendant un bond.** C'est même ce que le
+commentaire d'à côté demandait déjà — un déplacement qui ne fait pas deux fois
+la même chose ne s'apprend pas.
+
+### La poussée ment sur son unité aussi, et je n'y ai pas touché
+
+`knockbackStuds` et `knockbackUpStuds` sont des vitesses, comme les bonds
+l'étaient. La différence est que **tous** ces chiffres sont dans la même unité,
+donc ils sont cohérents entre eux : aucun ne promet une distance que l'autre ne
+tient pas. Les renommer ne changerait rien au jeu ; les convertir en distances
+serait un rééquilibrage de la poussée entière, déguisé en correction.
+
+Je te le signale plutôt que de le faire : **si tu veux, je renomme les champs
+pour que le nom dise « vitesse »**, sans toucher à une seule valeur.
+
+### Un chiffre qui se cachait dans un repli
+
+Le dôme de soin n'avait pas de `holdSeconds`, et retombait sur un `or 1` caché
+dans `LoadoutService`. La valeur était bonne, mais **illisible depuis `Config`**
+— exactement ce que la règle « tous les chiffres dans Config » interdit. Un test
+l'a attrapé, le chiffre est maintenant écrit avec sa raison, et le serveur
+refuse de démarrer si une zone colle un effet sans dire combien de temps il
+tient.
+
+### Ce que j'ai pu vérifier, et ce que je n'ai pas pu
+
+**Vérifié dans la machine virtuelle de Roblox :** le serveur démarre avec les 62
+objets et les 42 paliers 6, les quatre listes de garde-fous à jour. Les
+vingt-et-un objets utilisables s'utilisent tous sans une seule erreur. Les six
+soins rendent exactement ce qu'ils annoncent, poses lentes comprises. Les sept
+zones se posent et **disparaissent toutes à la fin de la manche**. Les deux
+bonds montent et avancent de ce qu'ils disent. Les trois couches de
+statistiques tiennent sur les 62 objets et deux classes, sans un chiffre
+aberrant.
+
+**Pas pu vérifier, et c'est une limite de structure :** tout ce que les nouveaux
+objets font *à un adversaire*. Les zones, les lancers et les effets collés
+cherchent leurs cibles dans le `roster`, qui est indexé par `Player` — et le
+mannequin du bac à sable n'est pas un `Player`. Il n'y a donc **aucun moyen**,
+seul en jeu, de voir un ralentissement, un poison, un étourdissement ou une
+explosion toucher quelqu'un. C'est la même raison qui rend un bot inabordable,
+et elle est déjà dans `CLAUDE.md`.
+
+Autrement dit : **la moitié offensive des quarante-neuf objets n'a jamais touché
+personne.** C'est la section 21 d'`A-TESTER.md`, et c'est à deux.
+
+### Les outils de génération 3D, essayés pour de vrai
+
+Tu m'as demandé si je pouvais faire une belle map et de belles armes. J'ai
+essayé les outils plutôt que de deviner :
+
+- **`generate_material` marche très bien.** Un appel, et quatre variantes de
+  matériau complètes arrivent — couleur, relief, métal, rugosité. C'est ce qui
+  change le plus l'allure d'une map pour le moins d'effort.
+- **`generate_mesh` marche.** Un katana texturé en 4000 triangles, à la taille
+  demandée, publié comme asset Roblox réutilisable. Environ une minute et demie
+  par maillage.
+- **`search_asset` ne marche pas.** « katana sword » renvoie un point
+  d'apparition, un ciel, un panneau d'administration et un NPC. « sword » en
+  MeshPart renvoie une canette, des cheveux d'anime et un fusil G36. Ce n'est
+  pas une recherche par le sens : prendre une arme toute faite dans la
+  bibliothèque n'est pas quelque chose que je peux faire d'ici.
+- **Je ne peux pas regarder le résultat.** `screen_capture` est revenu avec la
+  vue 3D entièrement vide — vérifié par un témoin neon rouge posé devant la
+  caméra et confirmé à l'écran par `WorldToViewportPoint` : il n'apparaît pas
+  non plus. C'est le gel de rendu déjà connu, qui arrive quand la fenêtre de
+  Studio passe en arrière-plan.
+
+Donc la réponse honnête : **je peux fabriquer, je ne peux pas juger.** Ce que je
+produirais serait raisonné sur les proportions et les matériaux, exactement
+comme les sons ont été choisis au nom et à la durée sans jamais être écoutés.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si
