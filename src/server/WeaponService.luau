@@ -68,6 +68,10 @@ local Config = require(Arena:WaitForChild("Config"))
 
 local MODEL_NAME = "ArenaWeapon"
 local GRIP_NAME = "ArenaGrip"
+local WORN_MODEL = "ArenaWorn"
+local WORN_NAME = "ArenaWornJoint"
+local OFFHAND_MODEL = "ArenaOffhand"
+local OFFHAND_NAME = "ArenaOffhandJoint"
 local ARM_NAME = "ArenaArm"
 local TARGET_NAME = "ArenaHandTarget"
 local LEAN_NAME = "ArenaLean"
@@ -81,6 +85,15 @@ local HEAD_TARGET_NAME = "ArenaHeadTarget"
 local wanted: { [Player]: any } = {}
 local joints: { [Player]: Motor6D } = {}
 local restC0: { [Player]: CFrame } = {}
+
+-- CE QU'ON PORTE RESTE, CE QU'ON SORT PASSE. L'armure est visible tant qu'elle
+-- est equipee ; l'objet de la main gauche n'apparait que pendant son
+-- utilisation. Les deux repondent a la meme regle que l'arme — un budget qu'on
+-- ne voit pas sur l'adversaire n'est pas une mecanique de jeu — mais pas de la
+-- meme facon : une armure se porte en permanence, alors qu'un joueur qui a
+-- quatre utilitaires ne peut pas les tenir tous les quatre en meme temps.
+local wornItems: { [Player]: { any } } = {}
+local offhandToken: { [Player]: number } = {}
 
 -- Un jeton par joueur pour le retour du geste. Sans lui, le retour d'un coup
 -- lance il y a 70 ms repose l'arme en plein milieu du coup suivant, et une
@@ -338,27 +351,147 @@ end
 
 -- La main droite, R15 ou R6. Les deux rigs existent encore sur Roblox et le
 -- choix appartient au joueur, pas au jeu : il faut savoir lire les deux.
-local function handOf(character: Model): BasePart?
-	local r15 = character:FindFirstChild("RightHand")
+local R6_FOR: { [string]: string } = {
+	RightHand = "Right Arm",
+	LeftHand = "Left Arm",
+	UpperTorso = "Torso",
+	LowerTorso = "Torso",
+	Head = "Head",
+}
+
+local function limbOf(character: Model, name: string): BasePart?
+	local r15 = character:FindFirstChild(name)
 	if r15 ~= nil and r15:IsA("BasePart") then
 		return r15
 	end
-	local r6 = character:FindFirstChild("Right Arm")
+	local fallback = R6_FOR[name]
+	if fallback == nil then
+		return nil
+	end
+	local r6 = character:FindFirstChild(fallback)
 	if r6 ~= nil and r6:IsA("BasePart") then
 		return r6
 	end
 	return nil
 end
 
--- Une piece d'arme : jamais de collision, jamais de masse, jamais de requete
+local function handOf(character: Model): BasePart?
+	return limbOf(character, "RightHand")
+end
+
+-- LES DEUX LISTES DE REFERENCE DE L'ALLURE. Un nom de sorte ou de matiere qui
+-- n'est pas la dedans est refuse au demarrage du serveur, par le meme
+-- mecanisme que les pouvoirs et les sortes d'utilisation : un objet qui
+-- retomberait en silence sur une boite grise aurait l'air de marcher, et
+-- personne ne verrait jamais que son allure n'est pas celle qui est ecrite.
+-- En ajoutant une sorte ou une matiere, l'inscrire ici.
+local SHAPES: { [string]: Enum.PartType } = {
+	Block = Enum.PartType.Block,
+	Cylinder = Enum.PartType.Cylinder,
+	Ball = Enum.PartType.Ball,
+}
+
+local MATERIALS: { [string]: Enum.Material } = {
+	SmoothPlastic = Enum.Material.SmoothPlastic,
+	Plastic = Enum.Material.Plastic,
+	Metal = Enum.Material.Metal,
+	DiamondPlate = Enum.Material.DiamondPlate,
+	CorrodedMetal = Enum.Material.CorrodedMetal,
+	Wood = Enum.Material.Wood,
+	WoodPlanks = Enum.Material.WoodPlanks,
+	Fabric = Enum.Material.Fabric,
+	Leather = Enum.Material.Leather,
+	Glass = Enum.Material.Glass,
+	Neon = Enum.Material.Neon,
+	Granite = Enum.Material.Granite,
+	Slate = Enum.Material.Slate,
+}
+
+-- Les deux listes se relisent de l'exterieur, pour que le garde-fou du
+-- demarrage n'en tienne pas une copie. Deux listes qui doivent s'accorder
+-- finissent toujours par diverger en silence.
+function WeaponService.knowsShape(name: string): boolean
+	return SHAPES[name] ~= nil or name == "Wedge"
+end
+
+function WeaponService.knowsMaterial(name: string): boolean
+	return MATERIALS[name] ~= nil
+end
+
+-- Et le membre d'une armure portee, pour la meme raison. `attachAt` renvoie
+-- simplement faux quand il ne trouve pas le membre : une armure posee sur un
+-- « Chest » qui n'existe sur aucun des deux rigs couterait ses points et
+-- n'apparaitrait nulle part, sans la moindre erreur.
+function WeaponService.knowsLimb(name: string): boolean
+	return R6_FOR[name] ~= nil
+end
+
+-- LES DEUX ANGLES SONT NOMMES PAR LEUR EFFET, ET LE SENS EST VERIFIE.
+--
+-- DANS CE JEU, UNE ARME POINTE VERS -Z. Ce n'est pas un choix fait ici, c'est
+-- ce que les 34 armes disent deja : le canon du fusil de precision est pose a
+-- -3,6, la tete du marteau a -1,4, et le pommeau du katana a +2,2. Le bout
+-- utile est du cote -Z, le cote du porteur est +Z. C'est aussi la convention
+-- du reste du projet — dans Roblox l'avant est -Z.
+--
+-- De la, le signe de chaque angle, par le calcul et par une mesure :
+--   `CFrame.Angles(t, 0, 0)` envoie (0, 0, -1) sur (0, sin t, -cos t), donc un
+--   X positif LEVE le bout avant. Mesure concordante relevee dans la place le
+--   28 octobre 2026 sur le katana d'essai, dont les segments pointaient vers
+--   +Z : poses a +2,1 degre chacun, leur bout +Z est DESCENDU de 0,010 puis
+--   0,038 puis 0,086 puis 0,152 stud. Le bout +Z descend, donc le bout -Z
+--   monte : c'est la meme phrase.
+--   `CFrame.Angles(0, y, 0)` envoie (0, 0, -1) sur (-sin y, 0, -cos y), donc
+--   un Y positif emmene le bout avant vers -X, c'est-a-dire a GAUCHE.
+--
+-- Les deux conversions n'existent qu'ICI. C'est la regle qui a coute une
+-- journee sur le penchement du buste, ecrit a l'envers parce que des angles
+-- d'Euler avaient ete lus comme des directions : un angle se nomme par son
+-- effet, et la conversion vers les axes de Roblox se fait a un seul endroit.
+local function anglesOf(piece: any): CFrame
+	return CFrame.Angles(
+		math.rad(piece.tipUp or 0),
+		math.rad(piece.tipLeft or 0),
+		math.rad(piece.roll or 0)
+	)
+end
+
+-- Ou se pose une piece dans le repere de l'objet, dont l'origine est le point
+-- tenu par la main (ou le centre du membre, pour une armure portee).
+--
+-- `scale` n'est pas nil pour une armure : ses tailles et ses positions sont
+-- alors des FRACTIONS du membre, pas des studs. C'est la meme lecon que la
+-- position de la main au repos, qui se mesure au lieu de s'ecrire — la taille
+-- de l'avatar appartient au joueur, et un plastron ecrit en studs flotterait
+-- autour d'un grand corps et rentrerait dans un petit.
+local function frameOf(piece: any, scale: Vector3?): CFrame
+	local at = triple(piece.at)
+	if scale ~= nil then
+		at = at * scale
+	end
+	return CFrame.new(at) * anglesOf(piece)
+end
+
+-- Une piece : jamais de collision, jamais de masse, jamais de requete
 -- spatiale. Une arme qui pousse son porteur ou qui intercepte un rayon de
 -- visee serait un bug de combat ne d'un element decoratif.
-local function makePiece(name: string, size: { number }, color: { number }): BasePart
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Size = triple(size)
-	part.Color = colorOf(color)
-	part.Material = Enum.Material.SmoothPlastic
+local function makePiece(piece: any, scale: Vector3?): BasePart
+	local shaped: string = piece.shape or "Block"
+	local part: BasePart
+	if shaped == "Wedge" then
+		part = Instance.new("WedgePart")
+	else
+		local block = Instance.new("Part")
+		block.Shape = SHAPES[shaped] or Enum.PartType.Block
+		part = block
+	end
+
+	part.Name = piece.name
+	part.Size = if scale ~= nil then triple(piece.size) * scale else triple(piece.size)
+	part.Color = colorOf(piece.color)
+	part.Material = MATERIALS[piece.material or "SmoothPlastic"] or Enum.Material.SmoothPlastic
+	part.Reflectance = piece.reflectance or 0
+	part.Transparency = piece.transparency or 0
 	part.Anchored = false
 	part.CanCollide = false
 	part.CanQuery = false
@@ -369,22 +502,67 @@ local function makePiece(name: string, size: { number }, color: { number }): Bas
 	return part
 end
 
+-- Assemble les pieces en un modele. La PREMIERE piece porte toutes les autres
+-- par des `Motor6D` — une soudure a besoin que les deux pieces soient deja
+-- placees dans le monde, et elles ne le sont pas encore ici.
+--
+-- Renvoie aussi le repere de la premiere piece, parce que c'est lui qu'il faut
+-- composer avec la prise : sans ca, une premiere piece qui n'est pas a
+-- l'origine deplacerait tout l'objet dans la main.
+local function buildModel(
+	modelName: string,
+	look: any,
+	scale: Vector3?
+): (Model?, BasePart?, CFrame?)
+	local pieces = look.pieces
+	if pieces == nil or #pieces == 0 then
+		return nil, nil, nil
+	end
+
+	local model = Instance.new("Model")
+	model.Name = modelName
+
+	local root = makePiece(pieces[1], scale)
+	local rootFrame = frameOf(pieces[1], scale)
+	model.PrimaryPart = root
+	root.Parent = model
+
+	for index = 2, #pieces do
+		local piece = pieces[index]
+		local part = makePiece(piece, scale)
+		part.Parent = model
+
+		local link = Instance.new("Motor6D")
+		link.Name = piece.name
+		link.Part0 = root
+		link.Part1 = part
+		link.C0 = rootFrame:Inverse() * frameOf(piece, scale)
+		link.Parent = root
+	end
+
+	return model, root, rootFrame
+end
+
 -- L'ARTICULATION NE VIT PAS DANS LE MODELE, ELLE VIT SUR LA MAIN. Detruire
 -- le modele de l'arme laisse donc un `Motor6D` orphelin derriere lui, un par
 -- changement d'arme, pour toujours. Vu en jeu le 27 octobre 2026 : QUATRE
 -- `ArenaGrip` empiles dans la meme main apres cinq changements, tous inertes
 -- (`Part1` vide) et tous repondant au meme nom, donc un `FindFirstChild`
 -- en designe un au hasard. C'est le meme piege que les doublons de Rojo.
-local function dropGrips(character: Model)
-	local hand = handOf(character)
-	if hand == nil then
-		return
-	end
-	for _, child in hand:GetChildren() do
-		if child.Name == GRIP_NAME then
-			child:Destroy()
+local function dropJoints(character: Model, jointName: string)
+	-- Le membre a pu changer entre deux poses (R15 puis R6 n'arrive pas, mais
+	-- un personnage neuf, si), donc on balaie le corps entier plutot que le
+	-- seul membre attendu. Une articulation orpheline ne coute rien a chercher
+	-- et coute une arme fantome a oublier.
+	for _, descendant in character:GetDescendants() do
+		if descendant.Name == jointName and descendant:IsA("Motor6D") then
+			descendant:Destroy()
 		end
 	end
+end
+
+local function dropGrips(character: Model)
+	dropJoints(character, GRIP_NAME)
 end
 
 function WeaponService.clear(player: Player)
@@ -430,39 +608,169 @@ function WeaponService.attach(character: Model, item: any): Motor6D?
 	-- ne peut pas compter sur quelqu'un d'autre pour nettoyer.
 	dropGrips(character)
 
-	local model = Instance.new("Model")
-	model.Name = MODEL_NAME
-
-	local body = makePiece(item.id, look.size, look.color)
-	model.PrimaryPart = body
-	body.Parent = model
-
-	-- La tete du marteau et le canon du fusil. Un deuxieme `Motor6D` plutot
-	-- qu'une soudure : la soudure a besoin que les deux pieces soient deja
-	-- placees dans le monde, et elles ne le sont pas encore ici.
-	local head = look.head
-	if head ~= nil then
-		local piece = makePiece("Head", head.size, head.color)
-		piece.Parent = model
-		local link = Instance.new("Motor6D")
-		link.Name = "Head"
-		link.Part0 = body
-		link.Part1 = piece
-		link.C0 = CFrame.new(0, 0, head.atStuds)
-		link.Parent = body
+	local model, root, rootFrame = buildModel(MODEL_NAME, look)
+	if model == nil or root == nil or rootFrame == nil then
+		return nil
 	end
-
-	local rest = CFrame.new(triple(look.grip))
 
 	local grip = Instance.new("Motor6D")
 	grip.Name = GRIP_NAME
 	grip.Part0 = hand
-	grip.Part1 = body
-	grip.C0 = rest
+	grip.Part1 = root
+	-- La prise porte le repere de la premiere piece : sans ca, une premiere
+	-- piece qui n'est pas a l'origine deplacerait tout l'objet dans la main.
+	grip.C0 = CFrame.new(triple(look.grip)) * rootFrame
 	grip.Parent = hand
 
 	model.Parent = character
 	return grip
+end
+
+-- REGARDER CE QU'ON FABRIQUE. Pose les pieces d'une allure dans le monde,
+-- sans personnage et sans articulation, pour pouvoir l'examiner en mode
+-- edition. C'est le seul moyen de verifier une allure autrement qu'en la
+-- relisant — et relire ne marche pas, deux gestes d'arme sont deja partis a
+-- l'envers en passant tous les tests.
+--
+-- Elle appelle `makePiece` et `frameOf`, c'est-a-dire EXACTEMENT le calcul de
+-- la vraie pose : une deuxieme version finirait par mentir sur ce que le jeu
+-- montre. La seule difference est qu'elle place chaque piece directement au
+-- lieu de l'accrocher a la premiere, ce qui est la meme chose — le `C0` d'une
+-- articulation vaut `rootFrame:Inverse() * frameOf(piece)`.
+function WeaponService.preview(look: any, pivot: CFrame, parent: Instance): Model?
+	local pieces = look.pieces
+	if pieces == nil or #pieces == 0 then
+		return nil
+	end
+
+	local scale: Vector3? = nil
+	if look.worn ~= nil and look.worn.fit == true then
+		scale = triple(Config.loadout.previewTorsoStuds)
+	end
+
+	local model = Instance.new("Model")
+	model.Name = "ArenaPreview"
+	for _, piece in pieces do
+		local part = makePiece(piece, scale)
+		part.Anchored = true
+		part.CFrame = pivot * frameOf(piece, scale)
+		part.Parent = model
+	end
+	model.PrimaryPart = model:FindFirstChildWhichIsA("BasePart")
+	model.Parent = parent
+	return model
+end
+
+-- Les deux autres emplacements. Meme assemblage, autre membre, autre nom
+-- d'articulation — et le meme soin : l'articulation vit sur le MEMBRE, donc
+-- detruire le modele ne suffit pas a la faire disparaitre.
+local function stripSlot(character: Model, modelName: string, jointName: string)
+	for _, child in character:GetChildren() do
+		if child.Name == modelName then
+			child:Destroy()
+		end
+	end
+	dropJoints(character, jointName)
+end
+
+local function attachAt(
+	character: Model,
+	look: any,
+	modelName: string,
+	jointName: string,
+	limbName: string,
+	origin: Vector3,
+	fit: boolean
+): boolean
+	local limb = limbOf(character, limbName)
+	if limb == nil then
+		return false
+	end
+
+	local scale = if fit then limb.Size else nil
+	local model, root, rootFrame = buildModel(modelName, look, scale)
+	if model == nil or root == nil or rootFrame == nil then
+		return false
+	end
+
+	local joint = Instance.new("Motor6D")
+	joint.Name = jointName
+	joint.Part0 = limb
+	joint.Part1 = root
+	joint.C0 = CFrame.new(origin) * rootFrame
+	joint.Parent = limb
+
+	model.Parent = character
+	return true
+end
+
+-- Habille ce personnage de toutes les armures passees. Un joueur peut en
+-- porter plusieurs, donc on balaie par NOM plutot que de chercher un enfant
+-- unique : deux modeles du meme nom et `FindFirstChild` en designe un au
+-- hasard, c'est le piege des doublons de Rojo repris sur un personnage.
+local function dressWorn(character: Model, items: { any })
+	stripSlot(character, WORN_MODEL, WORN_NAME)
+	for _, item in items do
+		local look = if item ~= nil then item.look else nil
+		if look == nil or look.worn == nil then
+			continue
+		end
+		attachAt(
+			character,
+			look,
+			WORN_MODEL,
+			WORN_NAME,
+			look.worn.limb,
+			triple(look.worn.at),
+			look.worn.fit == true
+		)
+	end
+end
+
+-- L'armure qu'on porte. Rejouee a chaque reapparition, comme l'arme : sinon
+-- elle disparaitrait a la premiere manche perdue.
+function WeaponService.wear(player: Player, items: { any })
+	wornItems[player] = items
+	local character = player.Character
+	if character == nil then
+		return
+	end
+	dressWorn(character, items)
+end
+
+-- L'objet sort dans la main gauche le temps de s'en servir, puis repart. Le
+-- garder en main entre deux usages dirait « il se soigne » en permanence, ce
+-- qui est une information fausse — et la fausse information est pire que pas
+-- d'information du tout.
+function WeaponService.flashOffhand(player: Player, item: any, seconds: number)
+	local character = player.Character
+	if character == nil then
+		return
+	end
+	local look = if item ~= nil then item.look else nil
+	if look == nil or look.offhand == nil then
+		return
+	end
+
+	-- Un jeton, pour la meme raison que le geste d'arme : une utilisation
+	-- lancee il y a deux secondes ne doit pas ranger l'objet de celle qui vient
+	-- de partir.
+	local token = (offhandToken[player] or 0) + 1
+	offhandToken[player] = token
+
+	stripSlot(character, OFFHAND_MODEL, OFFHAND_NAME)
+	attachAt(character, look, OFFHAND_MODEL, OFFHAND_NAME, "LeftHand", triple(look.offhand), false)
+
+	local held = math.max(seconds, Config.loadout.offhandSeconds)
+	task.delay(held, function()
+		if offhandToken[player] ~= token then
+			return
+		end
+		local current = player.Character
+		if current ~= nil then
+			stripSlot(current, OFFHAND_MODEL, OFFHAND_NAME)
+		end
+	end)
 end
 
 -- Construit l'arme sur le personnage actuel du joueur. Silencieux s'il n'y a
@@ -579,6 +887,14 @@ function WeaponService.init()
 				prepareBody(player)
 			end)
 			task.defer(function()
+				-- L'armure d'abord : elle ne depend pas de l'arme, et un joueur
+				-- qui n'a pas d'arme principale en porte quand meme une.
+				local character = player.Character
+				local dressed = wornItems[player]
+				if character ~= nil and dressed ~= nil then
+					dressWorn(character, dressed)
+				end
+
 				local item = wanted[player]
 				if item == nil then
 					return
@@ -600,6 +916,8 @@ function WeaponService.init()
 		joints[player] = nil
 		restC0[player] = nil
 		swingToken[player] = nil
+		wornItems[player] = nil
+		offhandToken[player] = nil
 	end)
 end
 

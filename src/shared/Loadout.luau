@@ -433,6 +433,20 @@ function Loadout.weaponOf(config, itemIds: { string }, categoryId: string): any?
 	return nil
 end
 
+-- Les armures equipees, dans l'ordre du catalogue. Une liste et pas un seul
+-- objet : rien dans les regles n'interdit d'en porter deux, et une fonction qui
+-- renverrait la premiere trouvee rendrait la seconde invisible sans le dire.
+function Loadout.wornOf(config, itemIds: { string }): { any }
+	local found = {}
+	for _, itemId in itemIds do
+		local item = Loadout.find(config, itemId)
+		if item ~= nil and item.category == "armor" then
+			table.insert(found, item)
+		end
+	end
+	return found
+end
+
 function Loadout.weaponDeltas(config, itemIds: { string }, categoryId: string): Deltas
 	local weapon = Loadout.weaponOf(config, itemIds, categoryId)
 	if weapon == nil then

@@ -577,38 +577,95 @@ return function(t: harness.Harness)
 
 	local missing: string? = nil
 	local unknownSwing: string? = nil
-	local badHead: string? = nil
+	local badPiece: string? = nil
+	local badSlot: string? = nil
+	local twiceNamed: string? = nil
+	local pointless: string? = nil
 
 	for _, item in Config.items do
-		-- Seules les armes se tiennent. Une armure ou une trousse de soin n'a
-		-- rien a montrer dans la main.
-		if item.category ~= "primary" and item.category ~= "secondary" then
-			continue
-		end
-
 		local look = item.look
-		if look == nil then
+
+		-- Toute ARME doit avoir une allure. Les autres objets n'y sont pas
+		-- obliges — une armure ou une trousse sans allure est simplement
+		-- invisible, et c'est un manque, pas une panne.
+		local isWeapon = item.category == "primary" or item.category == "secondary"
+		if isWeapon and look == nil then
 			missing = item.id
 			continue
 		end
-
-		if #look.size ~= 3 or #look.color ~= 3 or #look.grip ~= 3 then
-			missing = item.id .. " : taille, couleur ou prise incomplete"
+		if look == nil then
+			continue
 		end
-
-		if motion[look.swing] == nil then
+		if isWeapon and motion[look.swing] == nil then
 			unknownSwing = item.id .. " : " .. tostring(look.swing)
 		end
 
-		local head = look.head
-		if head ~= nil and (#head.size ~= 3 or #head.color ~= 3 or head.atStuds == nil) then
-			badHead = item.id
+		-- UN SEUL EMPLACEMENT, ET UN AU MOINS. Deux emplacements declares et
+		-- c'est le service qui tranche en silence ; aucun, et l'objet est
+		-- decrit en detail pour n'apparaitre nulle part.
+		local slots = 0
+		if look.grip ~= nil then
+			slots += 1
+			if #look.grip ~= 3 then
+				badSlot = item.id .. " : prise incomplete"
+			end
+		end
+		if look.offhand ~= nil then
+			slots += 1
+			if #look.offhand ~= 3 then
+				badSlot = item.id .. " : main gauche incomplete"
+			end
+		end
+		if look.worn ~= nil then
+			slots += 1
+			if look.worn.limb == nil or #look.worn.at ~= 3 then
+				badSlot = item.id .. " : armure sans membre ou sans position"
+			end
+		end
+		if slots ~= 1 then
+			badSlot = item.id .. " : " .. tostring(slots) .. " emplacements"
+		end
+
+		local pieces = look.pieces
+		if pieces == nil or #pieces == 0 then
+			badPiece = item.id .. " : aucune piece"
+			continue
+		end
+
+		local seen: { [string]: boolean } = {}
+		local reach = 0
+		for _, piece in pieces do
+			if piece.name == nil or #piece.size ~= 3 or #piece.at ~= 3 or #piece.color ~= 3 then
+				badPiece = item.id .. " : piece incomplete"
+				continue
+			end
+			-- DEUX PIECES DU MEME NOM DONNENT DEUX `Motor6D` DU MEME NOM sur la
+			-- meme part, et `FindFirstChild` en designe un au hasard. C'est le
+			-- piege des doublons de Rojo, repris sur un modele d'arme — et il
+			-- a deja coute quatre `ArenaGrip` empiles dans la meme main.
+			if seen[piece.name] then
+				twiceNamed = item.id .. " : " .. piece.name
+			end
+			seen[piece.name] = true
+			reach = math.max(reach, -(piece.at[3] - piece.size[3] / 2))
+			reach = math.max(reach, piece.at[2] + piece.size[2] / 2)
+		end
+
+		-- UNE ARME DESSINEE A L'ENVERS NE LEVE RIEN. Dans ce jeu le bout utile
+		-- est du cote -Z : une arme dont aucune piece ne depasse vers l'avant
+		-- ni vers le haut est une arme tenue par le mauvais bout, et ca ne se
+		-- verrait qu'a l'ecran.
+		if isWeapon and reach <= 0 then
+			pointless = item.id
 		end
 	end
 
 	t.equal("aucune arme sans allure", missing, nil)
 	t.equal("aucun mouvement inconnu", unknownSwing, nil)
-	t.equal("aucune piece rapportee incomplete", badHead, nil)
+	t.equal("un seul emplacement par objet", badSlot, nil)
+	t.equal("aucune piece incomplete", badPiece, nil)
+	t.equal("aucun nom de piece en double", twiceNamed, nil)
+	t.equal("aucune arme tenue par le mauvais bout", pointless, nil)
 
 	t.section("Chaque mouvement est complet")
 
@@ -701,11 +758,21 @@ return function(t: harness.Harness)
 		local look = item.look
 		local kind = Config.loadout.weaponMotion[look.swing]
 
-		-- La pointe : le bout de la lame, ou le haut de l'arc quand l'arme
-		-- est plus longue en hauteur qu'en profondeur.
-		local axis = { 0, 0, -look.size[3] / 2 }
-		if look.size[2] > look.size[3] then
-			axis = { 0, look.size[2] / 2, 0 }
+		-- La pointe : le point le plus eloigne de la main vers l'avant, ou le
+		-- plus haut quand l'arme monte plus qu'elle n'avance — c'est le cas de
+		-- l'arc, qu'on tient par le milieu.
+		--
+		-- Elle se DEDUIT des pieces et ne se recopie pas : une allure a vingt
+		-- pieces n'a plus de « taille », et un chiffre de pointe ecrit a cote
+		-- aurait cesse d'etre vrai au premier reglage.
+		local far, high = 0, 0
+		for _, piece in look.pieces do
+			far = math.max(far, -(piece.at[3] - piece.size[3] / 2))
+			high = math.max(high, piece.at[2] + piece.size[2] / 2)
+		end
+		local axis = { 0, 0, -far }
+		if high > far then
+			axis = { 0, high, 0 }
 		end
 
 		local turned = rotate(axis, kind.pitch, kind.yaw, kind.roll)
@@ -722,8 +789,16 @@ return function(t: harness.Harness)
 
 	-- D'abord : ce calcul donne-t-il la meme chose que Roblox ?
 	local hammer = tipTravel("warhammer")
-	t.equal("le calcul reproduit celui de Studio (marteau, y)", near(hammer[2], -1.64), true)
-	t.equal("le calcul reproduit celui de Studio (marteau, z)", near(hammer[3], 1.26), true)
+	-- Le marteau a ete redessine le 28 octobre 2026 et sa pointe a bouge deux
+	-- fois : 1,70 stud, puis 2,81, puis 2,77 quand les rivets sont passes du
+	-- devant de la tete sur ses joues. Le temoin a ete REMESURE dans Studio a
+	-- chaque fois, jamais recalcule ici — c'est tout l'interet de cette
+	-- premiere moitie : elle verifie que le calcul du test retrouve celui de
+	-- Roblox, et c'est elle qui rend credible la seconde, qui juge les signes.
+	-- Le deplacement par stud n'a pas bouge (-0,966 les trois fois), ce qui
+	-- est la preuve que seul l'axe a change et pas le geste.
+	t.equal("le calcul reproduit celui de Studio (marteau, y)", near(hammer[2], -2.676), true)
+	t.equal("le calcul reproduit celui de Studio (marteau, z)", near(hammer[3], 2.053), true)
 	local bow = tipTravel("compositeBow")
 	t.equal("le calcul reproduit celui de Studio (arc, z)", near(bow[3], 1.4), true)
 	local blade = tipTravel("machete")

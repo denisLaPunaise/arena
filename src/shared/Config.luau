@@ -1012,6 +1012,18 @@ Config.loadout = {
 	-- feu d'artifice.
 	useCooldownSeconds = 0.6,
 
+	-- L'objet reste au moins ce temps-la dans la main gauche. C'est un
+	-- plancher, pas une duree : une pose de trousse qui dure 1,6 seconde le
+	-- garde 1,6 seconde. Il existe parce qu'un soin instantane sortirait et
+	-- rentrerait dans la meme image, donc ne se verrait jamais — et un objet
+	-- qu'on ne voit pas est exactement ce que ce travail corrige.
+	offhandSeconds = 0.55,
+
+	-- Le torse d'un avatar par defaut, en studs. Il ne sert QU'A L'EXAMEN
+	-- d'une armure posee dans le vide : en jeu, l'armure se mesure sur le
+	-- corps reel du joueur, parce que la taille de l'avatar lui appartient.
+	previewTorsoStuds = { 2, 1.6, 1 },
+
 	-- Les charges reviennent entre deux manches, comme les mines de
 	-- l'Artificier. Une manche est l'unite de reserve du jeu.
 	chargesRefillBetweenRounds = true,
@@ -1196,6 +1208,31 @@ Config.itemCounts = {
 -- `use` decrit un objet consommable : le joueur l'utilise, il a des charges, et
 -- les charges reviennent entre deux manches. Les objets sans `use` agissent
 -- tout seuls, en permanence.
+-- LA PALETTE DES OBJETS. Elle existe pour que soixante-deux objets aient l'air
+-- d'appartenir au meme jeu plutot que d'etre soixante-deux decisions separees.
+-- Trois regles, et elles viennent du premier objet dessine :
+--   les matieres s'opposent — du metal froid contre du tissu mat ;
+--   une SEULE touche chaude, le laiton, et jamais deux sur le meme objet ;
+--   le contraste est porte par la matiere, pas par la couleur, donc tout est
+--   sourd sauf le tranchant.
+-- Un objet qui a besoin d'une couleur qui n'est pas la dedans est un objet qui
+-- sort du style : ajouter la couleur ici, pas dans l'objet.
+local PALETTE = {
+	steel = { 206, 212, 222 }, -- l'acier d'une lame, mat
+	edge = { 240, 246, 255 }, -- le fil, la seule chose qui accroche la lumiere
+	iron = { 46, 48, 54 }, -- le fer des gardes, des canons et des plaques
+	gun = { 38, 40, 46 }, -- le polymere mat des armes a feu
+	brass = { 176, 142, 78 }, -- la touche chaude, une par objet
+	cord = { 28, 30, 36 }, -- la corde des poignees
+	wrap = { 58, 48, 44 }, -- le cuir des tresses et des ceintures
+	wood = { 124, 92, 62 }, -- les manches et les crosses
+	cloth = { 226, 228, 232 }, -- la toile claire des trousses
+	alert = { 198, 54, 58 }, -- le rouge de la croix, et rien d'autre
+	olive = { 74, 86, 62 }, -- le vert des grenades
+	shade = { 56, 66, 48 }, -- son ombre, pour les rainures
+	glass = { 120, 170, 190 }, -- les optiques
+}
+
 Config.items = {
 	------------------------------------------------------------------ principales
 	{
@@ -1208,12 +1245,23 @@ Config.items = {
 		-- 30 % de degats par seconde en plus, paye par une portee reduite.
 		scale = { attackDamage = 0.85, attackCooldownSeconds = 0.65, attackRangeStuds = 0.8 },
 		look = {
-			size = { 0.14, 0.52, 3 },
-			color = { 172, 179, 192 },
 			grip = { 0, -0.9, -1.1 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 0.2, 0.26, 0.8 }, color = { 68, 50, 38 }, atStuds = 1.3 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.14, 0.52, 3 },
+					at = { 0, 0, 0 },
+					color = { 172, 179, 192 },
+				},
+				{
+					name = "Head",
+					size = { 0.2, 0.26, 0.8 },
+					at = { 0, 0, 1.3 },
+					color = { 68, 50, 38 },
+				},
+			},
 		},
 	},
 	{
@@ -1227,12 +1275,23 @@ Config.items = {
 		-- demande le plus de courage du catalogue.
 		scale = { attackDamage = 2, attackCooldownSeconds = 1.45, attackRangeStuds = 0.55 },
 		look = {
-			size = { 0.3, 0.38, 2.2 },
-			color = { 96, 78, 62 },
 			grip = { 0, -0.7, -1.1 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.22, 0.22, 2.1 }, color = { 54, 58, 66 }, atStuds = -2 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.3, 0.38, 2.2 },
+					at = { 0, 0, 0 },
+					color = { 96, 78, 62 },
+				},
+				{
+					name = "Head",
+					size = { 0.22, 0.22, 2.1 },
+					at = { 0, 0, -2 },
+					color = { 54, 58, 66 },
+				},
+			},
 		},
 	},
 	{
@@ -1249,12 +1308,23 @@ Config.items = {
 		-- lui, l'armure a cinq points n'a aucune reponse.
 		armorPierceRatio = 0.5,
 		look = {
-			size = { 0.16, 4.4, 0.46 },
-			color = { 138, 100, 62 },
 			grip = { 0, -0.6, -0.9 },
 			swing = "draw",
 			voice = "bow",
-			head = { size = { 0.07, 4.1, 0.07 }, color = { 232, 230, 220 }, atStuds = 0.5 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.16, 4.4, 0.46 },
+					at = { 0, 0, 0 },
+					color = { 138, 100, 62 },
+				},
+				{
+					name = "Head",
+					size = { 0.07, 4.1, 0.07 },
+					at = { 0, 0, 0.5 },
+					color = { 232, 230, 220 },
+				},
+			},
 		},
 	},
 	{
@@ -1266,12 +1336,152 @@ Config.items = {
 		scale = { attackDamage = 2.4, attackCooldownSeconds = 1.9, attackRangeStuds = 1 },
 		offset = { knockbackStuds = 35, knockbackUpStuds = 10 },
 		look = {
-			size = { 0.3, 0.3, 3.4 },
-			color = { 92, 70, 52 },
-			grip = { 0, -1, -1.2 },
+			grip = { 0, -0.9, -0.15 },
 			swing = "overhead",
 			voice = "blunt",
-			head = { size = { 0.9, 0.9, 0.85 }, color = { 84, 88, 98 }, atStuds = -1.4 },
+			pieces = {
+				{
+					name = "Shaft",
+					size = { 3.2, 0.26, 0.26 },
+					at = { 0, 0, -0.9 },
+					tipLeft = 90,
+					shape = "Cylinder",
+					color = PALETTE.wood,
+					material = "Wood",
+				},
+				{
+					name = "Wrap1",
+					size = { 0.18, 0.3, 0.3 },
+					at = { 0, 0, 0.52 },
+					shape = "Cylinder",
+					tipLeft = 90,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap2",
+					size = { 0.18, 0.3, 0.3 },
+					at = { 0, 0, 0.3 },
+					shape = "Cylinder",
+					tipLeft = 90,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap3",
+					size = { 0.18, 0.3, 0.3 },
+					at = { 0, 0, 0.08 },
+					shape = "Cylinder",
+					tipLeft = 90,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap4",
+					size = { 0.18, 0.3, 0.3 },
+					at = { 0, 0, -0.14 },
+					shape = "Cylinder",
+					tipLeft = 90,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Pommel",
+					size = { 0.16, 0.34, 0.34 },
+					at = { 0, 0, 0.74 },
+					shape = "Cylinder",
+					tipLeft = 90,
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.1,
+				},
+				{
+					name = "Collar",
+					size = { 0.18, 0.42, 0.42 },
+					at = { 0, 0, -1.78 },
+					shape = "Cylinder",
+					tipLeft = 90,
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.25,
+				},
+				{
+					name = "LangetLeft",
+					size = { 0.06, 0.24, 0.66 },
+					at = { -0.14, 0, -1.97 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.1,
+				},
+				{
+					name = "LangetRight",
+					size = { 0.06, 0.24, 0.66 },
+					at = { 0.14, 0, -1.97 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.1,
+				},
+				{
+					name = "Head",
+					size = { 0.6, 0.78, 0.68 },
+					at = { 0, 0, -2.4 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.12,
+				},
+				{
+					name = "Face",
+					size = { 0.68, 0.86, 0.14 },
+					at = { 0, 0, -2.7 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0.35,
+				},
+				{
+					name = "Beak",
+					size = { 0.24, 0.42, 0.56 },
+					at = { 0, 0.06, -1.98 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.12,
+				},
+				{
+					name = "Rivet1",
+					size = { 0.09, 0.09, 0.09 },
+					at = { -0.32, 0.24, -2.4 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.3,
+				},
+				{
+					name = "Rivet2",
+					size = { 0.09, 0.09, 0.09 },
+					at = { 0.32, 0.24, -2.4 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.3,
+				},
+				{
+					name = "Rivet3",
+					size = { 0.09, 0.09, 0.09 },
+					at = { -0.32, -0.24, -2.4 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.3,
+				},
+				{
+					name = "Rivet4",
+					size = { 0.09, 0.09, 0.09 },
+					at = { 0.32, -0.24, -2.4 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.3,
+				},
+			},
 		},
 	},
 
@@ -1287,12 +1497,23 @@ Config.items = {
 		-- tout son interet.
 		scale = { attackDamage = 0.59, attackCooldownSeconds = 0.5, attackRangeStuds = 1.9 },
 		look = {
-			size = { 0.24, 0.5, 1 },
-			color = { 64, 68, 76 },
 			grip = { 0, -0.7, -0.5 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.14, 0.14, 0.8 }, color = { 92, 96, 104 }, atStuds = -0.8 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.24, 0.5, 1 },
+					at = { 0, 0, 0 },
+					color = { 64, 68, 76 },
+				},
+				{
+					name = "Head",
+					size = { 0.14, 0.14, 0.8 },
+					at = { 0, 0, -0.8 },
+					color = { 92, 96, 104 },
+				},
+			},
 		},
 	},
 	{
@@ -1306,12 +1527,23 @@ Config.items = {
 		-- l'approximation comme aucune autre arme a quatre points.
 		scale = { attackDamage = 1.75, attackCooldownSeconds = 1.6, attackRangeStuds = 2.6 },
 		look = {
-			size = { 0.2, 0.3, 1.8 },
-			color = { 102, 78, 56 },
 			grip = { 0, -0.7, -0.8 },
 			swing = "draw",
 			voice = "bow",
-			head = { size = { 1.9, 0.09, 0.09 }, color = { 180, 184, 192 }, atStuds = -0.6 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.2, 0.3, 1.8 },
+					at = { 0, 0, 0 },
+					color = { 102, 78, 56 },
+				},
+				{
+					name = "Head",
+					size = { 1.9, 0.09, 0.09 },
+					at = { 0, 0, -0.6 },
+					color = { 180, 184, 192 },
+				},
+			},
 		},
 	},
 	{
@@ -1325,12 +1557,23 @@ Config.items = {
 		scale = { attackDamage = 1.4, attackCooldownSeconds = 1.15, attackRangeStuds = 0.9 },
 		offset = { knockbackStuds = 14, knockbackUpStuds = 4 },
 		look = {
-			size = { 0.34, 0.34, 2.6 },
-			color = { 110, 84, 58 },
 			grip = { 0, -0.9, -1 },
 			swing = "overhead",
 			voice = "blunt",
-			head = { size = { 0.56, 0.56, 0.7 }, color = { 124, 96, 66 }, atStuds = -1.1 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.34, 0.34, 2.6 },
+					at = { 0, 0, 0 },
+					color = { 110, 84, 58 },
+				},
+				{
+					name = "Head",
+					size = { 0.56, 0.56, 0.7 },
+					at = { 0, 0, -1.1 },
+					color = { 124, 96, 66 },
+				},
+			},
 		},
 	},
 	{
@@ -1343,12 +1586,23 @@ Config.items = {
 		-- dessous de tout le reste : on achete de la distance, et on la paie.
 		scale = { attackDamage = 0.7, attackCooldownSeconds = 0.75, attackRangeStuds = 3 },
 		look = {
-			size = { 0.12, 1.5, 0.12 },
-			color = { 128, 104, 76 },
 			grip = { 0, -0.6, -0.4 },
 			swing = "slash",
 			voice = "bow",
-			head = { size = { 0.3, 0.26, 0.3 }, color = { 92, 88, 84 }, atStuds = 0.9 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.12, 1.5, 0.12 },
+					at = { 0, 0, 0 },
+					color = { 128, 104, 76 },
+				},
+				{
+					name = "Head",
+					size = { 0.3, 0.26, 0.3 },
+					at = { 0, 0, 0.9 },
+					color = { 92, 88, 84 },
+				},
+			},
 		},
 	},
 	{
@@ -1361,12 +1615,23 @@ Config.items = {
 		-- une portee de moins de quatre studs : il faut etre colle, et y rester.
 		scale = { attackDamage = 0.64, attackCooldownSeconds = 0.46, attackRangeStuds = 0.5 },
 		look = {
-			size = { 0.5, 0.1, 1.1 },
-			color = { 188, 190, 196 },
 			grip = { 0, -0.5, -0.4 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 0.44, 0.08, 0.5 }, color = { 212, 214, 220 }, atStuds = 0.5 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.5, 0.1, 1.1 },
+					at = { 0, 0, 0 },
+					color = { 188, 190, 196 },
+				},
+				{
+					name = "Head",
+					size = { 0.44, 0.08, 0.5 },
+					at = { 0, 0, 0.5 },
+					color = { 212, 214, 220 },
+				},
+			},
 		},
 	},
 	{
@@ -1380,12 +1645,23 @@ Config.items = {
 		-- les sept points restants servent ailleurs.
 		scale = { attackDamage = 1.1, attackCooldownSeconds = 0.8, attackRangeStuds = 1 },
 		look = {
-			size = { 0.14, 0.44, 3.2 },
-			color = { 186, 190, 198 },
 			grip = { 0, -0.9, -1.1 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 0.5, 0.2, 0.3 }, color = { 128, 104, 72 }, atStuds = 1.5 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.14, 0.44, 3.2 },
+					at = { 0, 0, 0 },
+					color = { 186, 190, 198 },
+				},
+				{
+					name = "Head",
+					size = { 0.5, 0.2, 0.3 },
+					at = { 0, 0, 1.5 },
+					color = { 128, 104, 72 },
+				},
+			},
 		},
 	},
 	{
@@ -1398,12 +1674,23 @@ Config.items = {
 		-- paire qui dit le mieux ce que vaut un point dans ce jeu.
 		scale = { attackDamage = 1.5, attackCooldownSeconds = 1.3, attackRangeStuds = 2.8 },
 		look = {
-			size = { 0.14, 4, 0.4 },
-			color = { 118, 90, 58 },
 			grip = { 0, -0.6, -0.9 },
 			swing = "draw",
 			voice = "bow",
-			head = { size = { 0.06, 3.7, 0.06 }, color = { 236, 234, 226 }, atStuds = 0.5 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.14, 4, 0.4 },
+					at = { 0, 0, 0 },
+					color = { 118, 90, 58 },
+				},
+				{
+					name = "Head",
+					size = { 0.06, 3.7, 0.06 },
+					at = { 0, 0, 0.5 },
+					color = { 236, 234, 226 },
+				},
+			},
 		},
 	},
 	{
@@ -1417,12 +1704,23 @@ Config.items = {
 		-- d'avance.
 		scale = { attackDamage = 1.5, attackCooldownSeconds = 1.15, attackRangeStuds = 1.5 },
 		look = {
-			size = { 0.16, 0.16, 5.4 },
-			color = { 116, 92, 64 },
 			grip = { 0, -0.8, -1.6 },
 			swing = "overhead",
 			voice = "blade",
-			head = { size = { 0.22, 0.3, 0.9 }, color = { 192, 196, 204 }, atStuds = 2.6 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.16, 0.16, 5.4 },
+					at = { 0, 0, 0 },
+					color = { 116, 92, 64 },
+				},
+				{
+					name = "Head",
+					size = { 0.22, 0.3, 0.9 },
+					at = { 0, 0, 2.6 },
+					color = { 192, 196, 204 },
+				},
+			},
 		},
 	},
 	{
@@ -1436,12 +1734,23 @@ Config.items = {
 		-- au-dela, elle ne touche simplement plus.
 		scale = { attackDamage = 0.625, attackCooldownSeconds = 0.5, attackRangeStuds = 1.6 },
 		look = {
-			size = { 0.3, 0.6, 1.7 },
-			color = { 48, 52, 58 },
 			grip = { 0, -0.7, -0.8 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.16, 0.16, 1.4 }, color = { 82, 86, 94 }, atStuds = -1.3 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.3, 0.6, 1.7 },
+					at = { 0, 0, 0 },
+					color = { 48, 52, 58 },
+				},
+				{
+					name = "Head",
+					size = { 0.16, 0.16, 1.4 },
+					at = { 0, 0, -1.3 },
+					color = { 82, 86, 94 },
+				},
+			},
 		},
 	},
 	{
@@ -1463,12 +1772,23 @@ Config.items = {
 			radiusStuds = 3,
 		},
 		look = {
-			size = { 0.2, 0.3, 2 },
-			color = { 108, 82, 56 },
 			grip = { 0, -0.8, -0.8 },
 			swing = "overhead",
 			voice = "blade",
-			head = { size = { 0.7, 0.26, 0.6 }, color = { 176, 180, 188 }, atStuds = 0.9 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.2, 0.3, 2 },
+					at = { 0, 0, 0 },
+					color = { 108, 82, 56 },
+				},
+				{
+					name = "Head",
+					size = { 0.7, 0.26, 0.6 },
+					at = { 0, 0, 0.9 },
+					color = { 176, 180, 188 },
+				},
+			},
 		},
 	},
 	{
@@ -1479,12 +1799,23 @@ Config.items = {
 		summary = "Mêlée forte, coups lents",
 		scale = { attackDamage = 1.8, attackCooldownSeconds = 1.25, attackRangeStuds = 1.2 },
 		look = {
-			size = { 0.16, 0.5, 4.4 },
-			color = { 198, 202, 210 },
 			grip = { 0, -1, -1.4 },
 			swing = "overhead",
 			voice = "blade",
-			head = { size = { 0.7, 0.22, 0.32 }, color = { 120, 98, 66 }, atStuds = 2 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.16, 0.5, 4.4 },
+					at = { 0, 0, 0 },
+					color = { 198, 202, 210 },
+				},
+				{
+					name = "Head",
+					size = { 0.7, 0.22, 0.32 },
+					at = { 0, 0, 2 },
+					color = { 120, 98, 66 },
+				},
+			},
 		},
 	},
 	{
@@ -1499,12 +1830,23 @@ Config.items = {
 		scale = { attackDamage = 1.9, attackCooldownSeconds = 1.5, attackRangeStuds = 2.9 },
 		shotsPerRound = 2,
 		look = {
-			size = { 0.26, 0.4, 3.4 },
-			color = { 88, 66, 48 },
 			grip = { 0, -0.7, -1.3 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.15, 0.15, 2.4 }, color = { 60, 64, 72 }, atStuds = -2.4 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.26, 0.4, 3.4 },
+					at = { 0, 0, 0 },
+					color = { 88, 66, 48 },
+				},
+				{
+					name = "Head",
+					size = { 0.15, 0.15, 2.4 },
+					at = { 0, 0, -2.4 },
+					color = { 60, 64, 72 },
+				},
+			},
 		},
 	},
 	{
@@ -1516,12 +1858,23 @@ Config.items = {
 		scale = { attackDamage = 1.9, attackCooldownSeconds = 1.4, attackRangeStuds = 0.95 },
 		offset = { knockbackStuds = 26, knockbackUpStuds = 8 },
 		look = {
-			size = { 0.26, 0.26, 2.8 },
-			color = { 78, 72, 66 },
 			grip = { 0, -0.9, -1.1 },
 			swing = "overhead",
 			voice = "blunt",
-			head = { size = { 0.7, 0.7, 0.7 }, color = { 96, 100, 110 }, atStuds = -1.2 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.26, 0.26, 2.8 },
+					at = { 0, 0, 0 },
+					color = { 78, 72, 66 },
+				},
+				{
+					name = "Head",
+					size = { 0.7, 0.7, 0.7 },
+					at = { 0, 0, -1.2 },
+					color = { 96, 100, 110 },
+				},
+			},
 		},
 	},
 	{
@@ -1537,12 +1890,23 @@ Config.items = {
 		scale = { attackDamage = 1.5, attackCooldownSeconds = 1.2, attackRangeStuds = 1.3 },
 		offset = { spreadRatio = 0.45, spreadRadiusStuds = 9 },
 		look = {
-			size = { 0.18, 0.18, 5 },
-			color = { 96, 76, 54 },
 			grip = { 0, -0.9, -1.5 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 2.6, 0.16, 0.5 }, color = { 182, 186, 194 }, atStuds = 2.3 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.18, 0.18, 5 },
+					at = { 0, 0, 0 },
+					color = { 96, 76, 54 },
+				},
+				{
+					name = "Head",
+					size = { 2.6, 0.16, 0.5 },
+					at = { 0, 0, 2.3 },
+					color = { 182, 186, 194 },
+				},
+			},
 		},
 	},
 	{
@@ -1554,12 +1918,23 @@ Config.items = {
 		scale = { attackDamage = 2.2, attackCooldownSeconds = 1.55, attackRangeStuds = 2.3 },
 		shotsPerRound = 6,
 		look = {
-			size = { 0.3, 0.62, 1.3 },
-			color = { 72, 66, 60 },
 			grip = { 0, -0.7, -0.6 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.18, 0.18, 1 }, color = { 106, 110, 118 }, atStuds = -1 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.3, 0.62, 1.3 },
+					at = { 0, 0, 0 },
+					color = { 72, 66, 60 },
+				},
+				{
+					name = "Head",
+					size = { 0.18, 0.18, 1 },
+					at = { 0, 0, -1 },
+					color = { 106, 110, 118 },
+				},
+			},
 		},
 	},
 	{
@@ -1572,12 +1947,23 @@ Config.items = {
 		-- reste cinq points pour une armure legere, une trousse et un fumigene.
 		scale = { attackDamage = 2.6, attackCooldownSeconds = 1.8, attackRangeStuds = 3 },
 		look = {
-			size = { 0.3, 0.48, 4 },
-			color = { 54, 58, 64 },
 			grip = { 0, -0.7, -1.5 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.18, 0.18, 2.8 }, color = { 86, 90, 98 }, atStuds = -2.8 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.3, 0.48, 4 },
+					at = { 0, 0, 0 },
+					color = { 54, 58, 64 },
+				},
+				{
+					name = "Head",
+					size = { 0.18, 0.18, 2.8 },
+					at = { 0, 0, -2.8 },
+					color = { 86, 90, 98 },
+				},
+			},
 		},
 	},
 	{
@@ -1593,12 +1979,165 @@ Config.items = {
 		scale = { attackDamage = 3.6, attackCooldownSeconds = 2.4, attackRangeStuds = 4.5 },
 		minRangeStuds = 18,
 		look = {
-			size = { 0.28, 0.46, 5 },
-			color = { 44, 50, 58 },
-			grip = { 0, -0.7, -1.8 },
+			grip = { 0, -0.7, 0 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.16, 0.16, 3.6 }, color = { 78, 82, 90 }, atStuds = -3.6 },
+			pieces = {
+				{
+					name = "Stock",
+					size = { 0.24, 0.42, 1.1 },
+					at = { 0, -0.04, 1.02 },
+					color = PALETTE.wood,
+					material = "Wood",
+				},
+				{
+					name = "Wrist",
+					size = { 0.24, 0.3, 0.6 },
+					at = { 0, 0, 0.32 },
+					color = PALETTE.wood,
+					material = "Wood",
+				},
+				{
+					name = "Butt",
+					size = { 0.26, 0.5, 0.1 },
+					at = { 0, -0.06, 1.6 },
+					color = PALETTE.wrap,
+					material = "Leather",
+				},
+				{
+					name = "Comb",
+					size = { 0.22, 0.12, 0.72 },
+					at = { 0, 0.22, 0.86 },
+					color = PALETTE.wood,
+					material = "Wood",
+				},
+				{
+					name = "Receiver",
+					size = { 0.26, 0.4, 1.5 },
+					at = { 0, 0.04, -0.5 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.12,
+				},
+				{
+					name = "Bolt",
+					size = { 0.4, 0.1, 0.1 },
+					at = { 0.17, 0.1, -0.3 },
+					shape = "Cylinder",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.2,
+				},
+				{
+					name = "Magazine",
+					size = { 0.19, 0.36, 0.44 },
+					at = { 0, -0.3, -0.62 },
+					color = PALETTE.iron,
+					material = "Metal",
+				},
+				{
+					name = "Hold",
+					size = { 0.19, 0.5, 0.3 },
+					at = { 0, -0.3, 0.06 },
+					tipUp = 20,
+					color = PALETTE.gun,
+					material = "Plastic",
+				},
+				{
+					name = "TriggerGuard",
+					size = { 0.09, 0.15, 0.32 },
+					at = { 0, -0.22, -0.3 },
+					color = PALETTE.iron,
+					material = "Metal",
+				},
+				{
+					name = "Handguard",
+					size = { 0.24, 0.24, 1.1 },
+					at = { 0, 0.02, -1.55 },
+					color = PALETTE.gun,
+					material = "Plastic",
+				},
+				{
+					name = "Barrel",
+					size = { 2.5, 0.15, 0.15 },
+					at = { 0, 0.06, -2.5 },
+					tipLeft = 90,
+					shape = "Cylinder",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.15,
+				},
+				{
+					name = "Muzzle",
+					size = { 0.32, 0.21, 0.21 },
+					at = { 0, 0.06, -3.8 },
+					tipLeft = 90,
+					shape = "Cylinder",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.15,
+				},
+				{
+					name = "ScopeTube",
+					size = { 1.3, 0.21, 0.21 },
+					at = { 0, 0.38, -0.6 },
+					tipLeft = 90,
+					shape = "Cylinder",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+				{
+					name = "LensFront",
+					size = { 0.06, 0.19, 0.19 },
+					at = { 0, 0.38, -1.26 },
+					tipLeft = 90,
+					shape = "Cylinder",
+					color = PALETTE.glass,
+					material = "Glass",
+					reflectance = 0.5,
+				},
+				{
+					name = "LensRear",
+					size = { 0.06, 0.19, 0.19 },
+					at = { 0, 0.38, 0.06 },
+					tipLeft = 90,
+					shape = "Cylinder",
+					color = PALETTE.glass,
+					material = "Glass",
+					reflectance = 0.5,
+				},
+				{
+					name = "MountFront",
+					size = { 0.11, 0.18, 0.13 },
+					at = { 0, 0.26, -1.0 },
+					color = PALETTE.iron,
+					material = "Metal",
+				},
+				{
+					name = "MountRear",
+					size = { 0.11, 0.18, 0.13 },
+					at = { 0, 0.26, -0.2 },
+					color = PALETTE.iron,
+					material = "Metal",
+				},
+				{
+					name = "BipodLeft",
+					size = { 0.06, 0.54, 0.06 },
+					at = { -0.12, -0.26, -2.8 },
+					roll = 15,
+					color = PALETTE.iron,
+					material = "Metal",
+				},
+				{
+					name = "BipodRight",
+					size = { 0.06, 0.54, 0.06 },
+					at = { 0.12, -0.26, -2.8 },
+					roll = -15,
+					color = PALETTE.iron,
+					material = "Metal",
+				},
+			},
 		},
 	},
 	{
@@ -1614,12 +2153,23 @@ Config.items = {
 		scale = { attackDamage = 1.9, attackCooldownSeconds = 1.7, attackRangeStuds = 2.4 },
 		weaponBlast = { radiusStuds = 11, selfRatio = 0.6 },
 		look = {
-			size = { 0.38, 0.6, 2.6 },
-			color = { 68, 76, 62 },
 			grip = { 0, -0.7, -1.1 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.42, 0.42, 1.4 }, color = { 54, 60, 50 }, atStuds = -1.8 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.38, 0.6, 2.6 },
+					at = { 0, 0, 0 },
+					color = { 68, 76, 62 },
+				},
+				{
+					name = "Head",
+					size = { 0.42, 0.42, 1.4 },
+					at = { 0, 0, -1.8 },
+					color = { 54, 60, 50 },
+				},
+			},
 		},
 	},
 	{
@@ -1633,12 +2183,183 @@ Config.items = {
 		-- visage de l'adversaire en permanence.
 		scale = { attackDamage = 1.5, attackCooldownSeconds = 0.75, attackRangeStuds = 0.6 },
 		look = {
-			size = { 0.1, 0.4, 4 },
-			color = { 224, 226, 232 },
-			grip = { 0, -0.9, -1.2 },
+			grip = { 0, -0.85, -0.1 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 0.26, 0.26, 0.6 }, color = { 40, 42, 48 }, atStuds = 2.2 },
+			pieces = {
+				{
+					name = "Handle",
+					size = { 0.17, 0.3, 1.15 },
+					at = { 0, 0, 0.1 },
+					color = PALETTE.cord,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap1",
+					size = { 0.2, 0.33, 0.1 },
+					at = { 0, 0, -0.37 },
+					tipUp = 32,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap2",
+					size = { 0.2, 0.33, 0.1 },
+					at = { 0, 0, -0.13 },
+					tipUp = 32,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap3",
+					size = { 0.2, 0.33, 0.1 },
+					at = { 0, 0, 0.11 },
+					tipUp = 32,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap4",
+					size = { 0.2, 0.33, 0.1 },
+					at = { 0, 0, 0.35 },
+					tipUp = 32,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Wrap5",
+					size = { 0.2, 0.33, 0.1 },
+					at = { 0, 0, 0.59 },
+					tipUp = 32,
+					color = PALETTE.wrap,
+					material = "Fabric",
+				},
+				{
+					name = "Pommel",
+					size = { 0.2, 0.33, 0.12 },
+					at = { 0, 0, 0.73 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.1,
+				},
+				{
+					name = "Guard",
+					size = { 0.07, 0.78, 0.78 },
+					at = { 0, 0, -0.55 },
+					tipLeft = 90,
+					shape = "Cylinder",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.08,
+				},
+				{
+					name = "Collar",
+					size = { 0.14, 0.33, 0.2 },
+					at = { 0, 0, -0.71 },
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.25,
+				},
+				{
+					name = "Blade1",
+					size = { 0.1, 0.34, 0.53 },
+					at = { 0, 0.0, -1.07 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0.22,
+				},
+				{
+					name = "Blade2",
+					size = { 0.1, 0.32, 0.53 },
+					at = { 0, -0.01, -1.59 },
+					tipUp = -2.1,
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0.22,
+				},
+				{
+					name = "Blade3",
+					size = { 0.1, 0.3, 0.53 },
+					at = { 0, -0.038, -2.11 },
+					tipUp = -4.2,
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0.22,
+				},
+				{
+					name = "Blade4",
+					size = { 0.1, 0.28, 0.53 },
+					at = { 0, -0.086, -2.63 },
+					tipUp = -6.3,
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0.22,
+				},
+				{
+					name = "Blade5",
+					size = { 0.1, 0.26, 0.53 },
+					at = { 0, -0.152, -3.15 },
+					tipUp = -8.4,
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0.22,
+				},
+				{
+					name = "Edge1",
+					size = { 0.105, 0.07, 0.532 },
+					at = { 0, -0.14, -1.07 },
+					color = PALETTE.edge,
+					material = "Metal",
+					reflectance = 0.45,
+				},
+				{
+					name = "Edge2",
+					size = { 0.105, 0.07, 0.532 },
+					at = { 0, -0.139, -1.59 },
+					tipUp = -2.1,
+					color = PALETTE.edge,
+					material = "Metal",
+					reflectance = 0.45,
+				},
+				{
+					name = "Edge3",
+					size = { 0.105, 0.07, 0.532 },
+					at = { 0, -0.158, -2.11 },
+					tipUp = -4.2,
+					color = PALETTE.edge,
+					material = "Metal",
+					reflectance = 0.45,
+				},
+				{
+					name = "Edge4",
+					size = { 0.105, 0.07, 0.532 },
+					at = { 0, -0.195, -2.63 },
+					tipUp = -6.3,
+					color = PALETTE.edge,
+					material = "Metal",
+					reflectance = 0.45,
+				},
+				{
+					name = "Edge5",
+					size = { 0.105, 0.07, 0.532 },
+					at = { 0, -0.251, -3.15 },
+					tipUp = -8.4,
+					color = PALETTE.edge,
+					material = "Metal",
+					reflectance = 0.45,
+				},
+				{
+					name = "Tip",
+					size = { 0.1, 0.26, 0.44 },
+					at = { 0, -0.23, -3.62 },
+					tipUp = -10.5,
+					roll = 180,
+					shape = "Wedge",
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0.22,
+				},
+			},
 		},
 	},
 	{
@@ -1660,12 +2381,23 @@ Config.items = {
 		scale = { attackDamage = 1.06, attackCooldownSeconds = 0.46, attackRangeStuds = 2.1 },
 		selfSlowSeconds = 0.45,
 		look = {
-			size = { 0.42, 0.66, 3.6 },
-			color = { 50, 54, 60 },
 			grip = { 0, -0.7, -1.4 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.2, 0.2, 2.6 }, color = { 80, 84, 92 }, atStuds = -2.6 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.42, 0.66, 3.6 },
+					at = { 0, 0, 0 },
+					color = { 50, 54, 60 },
+				},
+				{
+					name = "Head",
+					size = { 0.2, 0.2, 2.6 },
+					at = { 0, 0, -2.6 },
+					color = { 80, 84, 92 },
+				},
+			},
 		},
 	},
 
@@ -1678,12 +2410,23 @@ Config.items = {
 		summary = "Rapide et faible, pour quand on n'a plus rien",
 		scale = { attackDamage = 0.5, attackCooldownSeconds = 0.5, attackRangeStuds = 0.7 },
 		look = {
-			size = { 0.1, 0.38, 1.6 },
-			color = { 198, 204, 214 },
 			grip = { 0, -0.9, -0.7 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 0.16, 0.22, 0.5 }, color = { 54, 56, 62 }, atStuds = 0.65 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.1, 0.38, 1.6 },
+					at = { 0, 0, 0 },
+					color = { 198, 204, 214 },
+				},
+				{
+					name = "Head",
+					size = { 0.16, 0.22, 0.5 },
+					at = { 0, 0, 0.65 },
+					color = { 54, 56, 62 },
+				},
+			},
 		},
 	},
 	{
@@ -1694,12 +2437,23 @@ Config.items = {
 		summary = "Rafale courte, bonne à mi-distance",
 		scale = { attackDamage = 0.8, attackCooldownSeconds = 0.55, attackRangeStuds = 1.8 },
 		look = {
-			size = { 0.3, 0.56, 1.5 },
-			color = { 52, 56, 64 },
 			grip = { 0, -0.7, -0.7 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.17, 0.17, 1.2 }, color = { 86, 90, 98 }, atStuds = -1.2 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.3, 0.56, 1.5 },
+					at = { 0, 0, 0 },
+					color = { 52, 56, 64 },
+				},
+				{
+					name = "Head",
+					size = { 0.17, 0.17, 1.2 },
+					at = { 0, 0, -1.2 },
+					color = { 86, 90, 98 },
+				},
+			},
 		},
 	},
 
@@ -1715,12 +2469,23 @@ Config.items = {
 		scale = { attackDamage = 1.1, attackCooldownSeconds = 1.1, attackRangeStuds = 2 },
 		shotsPerRound = 2,
 		look = {
-			size = { 0.22, 0.44, 0.8 },
-			color = { 58, 62, 70 },
 			grip = { 0, -0.6, -0.4 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.12, 0.12, 0.6 }, color = { 88, 92, 100 }, atStuds = -0.6 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.22, 0.44, 0.8 },
+					at = { 0, 0, 0 },
+					color = { 58, 62, 70 },
+				},
+				{
+					name = "Head",
+					size = { 0.12, 0.12, 0.6 },
+					at = { 0, 0, -0.6 },
+					color = { 88, 92, 100 },
+				},
+			},
 		},
 	},
 	{
@@ -1734,12 +2499,23 @@ Config.items = {
 		-- objet a deux points la reponse la moins chere au « il recule ».
 		scale = { attackDamage = 0.55, attackCooldownSeconds = 0.6, attackRangeStuds = 1.9 },
 		look = {
-			size = { 0.9, 0.06, 0.9 },
-			color = { 168, 172, 180 },
 			grip = { 0, -0.5, -0.3 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 0.3, 0.05, 0.3 }, color = { 200, 204, 212 }, atStuds = 0.4 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.9, 0.06, 0.9 },
+					at = { 0, 0, 0 },
+					color = { 168, 172, 180 },
+				},
+				{
+					name = "Head",
+					size = { 0.3, 0.05, 0.3 },
+					at = { 0, 0, 0.4 },
+					color = { 200, 204, 212 },
+				},
+			},
 		},
 	},
 	{
@@ -1751,12 +2527,23 @@ Config.items = {
 		scale = { attackDamage = 1, attackCooldownSeconds = 0.85, attackRangeStuds = 2.2 },
 		shotsPerRound = 6,
 		look = {
-			size = { 0.26, 0.5, 1 },
-			color = { 76, 70, 64 },
 			grip = { 0, -0.6, -0.5 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.15, 0.15, 0.8 }, color = { 110, 114, 122 }, atStuds = -0.8 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.26, 0.5, 1 },
+					at = { 0, 0, 0 },
+					color = { 76, 70, 64 },
+				},
+				{
+					name = "Head",
+					size = { 0.15, 0.15, 0.8 },
+					at = { 0, 0, -0.8 },
+					color = { 110, 114, 122 },
+				},
+			},
 		},
 	},
 	{
@@ -1771,12 +2558,23 @@ Config.items = {
 		scale = { attackDamage = 0.5, attackCooldownSeconds = 0.55, attackRangeStuds = 0.7 },
 		onHit = { kind = "poison", seconds = 5, magnitude = 4 },
 		look = {
-			size = { 0.1, 0.3, 1.4 },
-			color = { 120, 170, 120 },
 			grip = { 0, -0.8, -0.6 },
 			swing = "slash",
 			voice = "blade",
-			head = { size = { 0.14, 0.2, 0.44 }, color = { 60, 100, 64 }, atStuds = 0.55 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.1, 0.3, 1.4 },
+					at = { 0, 0, 0 },
+					color = { 120, 170, 120 },
+				},
+				{
+					name = "Head",
+					size = { 0.14, 0.2, 0.44 },
+					at = { 0, 0, 0.55 },
+					color = { 60, 100, 64 },
+				},
+			},
 		},
 	},
 	{
@@ -1791,12 +2589,23 @@ Config.items = {
 		scale = { attackDamage = 1.2, attackCooldownSeconds = 1.2, attackRangeStuds = 2.4 },
 		armorPierceRatio = 0.5,
 		look = {
-			size = { 0.18, 0.24, 1.1 },
-			color = { 96, 74, 54 },
 			grip = { 0, -0.6, -0.5 },
 			swing = "draw",
 			voice = "bow",
-			head = { size = { 1.2, 0.07, 0.07 }, color = { 182, 186, 194 }, atStuds = -0.4 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.18, 0.24, 1.1 },
+					at = { 0, 0, 0 },
+					color = { 96, 74, 54 },
+				},
+				{
+					name = "Head",
+					size = { 1.2, 0.07, 0.07 },
+					at = { 0, 0, -0.4 },
+					color = { 182, 186, 194 },
+				},
+			},
 		},
 	},
 	{
@@ -1809,12 +2618,23 @@ Config.items = {
 		-- fait rattraper. Elle frappe presque aussi fort qu'une epee courte.
 		scale = { attackDamage = 1.2, attackCooldownSeconds = 0.78, attackRangeStuds = 0.85 },
 		look = {
-			size = { 0.18, 0.26, 1.8 },
-			color = { 104, 80, 56 },
 			grip = { 0, -0.8, -0.7 },
 			swing = "overhead",
 			voice = "blade",
-			head = { size = { 0.62, 0.24, 0.55 }, color = { 170, 174, 182 }, atStuds = 0.8 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.18, 0.26, 1.8 },
+					at = { 0, 0, 0 },
+					color = { 104, 80, 56 },
+				},
+				{
+					name = "Head",
+					size = { 0.62, 0.24, 0.55 },
+					at = { 0, 0, 0.8 },
+					color = { 170, 174, 182 },
+				},
+			},
 		},
 	},
 	{
@@ -1827,12 +2647,23 @@ Config.items = {
 		-- couvre celui du tres pres. C'est la secondaire du fusil de precision.
 		scale = { attackDamage = 2.5, attackCooldownSeconds = 1.5, attackRangeStuds = 0.6 },
 		look = {
-			size = { 0.3, 0.42, 1.4 },
-			color = { 84, 68, 54 },
 			grip = { 0, -0.7, -0.6 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.24, 0.24, 1 }, color = { 58, 62, 70 }, atStuds = -1 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.3, 0.42, 1.4 },
+					at = { 0, 0, 0 },
+					color = { 84, 68, 54 },
+				},
+				{
+					name = "Head",
+					size = { 0.24, 0.24, 1 },
+					at = { 0, 0, -1 },
+					color = { 58, 62, 70 },
+				},
+			},
 		},
 	},
 	{
@@ -1848,12 +2679,23 @@ Config.items = {
 		scale = { attackDamage = 0.4, attackCooldownSeconds = 0.7, attackRangeStuds = 2.2 },
 		onHit = { kind = "slow", seconds = 2.5, magnitude = 0.65 },
 		look = {
-			size = { 0.2, 0.44, 1.1 },
-			color = { 74, 92, 104 },
 			grip = { 0, -0.6, -0.5 },
 			swing = "recoil",
 			voice = "gun",
-			head = { size = { 0.11, 0.11, 0.9 }, color = { 120, 150, 166 }, atStuds = -0.9 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.2, 0.44, 1.1 },
+					at = { 0, 0, 0 },
+					color = { 74, 92, 104 },
+				},
+				{
+					name = "Head",
+					size = { 0.11, 0.11, 0.9 },
+					at = { 0, 0, -0.9 },
+					color = { 120, 150, 166 },
+				},
+			},
 		},
 	},
 
@@ -1926,6 +2768,166 @@ Config.items = {
 		summary = "Forte réduction, perte de vitesse notable",
 		offset = { damageTakenRatio = -0.22 },
 		scale = { walkSpeed = 0.85 },
+		look = {
+			worn = { limb = "UpperTorso", at = { 0, 0, 0 }, fit = true },
+			pieces = {
+				{
+					name = "Breastplate",
+					size = { 0.84, 0.62, 0.2 },
+					at = { 0, 0.1, -0.58 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Bevel",
+					size = { 0.7, 0.08, 0.22 },
+					at = { 0, 0.44, -0.56 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Backplate",
+					size = { 0.76, 0.68, 0.13 },
+					at = { 0, 0.06, 0.55 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Ridge",
+					size = { 0.05, 0.56, 0.06 },
+					at = { 0, 0.1, -0.7 },
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+				{
+					name = "StrapLeft",
+					size = { 0.16, 0.11, 1.04 },
+					at = { -0.29, 0.42, 0 },
+					color = PALETTE.wrap,
+					material = "Leather",
+				},
+				{
+					name = "StrapRight",
+					size = { 0.16, 0.11, 1.04 },
+					at = { 0.29, 0.42, 0 },
+					color = PALETTE.wrap,
+					material = "Leather",
+				},
+				{
+					name = "PauldronLeft",
+					size = { 0.34, 0.24, 0.64 },
+					at = { -0.45, 0.33, 0 },
+					shape = "Ball",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "PauldronRight",
+					size = { 0.34, 0.24, 0.64 },
+					at = { 0.45, 0.33, 0 },
+					shape = "Ball",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "PauldronRimLeft",
+					size = { 0.05, 0.16, 0.6 },
+					at = { -0.6, 0.26, 0 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "PauldronRimRight",
+					size = { 0.05, 0.16, 0.6 },
+					at = { 0.6, 0.26, 0 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Gorget",
+					size = { 0.36, 0.09, 0.6 },
+					at = { 0, 0.5, -0.05 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Belt",
+					size = { 0.88, 0.1, 1.02 },
+					at = { 0, -0.34, 0 },
+					color = PALETTE.wrap,
+					material = "Leather",
+				},
+				{
+					name = "Buckle",
+					size = { 0.12, 0.11, 0.08 },
+					at = { 0, -0.34, -0.56 },
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+				{
+					name = "Fauld1",
+					size = { 0.74, 0.11, 0.94 },
+					at = { 0, -0.45, 0 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Fauld2",
+					size = { 0.64, 0.1, 0.86 },
+					at = { 0, -0.55, 0 },
+					color = PALETTE.steel,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Rivet1",
+					size = { 0.035, 0.045, 0.05 },
+					at = { -0.34, 0.28, -0.69 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+				{
+					name = "Rivet2",
+					size = { 0.035, 0.045, 0.05 },
+					at = { 0.34, 0.28, -0.69 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+				{
+					name = "Rivet3",
+					size = { 0.035, 0.045, 0.05 },
+					at = { -0.32, -0.08, -0.69 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+				{
+					name = "Rivet4",
+					size = { 0.035, 0.045, 0.05 },
+					at = { 0.32, -0.08, -0.69 },
+					shape = "Ball",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+			},
+		},
 	},
 	{
 		id = "exoskeleton",
@@ -1965,6 +2967,94 @@ Config.items = {
 			amount = 45,
 			castSeconds = 1.6,
 			interruptedByDamage = true,
+		},
+		look = {
+			offhand = { 0, -0.45, -0.25 },
+			pieces = {
+				{
+					name = "Case",
+					size = { 0.6, 0.44, 0.3 },
+					at = { 0, 0, 0 },
+					color = PALETTE.cloth,
+					material = "SmoothPlastic",
+				},
+				{
+					name = "Seam",
+					size = { 0.62, 0.05, 0.32 },
+					at = { 0, 0.1, 0 },
+					color = PALETTE.iron,
+					material = "SmoothPlastic",
+				},
+				{
+					name = "CrossUp",
+					size = { 0.09, 0.28, 0.02 },
+					at = { 0, -0.02, -0.16 },
+					color = PALETTE.alert,
+					material = "SmoothPlastic",
+				},
+				{
+					name = "CrossAcross",
+					size = { 0.28, 0.09, 0.02 },
+					at = { 0, -0.02, -0.16 },
+					color = PALETTE.alert,
+					material = "SmoothPlastic",
+				},
+				{
+					name = "Handle",
+					size = { 0.26, 0.09, 0.06 },
+					at = { 0, 0.26, 0 },
+					color = PALETTE.iron,
+					material = "Plastic",
+				},
+				{
+					name = "LatchLeft",
+					size = { 0.07, 0.1, 0.04 },
+					at = { -0.2, 0.08, -0.16 },
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.3,
+				},
+				{
+					name = "LatchRight",
+					size = { 0.07, 0.1, 0.04 },
+					at = { 0.2, 0.08, -0.16 },
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.3,
+				},
+				{
+					name = "Corner1",
+					size = { 0.06, 0.06, 0.32 },
+					at = { -0.27, 0.19, 0 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.15,
+				},
+				{
+					name = "Corner2",
+					size = { 0.06, 0.06, 0.32 },
+					at = { 0.27, 0.19, 0 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.15,
+				},
+				{
+					name = "Corner3",
+					size = { 0.06, 0.06, 0.32 },
+					at = { -0.27, -0.19, 0 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.15,
+				},
+				{
+					name = "Corner4",
+					size = { 0.06, 0.06, 0.32 },
+					at = { 0.27, -0.19, 0 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.15,
+				},
+			},
 		},
 	},
 
@@ -2075,6 +3165,87 @@ Config.items = {
 			radiusStuds = 12,
 			fuseSeconds = 1.6,
 			throwStuds = 55,
+		},
+		look = {
+			offhand = { 0, -0.35, -0.2 },
+			pieces = {
+				{
+					name = "Body",
+					size = { 0.46, 0.46, 0.46 },
+					at = { 0, 0, 0 },
+					shape = "Ball",
+					color = PALETTE.olive,
+					material = "Metal",
+					reflectance = 0.08,
+				},
+				{
+					name = "Belt",
+					size = { 0.03, 0.45, 0.45 },
+					at = { 0, 0, 0 },
+					roll = 90,
+					shape = "Cylinder",
+					color = PALETTE.shade,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Band1",
+					size = { 0.025, 0.41, 0.41 },
+					at = { 0, 0.1, 0 },
+					roll = 90,
+					shape = "Cylinder",
+					color = PALETTE.shade,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Band2",
+					size = { 0.025, 0.41, 0.41 },
+					at = { 0, -0.1, 0 },
+					roll = 90,
+					shape = "Cylinder",
+					color = PALETTE.shade,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Neck",
+					size = { 0.1, 0.17, 0.17 },
+					at = { 0, 0.26, 0 },
+					roll = 90,
+					shape = "Cylinder",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0,
+				},
+				{
+					name = "Cap",
+					size = { 0.05, 0.21, 0.21 },
+					at = { 0, 0.33, 0 },
+					roll = 90,
+					shape = "Cylinder",
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.1,
+				},
+				{
+					name = "Lever",
+					size = { 0.035, 0.28, 0.08 },
+					at = { 0.15, 0.1, 0 },
+					color = PALETTE.iron,
+					material = "Metal",
+					reflectance = 0.18,
+				},
+				{
+					name = "Ring",
+					size = { 0.025, 0.12, 0.12 },
+					at = { -0.13, 0.26, 0 },
+					shape = "Cylinder",
+					color = PALETTE.brass,
+					material = "Metal",
+					reflectance = 0.25,
+				},
+			},
 		},
 	},
 	{

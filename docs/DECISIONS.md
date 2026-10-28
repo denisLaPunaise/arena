@@ -1648,6 +1648,37 @@ comme les sons ont été choisis au nom et à la durée sans jamais être écout
 
 ---
 
+## 28 octobre 2026 — Six objets d'essai, et trois choix faits sans Josh
+
+Josh a demandé trois armes, une armure, un soin et un utilitaire, pour regarder
+avant qu'on continue. Trois décisions ont été prises en les dessinant.
+
+**Le format d'allure a changé pour tout le monde, pas seulement pour les six.**
+Un objet avait une taille, une couleur et une pièce rapportée ; il a maintenant
+une liste de pièces. Les 56 objets non redessinés ont été convertis
+mécaniquement vers le nouveau format, à l'identique. Pourquoi tout convertir
+plutôt que faire cohabiter les deux : deux formats veulent deux chemins de
+construction dans `WeaponService`, et le jour où l'un des deux change, l'autre
+cesse de dire la vérité en silence. C'est exactement la panne des listes de
+garde-fous, et le projet en a déjà payé trois.
+
+**Aucun chiffre d'équilibrage n'a bougé.** C'est le premier des six principes,
+et il a été tenu à la lettre : le bloc `look` ne contient que des tailles, des
+couleurs, des matières et des angles, et aucun de ses chiffres n'entre dans un
+calcul de dégâts, de portée ou de budget. Un marteau dont la tête a doublé de
+volume frappe exactement comme avant.
+
+**L'armure est la plus faible des six, et je ne peux pas y faire grand-chose.**
+Le torse d'un avatar Roblox est une boîte de 2 x 1,6 x 1 stud. Une armure de
+plaques posée dessus reste une boîte : on peut la faire saillir, lui donner une
+arête de laiton, une ceinture, des épaulières et des rivets — c'est fait — mais
+la silhouette ne change pas. Les armes, elles, se dessinent dans le vide et
+n'ont pas cette contrainte. Si Josh veut mieux que ça pour les armures, le seul
+moyen est un maillage, et `generate_mesh` a rendu un disque plat la seule fois
+où je l'ai essayé.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

@@ -682,15 +682,62 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   `MaterialService.AssistantMaterials`, pas a la racine du service — les chercher
   par `GetDescendants`, sinon on conclut a tort que l'outil n'a rien fait.
 
-- **Les quatre listes de garde-fous doivent rester à jour** : `HANDLED` et
+- **Les listes de garde-fous doivent rester à jour** : `HANDLED` et
   `HANDLED_TIER6` dans `AbilityService`, et dans `LoadoutService.init` la table
   `handled` des sortes d'utilisation, celle `zoneEffects` des sortes de zone,
-  plus deux vérifications de la même famille — qu'un effet collé par une arme
-  (`onHit`) nomme une sorte que `Status` connaît, et qu'une zone qui colle un
-  effet dise combien de temps il tient. Le serveur refuse de démarrer si
-  `Config` annonce quelque chose qu'aucun service n'exécute, et le message
-  nomme le coupable. C'est volontairement brutal : un objet qui coûte des
-  points et ne fait rien ne se voit jamais en jouant.
+  plus trois vérifications de la même famille — qu'un effet collé par une arme
+  (`onHit`) nomme une sorte que `Status` connaît, qu'une zone qui colle un
+  effet dise combien de temps il tient, et que **chaque pièce d'une allure**
+  nomme une sorte, une matière et un membre que `WeaponService` connaît
+  (`knowsShape`, `knowsMaterial`, `knowsLimb` — les trois listent depuis le
+  service, pour que le garde-fou n'en tienne pas une copie). Le serveur refuse
+  de démarrer si `Config` annonce quelque chose qu'aucun service n'exécute, et
+  le message nomme le coupable. C'est volontairement brutal : un objet qui
+  coûte des points et ne fait rien ne se voit jamais en jouant.
+
+- **UNE ALLURE EST UNE LISTE DE PIÈCES, ET ELLE NE SE RELIT PAS.** Un objet
+  n'a plus une taille et une couleur : il a vingt pièces, chacune avec sa
+  sorte, sa matière, sa position et ses deux angles. Trois emplacements, et un
+  seul par objet : `grip` (main droite), `offhand` (main gauche, le temps d'un
+  usage) et `worn` (un membre, pour une armure). Une armure déclare
+  `fit = true` et ses chiffres deviennent des **fractions du membre** — la
+  taille de l'avatar appartient au joueur, et un plastron écrit en studs
+  flotterait autour d'un grand corps.
+
+  Le moyen de vérifier est `WeaponService.preview`, qui pose les pièces dans le
+  vide avec **exactement** le même calcul que la vraie pose, plus
+  `screen_capture`. Les 1509 tests ne disent rien de l'allure : ils ont laissé
+  passer un maillet, une grenade à anneaux de Saturne et une armure en porte de
+  frigo. **Regarder fait partie du travail.**
+
+- **DANS CE JEU UNE ARME POINTE VERS -Z**, et ce n'est pas un choix : c'est ce
+  que les 34 armes disaient déjà avant le changement de format. De là les deux
+  angles, nommés par leur effet et convertis **à un seul endroit** dans
+  `WeaponService` : `tipUp` positif lève le bout avant, `tipLeft` positif le
+  fauche vers la gauche. Même règle que le penchement du buste, qui a coûté une
+  journée en étant écrit à l'envers.
+
+- **LE `Ball` DE ROBLOX IGNORE LES TAILLES NON UNIFORMES.** Une part de sorte
+  `Ball` dessine toujours une sphère parfaite du **plus petit** de ses trois
+  côtés : `{ 0.42, 0.52, 0.42 }` ne donne pas un ovoïde, mais une bille de
+  0,42. La grenade a donc porté des rainures calculées sur une hauteur qui
+  n'existait pas, et elles dépassaient du corps comme les anneaux de Saturne.
+  Un rayon se calcule sur ce que Roblox dessine, pas sur ce qu'on a écrit.
+
+- **UN `Cylinder` TIRE SA LONGUEUR DE `Size.X`**, pas de l'axe où on croit le
+  poser. Deux conséquences, et les deux ont mordu le même jour : pour le
+  coucher vers l'avant il faut un **lacet** de 90 degrés (`tipLeft = 90`) et
+  pas un roulis — un roulis le met debout, ce qui a dispersé le marteau sur
+  toute sa longueur ; et un manchon de poignée écrit `{ 0.3, 0.3, 0.18 }` fait
+  0,3 de **long** et 0,18 de large, donc il disparaît dans un manche de 0,26.
+
+- **Un objet qui change d'allure déplace sa pointe, et le témoin du geste avec
+  elle.** Le test de `tests/specs/loadout.luau` déduit la pointe des pièces, ce
+  qui est juste — mais son témoin, lui, est une mesure relevée dans Studio.
+  Déplacer quatre rivets du devant de la tête du marteau sur ses joues a
+  raccourci la pointe de 2,805 à 2,77 stud et fait échouer le test. La réponse
+  est de **remesurer dans Studio**, jamais de recalculer la valeur attendue
+  dans le test : c'est la première moitié du test qui rend la seconde crédible.
 
 ## L'ordre des étapes
 
@@ -750,7 +797,15 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    explosions, et c'est une décision prise sans Josh**. Vérifié en jeu pour
    tout ce qui ne vise personne ; **la moitié offensive n'a jamais touché
    personne**, section 21 d'`A-TESTER.md`
-14. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+14. **L'allure des objets, un par un** — commencé : le format d'allure à
+   pièces, les trois emplacements, l'armure à l'échelle du corps, et **six
+   objets d'essai dessinés et regardés à l'écran** (katana, fusil de précision,
+   marteau de guerre, armure de plaques, trousse de soin, grenade). Les 56
+   autres restent au format d'origine, qui marche toujours. Verdict honnête :
+   le katana et le fusil sont bons, la trousse et la grenade aussi, le marteau
+   est passable, **l'armure est la plus faible** et la raison est structurelle
+   — un torse Roblox est une boîte
+15. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), **l'allure des armes et des maps**, les skins,
    et l'achat de pièces en Robux

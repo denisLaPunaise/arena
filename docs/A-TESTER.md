@@ -1095,6 +1095,43 @@ Donc : **cette section se teste à deux, et dans cet ordre.**
 
 ---
 
+## 22. L'allure des six objets d'essai — **regardée, pas jouée**
+
+Six objets ont changé d'allure : le katana, le fusil de précision, le marteau de
+guerre, l'armure de plaques, la trousse de soin et la grenade. Ils passent d'une
+boîte et d'un cube rapporté à une liste de pièces — vingt pour le katana, dix-neuf
+pour le fusil et pour l'armure, seize pour le marteau, onze pour la trousse, huit
+pour la grenade. **Les 56 autres objets n'ont pas bougé** et gardent leur allure
+d'origine, qui marche toujours.
+
+Ce que j'ai vérifié moi-même, et comment : les six sont posés dans la place et
+photographiés, un par un, sous plusieurs angles. C'est ce qui a trouvé six fautes
+qu'aucun des 1509 tests ne voyait — un bois qui lisait noir, une crosse de fusil
+détachée, une crête de marteau en aileron de requin, des rivets d'armure enfouis
+dans le plastron, des rainures de grenade qui dépassaient comme des anneaux de
+Saturne, et un marteau dispersé sur toute sa longueur.
+
+**Ce qui n'a PAS été vérifié, et que toi seul peux voir :**
+
+- **les six objets dans une vraie main, en jeu.** Je les ai regardés posés dans
+  le vide. Le chemin qui les accroche à un personnage vivant — l'arme dans la
+  main droite, l'armure sur le torse, la grenade qui apparaît une demi-seconde
+  dans la main gauche quand on la lance — n'a pas été vu à l'écran.
+- **l'armure sur un vrai avatar, pas sur ma boîte témoin.** Elle est écrite en
+  fractions du corps pour s'adapter à toutes les tailles d'avatar. Un très grand
+  et un très petit personnage côte à côte diraient tout de suite si c'est vrai.
+- **est-ce que c'est beau ?** Mon verdict honnête, dans l'ordre : le katana et
+  le fusil sont bons, la trousse et la grenade aussi, le marteau est passable,
+  **l'armure est la plus faible**. Et la raison n'est pas un manque de soin : un
+  torse Roblox est une boîte, donc une armure de plaques dessus reste une boîte,
+  quel que soit le détail qu'on y pose. Si l'armure ne te plaît pas, c'est une
+  limite de la forme, pas un réglage à trouver.
+- **l'allure pendant le geste.** Une arme est belle à l'arrêt et peut être
+  illisible en mouvement : le marteau tourne vite, et sa tête est maintenant
+  deux fois plus grosse.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

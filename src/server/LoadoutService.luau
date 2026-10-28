@@ -414,6 +414,11 @@ function LoadoutService.refreshStats(entries: { Entry })
 		-- utiliser, pas tout son budget a la fois.
 		WeaponService.show(entry.player, primaryItem)
 
+		-- L'armure se porte, elle ne se sort pas : elle est visible tant
+		-- qu'elle est equipee. C'est la meme raison que pour l'arme — l'adver-
+		-- saire doit pouvoir lire le budget sur le corps.
+		WeaponService.wear(entry.player, Loadout.wornOf(Config, items))
+
 		-- entry.stats porte l'arme PRINCIPALE : c'est le profil par defaut, et
 		-- c'est lui que tout le reste du jeu lit (PV maximum, vitesse,
 		-- regeneration). La secondaire ne sort qu'au moment d'un coup trop
@@ -1138,6 +1143,11 @@ function LoadoutService.use(player: Player, slot: number): string?
 		return nil
 	end
 
+	-- L'objet sort dans la main gauche pendant qu'on s'en sert. La duree est
+	-- celle de la pose quand il y en a une : une trousse de soin reste en main
+	-- le temps de ses 1,6 seconde, une grenade part tout de suite.
+	WeaponService.flashOffhand(player, usable.item, use.castSeconds or 0)
+
 	local stock = charges[player]
 	if stock ~= nil then
 		stock[usable.itemId] = math.max((stock[usable.itemId] or 0) - 1, 0)
@@ -1575,6 +1585,48 @@ function LoadoutService.init()
 					tostring(onHit.kind)
 				)
 			)
+		end
+
+		-- LA CINQUIEME LISTE : L'ALLURE. Une sorte de piece ou une matiere mal
+		-- orthographiee retombe en silence sur une boite grise en plastique
+		-- lisse, et un membre inconnu ne pose simplement RIEN. Les trois fautes
+		-- ont la meme forme que les precedentes — l'objet a l'air de marcher,
+		-- son allure n'est pas celle qui est ecrite, et seul un regard a
+		-- l'ecran pourrait s'en apercevoir.
+		local look = item.look
+		if look ~= nil and look.pieces ~= nil then
+			for _, piece in look.pieces do
+				local shape = piece.shape or "Block"
+				if not WeaponService.knowsShape(shape) then
+					error(
+						string.format(
+							"[Arena] La piece « %s » de « %s » est de sorte « %s », inconnue.",
+							tostring(piece.name),
+							item.name,
+							tostring(shape)
+						)
+					)
+				end
+				if not WeaponService.knowsMaterial(piece.material or "SmoothPlastic") then
+					error(
+						string.format(
+							"[Arena] La piece « %s » de « %s » est en « %s », inconnu.",
+							tostring(piece.name),
+							item.name,
+							tostring(piece.material)
+						)
+					)
+				end
+			end
+			if look.worn ~= nil and not WeaponService.knowsLimb(look.worn.limb) then
+				error(
+					string.format(
+						"[Arena] « %s » se porte sur « %s », qui n'est un membre sur aucun rig.",
+						item.name,
+						tostring(look.worn.limb)
+					)
+				)
+			end
 		end
 
 		local use = item.use
