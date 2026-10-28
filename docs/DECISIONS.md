@@ -1727,6 +1727,33 @@ choix dans les deux cas.
 
 ---
 
+## 28 octobre 2026 — Josh impose le corps standard
+
+Josh a tranché la question posée plus haut : **le corps est imposé dans
+l'arène.** Ce n'est donc plus une décision ouverte, et la raison est celle que
+j'avais avancée — dans un PvP, lire son adversaire fait partie du savoir jouer,
+et un pigeon de trois studs ne se lit pas comme un humanoïde.
+
+Ce qui est normalisé : les six parties du corps qu'un bundle remplace, et les
+six échelles. Ce qui ne l'est pas : les vêtements, le visage et les couleurs.
+La frontière est la **silhouette** — une chemise n'en change pas, un corps
+d'oiseau oui. Et c'est ce qui rend les skins visibles plutôt que noyés.
+
+**UNE DÉCISION PRISE SANS JOSH, dans celle-là : les accessoires partent.** Un
+chapeau de dix studs cache une ligne de vue et change ce qu'on croit voir
+arriver — c'est le même argument que pour le corps, appliqué à ce qu'on pose
+dessus. Mais c'est le seul réglage de `Config.body` qui soit discutable plutôt
+que technique, et il tient en un booléen : `keepAccessories = true` les rend
+aux joueurs, et rien d'autre ne bouge.
+
+**CE QUE LE CODE NE PEUT PAS FAIRE, et qu'il faut savoir.** Le type d'avatar
+(R6 ou R15) est un réglage de place, dans Game Settings → Avatar. Aucune API ne
+le change à l'exécution — ni `ApplyDescription`, ni
+`LoadCharacterWithHumanoidDescription`. Le service le constate et prévient dans
+la console plutôt que de faire semblant. C'est à Josh de le mettre à R15.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

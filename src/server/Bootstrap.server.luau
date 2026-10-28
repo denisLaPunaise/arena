@@ -10,9 +10,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
+local Body = require(Arena:WaitForChild("Body"))
 local Config = require(Arena:WaitForChild("Config"))
 local Classes = require(Arena:WaitForChild("Classes"))
 
+local BodyService = require(script.Parent:WaitForChild("BodyService"))
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local DraftService = require(script.Parent:WaitForChild("DraftService"))
@@ -65,6 +67,7 @@ print(
 		if Config.skillTree.enabled then "activé" else "coupé"
 	)
 )
+print(string.format("[Arena] Corps : %s", Body.describe(Config)))
 if Config.sandbox.enabled then
 	print(
 		string.format(
@@ -90,6 +93,9 @@ print("================================================")
 
 -- L'ordre compte : DownedService et ZoneService branchent leurs boucles avant
 -- que CombatService ne les interroge, et MatchService demarre en dernier.
+-- Le corps en premier : il repose le personnage, et tout ce qui s'accroche
+-- dessus — l'arme, l'armure — doit le trouver deja normalise.
+BodyService.init()
 DownedService.init()
 ZoneService.init()
 SkillTreeService.init()

@@ -1163,6 +1163,37 @@ derrière quand on change d'équipement.
 
 ---
 
+## 24. Le corps standard — **un réglage de place reste à faire, par toi**
+
+Tu as tranché : le corps est imposé dans l'arène. À chaque apparition, le
+serveur remet la géométrie du corps à la norme et retire les accessoires. Ton
+pigeon part. Ta chemise, ton pantalon et tes couleurs restent.
+
+**Vérifié en jeu, sur ton propre avatar :** le pigeon disparaît, le torse passe
+de 1,27 à 2,00 stud de large, la chemise est conservée, et l'armure se pose
+dessus correctement avec le katana en main.
+
+**CE QUE TU DOIS FAIRE TOI, et que je ne peux pas faire :** dans Studio, *Game
+Settings → Avatar → Avatar Type*, mettre **R15**. Le type d'avatar n'est pas
+accessible au code — aucune API ne le change. Si un joueur arrive en R6, le
+serveur le dit dans la console et l'armure sera plus haute sur lui, mais rien
+ne cassera.
+
+**Ce qui reste à regarder, et qui demande des joueurs :**
+
+- **est-ce que ça te dérange de perdre ton avatar ?** C'est la vraie question,
+  et elle ne se mesure pas. Mon argument reste que lire son adversaire fait
+  partie du savoir jouer, et que tes skins seront visibles seulement si le
+  corps en dessous est prévisible.
+- **les accessoires retirés.** C'est un choix que j'ai fait sans toi : un
+  chapeau de dix studs cache une ligne de vue. C'est un seul booléen,
+  `Config.body.keepAccessories`, à passer à `true` si tu veux les rendre.
+- **les avant-bras et les tibias restent nus**, à la couleur de peau du joueur.
+  L'armure couvre le torse, le haut des bras et les cuisses. Les couvrir
+  demanderait d'habiller les membres du bas, qui plient.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

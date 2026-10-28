@@ -31,6 +31,7 @@ local suites = {
 	{ name = "Bac a sable", run = require("./specs/sandbox") },
 	{ name = "Placement et equipes", run = require("./specs/seating") },
 	{ name = "Effets temporaires", run = require("./specs/status") },
+	{ name = "Corps standard", run = require("./specs/body") },
 }
 
 local t = harness.create()

@@ -2924,7 +2924,7 @@ Config.items = {
 				{
 					name = "PauldronRight",
 					limb = "RightUpperArm",
-					size = { 1.32, 0.46, 1.28 },
+					size = { 1.2, 0.46, 1.02 },
 					at = { 0.12, 0.4, 0 },
 					roll = -12,
 					color = PALETTE.plate,
@@ -2934,7 +2934,7 @@ Config.items = {
 				{
 					name = "PauldronTopRight",
 					limb = "RightUpperArm",
-					size = { 1.06, 0.17, 1.06 },
+					size = { 0.98, 0.17, 0.84 },
 					at = { 0.08, 0.66, 0 },
 					roll = -12,
 					color = PALETTE.plate,
@@ -2944,7 +2944,7 @@ Config.items = {
 				{
 					name = "PauldronRimRight",
 					limb = "RightUpperArm",
-					size = { 1.38, 0.08, 1.34 },
+					size = { 1.26, 0.08, 1.08 },
 					at = { 0.12, 0.17, 0 },
 					roll = -12,
 					color = PALETTE.brass,
@@ -2963,7 +2963,7 @@ Config.items = {
 				{
 					name = "PauldronLeft",
 					limb = "LeftUpperArm",
-					size = { 1.32, 0.46, 1.28 },
+					size = { 1.2, 0.46, 1.02 },
 					at = { -0.12, 0.4, 0 },
 					roll = 12,
 					color = PALETTE.plate,
@@ -2973,7 +2973,7 @@ Config.items = {
 				{
 					name = "PauldronTopLeft",
 					limb = "LeftUpperArm",
-					size = { 1.06, 0.17, 1.06 },
+					size = { 0.98, 0.17, 0.84 },
 					at = { -0.08, 0.66, 0 },
 					roll = 12,
 					color = PALETTE.plate,
@@ -2983,7 +2983,7 @@ Config.items = {
 				{
 					name = "PauldronRimLeft",
 					limb = "LeftUpperArm",
-					size = { 1.38, 0.08, 1.34 },
+					size = { 1.26, 0.08, 1.08 },
 					at = { -0.12, 0.17, 0 },
 					roll = 12,
 					color = PALETTE.brass,
@@ -4173,6 +4173,68 @@ Config.sounds = {
 -- Le deuxieme est le plus solide : aucun classement, aucune piece et aucune
 -- partie ne peut exister avec un seul joueur, donc rien de ce qui se gagne
 -- n'est atteignable depuis ici.
+-- LE CORPS STANDARD DE L'ARENE
+--
+-- Un avatar Roblox peut etre un pigeon de trois studs, un geant, ou un
+-- maillage qui n'a plus rien d'humain. Dans un jeu PvP ou lire son adversaire
+-- fait partie du savoir jouer, ces corps-la ne se lisent pas pareil — et ca
+-- n'a aucun rapport avec l'habilete de qui que ce soit. C'est le sixieme
+-- principe applique au corps.
+--
+-- La question est devenue concrete avec l'armure : une armure portee se fixe
+-- aux parts du personnage et se met a l'echelle de LEUR taille, alors qu'un
+-- bundle remplace leur MAILLAGE. L'armure disparait donc sous l'oiseau.
+--
+-- Decide par Josh le 28 octobre 2026. Le detail du raisonnement, et ce qui a
+-- ete tranche sans lui, sont dans docs/DECISIONS.md.
+Config.body = {
+	enabled = true,
+
+	-- LES SIX ECHELLES, avec la valeur qui redonne le corps classique. Les
+	-- deux dernieres valent ZERO et pas un : `BodyTypeScale` fait glisser le
+	-- corps vers les proportions « Rthro », et `ProportionScale` l'affine.
+	-- A zero on retrouve le corps anguleux, qui est celui contre lequel les
+	-- armures et les armes sont dessinees.
+	scales = {
+		HeightScale = 1,
+		WidthScale = 1,
+		DepthScale = 1,
+		HeadScale = 1,
+		BodyTypeScale = 0,
+		ProportionScale = 0,
+	},
+
+	-- Les six parties qu'un bundle remplace. A zero, Roblox remet les parts
+	-- classiques.
+	bodyParts = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" },
+
+	-- LES VETEMENTS RESTENT CEUX DU JOUEUR. Une chemise ne change pas une
+	-- silhouette, donc elle ne coute rien a la lecture — et c'est elle qui
+	-- portera les skins. Un skin ne se voit que si le corps en dessous est
+	-- previsible, donc imposer le corps rend les skins VISIBLES au lieu de les
+	-- noyer.
+	keepClothing = true,
+
+	-- LES ACCESSOIRES, EUX, PARTENT, et c'est un choix fait sans Josh : un
+	-- chapeau de dix studs cache une ligne de vue et change ce qu'on croit
+	-- voir arriver. C'est le seul reglage de cette table qui soit discutable
+	-- plutot que technique — le passer a `true` le rend aux joueurs, et rien
+	-- d'autre ne bouge.
+	keepAccessories = false,
+
+	-- Combien de fois on reessaie d'appliquer le corps. `ApplyDescription`
+	-- part sur le reseau et peut echouer : trois essais espaces valent mieux
+	-- qu'un joueur qui garde son pigeon toute la partie parce qu'un paquet
+	-- s'est perdu.
+	-- Cinq essais, pas trois : au tout premier chargement d'un personnage, les
+	-- maillages de son avatar arrivent encore du reseau et `ApplyDescription`
+	-- refuse tant qu'ils manquent. Vu en jeu le 28 octobre 2026 — trois essais
+	-- espaces d'une demi-seconde n'y suffisaient pas, et le joueur gardait son
+	-- avatar d'origine toute la partie.
+	applyAttempts = 5,
+	retrySeconds = 1,
+}
+
 Config.sandbox = {
 	enabled = true,
 

@@ -710,6 +710,30 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   passer un maillet, une grenade à anneaux de Saturne et une armure en porte de
   frigo. **Regarder fait partie du travail.**
 
+- **LE CORPS DES JOUEURS EST IMPOSÉ DANS L'ARÈNE**, décidé par Josh le
+  28 octobre 2026. `BodyService` remet la géométrie du corps à la norme à
+  chaque apparition — les six parties qu'un bundle remplace, les six échelles
+  — et retire les accessoires. Les vêtements, le visage et les couleurs
+  restent au joueur : ils ne changent pas une silhouette, et ce sont eux qui
+  porteront les skins.
+
+  Trois pièges, tous vus en jeu le même jour :
+  - **`HatAccessory` et les sept autres champs d'emplacement ne retirent que
+    les accessoires RIGIDES d'autrefois.** Un accessoire moderne vit dans une
+    liste à part. Les huit champs vidés, l'application réussie, et le pigeon
+    toujours sur le dos du joueur. C'est `SetAccessories({}, true)` qu'il faut.
+  - **`ApplyDescription` échoue au premier chargement**, le temps que les
+    maillages de l'avatar arrivent du réseau, et l'erreur ne dit pas ça. Trois
+    essais espacés d'une demi-seconde n'y suffisaient pas ; c'est cinq essais
+    d'une seconde.
+  - **`BodyTypeScale` et `ProportionScale` valent ZÉRO**, pas un. À un, le
+    corps glisse vers les proportions « Rthro », qui ne sont pas celles contre
+    lesquelles les armures et les armes sont dessinées.
+
+  Et **le type d'avatar R15 reste un réglage de place** (Game Settings →
+  Avatar), qu'aucune API ne change à l'exécution. Le service le constate et
+  prévient dans la console ; c'est à Josh de le mettre.
+
 - **UNE ARMURE SE PORTE SUR PLUSIEURS MEMBRES, et c'est ce qui la fait
   exister.** Une plaque posée sur le seul torse décore l'avant d'une boîte :
   la silhouette du personnage ne change pas, donc l'oeil continue de voir un
