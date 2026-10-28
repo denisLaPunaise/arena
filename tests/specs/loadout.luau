@@ -820,7 +820,12 @@ return function(t: harness.Harness)
 	local bow = tipTravel("compositeBow")
 	t.equal("le calcul reproduit celui de Studio (arc, z)", near(bow[3], 1.4), true)
 	local blade = tipTravel("machete")
-	t.equal("le calcul reproduit celui de Studio (machette, x)", near(blade[1], -1.48), true)
+	-- La machette a ete redessinee le 28 octobre 2026 : son bout est passe de
+	-- 1,50 a 2,56 puis a 2,60 stud quand la garde s'est etalee, et son temoin
+	-- a ete REMESURE dans Studio a chaque fois, comme celui du marteau. Le
+	-- deplacement par stud n'a pas bouge (-0,985 les trois fois), ce qui
+	-- prouve que seul l'axe a change et pas le geste.
+	t.equal("le calcul reproduit celui de Studio (machette, x)", near(blade[1], -2.56), true)
 
 	-- Ensuite seulement : les gestes vont-ils ou on veut ?
 	t.equal("le marteau s'abat vers le bas", hammer[2] < -1, true)
