@@ -13,6 +13,7 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Body = require(Arena:WaitForChild("Body"))
 local Config = require(Arena:WaitForChild("Config"))
 local Classes = require(Arena:WaitForChild("Classes"))
+local MatchState = require(Arena:WaitForChild("MatchState"))
 
 local BodyService = require(script.Parent:WaitForChild("BodyService"))
 local CombatService = require(script.Parent:WaitForChild("CombatService"))
@@ -30,6 +31,17 @@ local function count(list): number
 		n += 1
 	end
 	return n
+end
+
+-- Le cout d'une branche menee au palier 6. Annonce a cote de la longueur de
+-- partie, parce que c'est la comparaison des deux qui dit si le dernier palier
+-- existe vraiment.
+local function fullTreeCost(): number
+	local total = 0
+	for _, cost in Config.skillTree.tierCosts do
+		total += cost
+	end
+	return total
 end
 
 local function describePrototype(): string
@@ -52,13 +64,36 @@ print(
 		Config.loadout.budgetPoints
 	)
 )
+-- LA LONGUEUR REELLEMENT JOUEE S'ANNONCE, et c'est ce qui aurait montre le
+-- trou plus tot : la banniere disait « premier a 2 manches » depuis des
+-- semaines sans que personne ne rapproche ce chiffre du cout d'un palier 6.
+local roundsToWin = MatchState.roundsToWin(Config)
 print(
 	string.format(
-		"[Arena] Prototype : %s, premier à %d manches gagnées",
-		describePrototype(),
-		Config.prototype.roundsToWin
+		"[Arena] Partie : premier à %d manches gagnées, donc %d manches au maximum "
+			.. "— %d points d'arbre, et l'arbre complet en coûte %d",
+		roundsToWin,
+		(roundsToWin * 2) - 1,
+		(roundsToWin * 2) - 1,
+		fullTreeCost()
 	)
 )
+if Config.prototype.enabled then
+	print(
+		string.format(
+			"[Arena] Prototype ACTIVÉ : %s. La longueur du prototype remplace celle de "
+				.. "Config.match.",
+			describePrototype()
+		)
+	)
+else
+	print(
+		string.format(
+			"[Arena] Classe de secours si le tirage ne sert pas tout le monde : %s",
+			describePrototype()
+		)
+	)
+end
 print(
 	string.format(
 		"[Arena] Zone %s · agonie %s · arbre %s",

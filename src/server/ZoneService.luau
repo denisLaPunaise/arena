@@ -31,7 +31,7 @@ local CALM_COLOR = Color3.fromRGB(90, 150, 220)
 local WARNING_COLOR = Color3.fromRGB(230, 120, 60)
 local CLOSED_COLOR = Color3.fromRGB(210, 70, 70)
 
-local FLASH_SECONDS = 0.35
+local FLASH_SECONDS = Config.round.zoneFlashSeconds
 
 export type Snapshot = {
 	radius: number,

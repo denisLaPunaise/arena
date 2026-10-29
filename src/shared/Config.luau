@@ -133,6 +133,10 @@ Config.round = {
 	-- Hauteur du cylindre affiche. Purement visuel : les degats ne regardent
 	-- que la distance horizontale au centre.
 	zoneHeightStuds = 200,
+
+	-- Le clignotement du mur quand la zone se resserre. Etait en dur dans
+	-- `ZoneService` ; c'est un chiffre de lisibilite, donc il se regle.
+	zoneFlashSeconds = 0.35,
 }
 
 --------------------------------------------------------------------------------
@@ -10772,6 +10776,15 @@ Config.draws = {
 -- Ces chiffres donnent une caisse toutes les trois parties en ecrasant tout,
 -- quatre en gagnant serre, cinq en perdant serre, six en se faisant ecraser.
 Config.economy = {
+	-- COMBIEN DE FOIS ON RELIT UN PROFIL AVANT D'ABANDONNER. Etait en dur dans
+	-- `ProgressService` sous le nom `LOAD_ATTEMPTS`. Trois essais espaces de
+	-- 1, 2 puis 3 secondes : au-dela, le DataStore est en panne et pas occupe.
+	-- Un profil illisible ne devient JAMAIS un profil vide -- c'est la seule
+	-- regle de ce fichier qui peut detruire quelque chose d'irremplacable --
+	-- donc ce chiffre decide seulement combien de temps on insiste, jamais ce
+	-- qu'on ecrit.
+	profileLoadAttempts = 3,
+
 	crateCost = 1000,
 
 	winBase = 220,
@@ -10875,10 +10888,27 @@ Config.camera = {
 -- comparer une manche avec et une manche sans.
 -- Pas encore d'arbre, pas encore d'equipement.
 Config.prototype = {
-	enabled = true,
+	-- L'INTERRUPTEUR DU PROTOTYPE, et il en est un depuis le 29 octobre 2026.
+	-- Avant, ce champ existait sans que personne ne le lise : `MatchService`
+	-- prenait `roundsToWin` ci-dessous quoi qu'il arrive, donc le jeu jouait la
+	-- longueur du prototype -- premier a deux manches -- pendant que
+	-- `Config.match` annoncait premier a quatre sans etre lu par une seule
+	-- ligne de code. Une partie de M manches donne M points d'arbre et un
+	-- palier 6 en coute six a lui seul : les paliers 5 et 6 etaient donc
+	-- INATTEIGNABLES, ce qui ne se voit jamais en jouant.
+	--
+	-- A `false`, la longueur vient de `Config.match`. Le remettre a `true`
+	-- rejoue les trois manches de l'etape 2, et c'est le seul mot a changer.
+	--
+	-- CE QUI RESTE LU DANS CETTE TABLE QUOI QU'IL ARRIVE : `classes` (la classe
+	-- de secours quand le tirage ne sert pas tout le monde) et les trois
+	-- `seconds...` (les temps d'attente de la boucle de partie). Seul
+	-- `roundsToWin` est sous l'interrupteur.
+	enabled = false,
 	classes = { "vampire", "colossus" },
 
-	-- Premier a deux manches gagnees, donc trois manches au maximum.
+	-- Premier a deux manches gagnees, donc trois manches au maximum. N'est lu
+	-- que quand `enabled` vaut `true`.
 	roundsToWin = 2,
 
 	secondsBeforeRoundStarts = 3,
@@ -11960,6 +11990,22 @@ Config.mapContract = {
 	zoneCenterPart = "ZoneCenter",
 	coverFolder = "Cover",
 	boundsPart = "MapBounds",
+
+	-- LA MAP DE SECOURS, quand aucune map conforme n'est dans Workspace. Ces
+	-- trois chiffres etaient en dur dans `MapService`, ce qui est un bug meme
+	-- quand les valeurs sont bonnes : personne ne peut regler une map vide sans
+	-- lire le service. Trouve au controle du 29 octobre 2026.
+	--
+	-- 10 studs entre deux points d'apparition : un personnage fait 4 studs de
+	-- large, donc dix laissent passer deux joueurs cote a cote sans qu'ils se
+	-- poussent a l'apparition. 35 studs du centre, soit 70 entre les deux
+	-- camps : assez pour se voir arriver, trop peu pour se perdre, et c'est
+	-- volontairement plus serre que les vraies maps parce qu'une map vide n'a
+	-- rien a traverser. 4 studs de haut pose les pieds au sol d'une part de
+	-- 1 stud d'epaisseur.
+	fallbackSpawnSpacingStuds = 10,
+	fallbackSpawnDistanceFromCenterStuds = 35,
+	fallbackSpawnHeightStuds = 4,
 }
 
 return Config

@@ -16,10 +16,18 @@
 local MapService = {}
 
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local SPAWN_SPACING_STUDS = 10
-local SPAWN_DISTANCE_FROM_CENTER = 35
-local SPAWN_HEIGHT_STUDS = 4
+local Arena = ReplicatedStorage:WaitForChild("Arena")
+local Config = require(Arena:WaitForChild("Config"))
+
+-- LES TROIS CHIFFRES DE LA MAP DE SECOURS VIENNENT DE CONFIG. Ils etaient en
+-- dur ici, ce qui est un bug meme quand les valeurs sont bonnes : personne ne
+-- peut regler une map vide sans lire ce fichier. Leur raison est a cote d'eux
+-- dans `Config.mapContract`.
+local SPAWN_SPACING_STUDS = Config.mapContract.fallbackSpawnSpacingStuds
+local SPAWN_DISTANCE_FROM_CENTER = Config.mapContract.fallbackSpawnDistanceFromCenterStuds
+local SPAWN_HEIGHT_STUDS = Config.mapContract.fallbackSpawnHeightStuds
 
 local function expectedNames(contract): { string }
 	return {

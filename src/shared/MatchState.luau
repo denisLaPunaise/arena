@@ -19,6 +19,28 @@ export type State = {
 	roundsPlayed: number,
 }
 
+--[[
+	LA LONGUEUR REELLEMENT JOUEE, et c'est un seul endroit expres.
+
+	`Config.prototype.enabled` existait sans que personne ne le lise, et
+	`MatchService` prenait `Config.prototype.roundsToWin` quoi qu'il arrive :
+	le jeu jouait donc la longueur du prototype -- premier a deux manches --
+	pendant que `Config.match` annoncait premier a quatre et n'etait lu par
+	aucune ligne de code. La consequence etait invisible en jouant et couteuse :
+	une partie de M manches donne M points d'arbre, un palier 6 en coute six a
+	lui seul, donc les paliers 5 et 6 n'etaient PAS atteignables.
+
+	C'est la meme panne que `Config.formats`, et un test de `config.luau` relie
+	maintenant les deux bouts : il verifie que l'arbre complet est atteignable
+	dans la longueur que cette fonction rend vraiment.
+]]
+function MatchState.roundsToWin(config): number
+	if config.prototype.enabled then
+		return config.prototype.roundsToWin
+	end
+	return config.match.roundsToWin
+end
+
 function MatchState.create(roundsToWin: number): State
 	return {
 		roundsToWin = roundsToWin,

@@ -64,7 +64,7 @@ export type Entry = {
 }
 
 local STORE_NAME = "ArenaProfiles_v1"
-local LOAD_ATTEMPTS = 3
+local LOAD_ATTEMPTS = Config.economy.profileLoadAttempts
 
 local profiles: { [Player]: Profile } = {}
 -- Les lectures en cours. Deux appels a profileOf pendant la meme lecture

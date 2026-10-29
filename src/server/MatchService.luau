@@ -654,7 +654,7 @@ local function runMatch(players: { Player }, teams: { [Player]: string }, format
 	-- projet, et c'est cette ligne qui le tient.
 	SkillTreeService.beginMatch(entries)
 
-	local state = MatchState.create(Config.prototype.roundsToWin)
+	local state = MatchState.create(MatchState.roundsToWin(Config))
 
 	print(string.format("[Arena] Partie en %s.", formatId))
 

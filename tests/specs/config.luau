@@ -10,6 +10,8 @@
 
 local Config = require("../../src/shared/Config")
 local Classes = require("../../src/shared/Classes")
+local MatchState = require("../../src/shared/MatchState")
+local Draft = require("../../src/shared/Draft")
 
 local harness = require("../harness")
 
@@ -67,7 +69,55 @@ return function(t: harness.Harness)
 		(Config.match.roundsToWin * 2) - 1
 	)
 
+	-- LE TEST QUI RELIE LES DEUX BOUTS, et il manquait. Les quatre assertions
+	-- ci-dessus lisaient `Config.match`, qu'AUCUN service ne lisait : le jeu
+	-- jouait `Config.prototype.roundsToWin`, donc trois manches, donc trois
+	-- points, donc les paliers 5 et 6 inatteignables. Les tests passaient tous.
+	-- Celui-ci ne regarde plus un chiffre de Config mais la longueur que le jeu
+	-- joue VRAIMENT, et il refuse qu'un palier declare soit hors d'atteinte.
+	local playedToWin = MatchState.roundsToWin(Config)
+	local playedRounds = (playedToWin * 2) - 1
+	t.check(
+		"la longueur reellement jouee rend l'arbre complet atteignable",
+		usablePoints(playedRounds) >= sum(Config.skillTree.tierCosts)
+	)
+	t.check(
+		"et elle ne le rend pas atteignable des la premiere manche",
+		usablePoints(1) < sum(Config.skillTree.tierCosts)
+	)
+
 	t.section("Le draft")
+
+	-- LA MEME REGLE EXISTE DEUX FOIS, ET C'EST STRUCTUREL : `Draft.createPool`
+	-- ne peut pas appeler `Classes.drawable`, parce qu'un module de logique
+	-- pure ne requiert rien -- c'est le piege numero un du projet. Les deux
+	-- copies du filtre `needsAllies` sont donc condamnees a cohabiter, et rien
+	-- ne les empechait de diverger : changer la regle d'un cote laissait
+	-- l'autre en place, sans la moindre erreur. Ce test les attache l'une a
+	-- l'autre. Trouve au controle du 29 octobre 2026.
+	for _, playersPerTeam in { 1, 2, 3, 4 } do
+		local fromClasses: { [string]: boolean } = {}
+		for _, class in Classes.drawable(playersPerTeam) do
+			fromClasses[class.id] = true
+		end
+		local fromDraft = Draft.createPool(Classes.all, playersPerTeam)
+
+		local sameCount = count(fromClasses) == #fromDraft
+		local allPresent = true
+		for _, id in fromDraft do
+			if not fromClasses[id] then
+				allPresent = false
+			end
+		end
+		t.check(
+			string.format(
+				"les deux filtres de classes jouables s'accordent en %dv%d",
+				playersPerTeam,
+				playersPerTeam
+			),
+			sameCount and allPresent
+		)
+	end
 
 	t.equal("quatorze classes dans le catalogue", count(Classes.all), 14)
 	local bans = Config.draft.bansPerTeam * 2
