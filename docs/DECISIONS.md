@@ -1900,6 +1900,56 @@ mais une map ne se juge qu'en y jouant à plusieurs. Les trois sont dans
 
 ---
 
+## Le contrôle du jeu — 29 octobre 2026
+
+Une seule décision, mais c'est la plus lourde de la nuit.
+
+**Le prototype est coupé, donc les parties sont plus longues.** `Config.prototype.enabled`
+existait depuis des semaines sans que personne ne le lise : `MatchService`
+prenait `Config.prototype.roundsToWin` quoi qu'il arrive, c'est-à-dire **premier
+à deux manches gagnées**, pendant que `Config.match` annonçait premier à quatre
+et n'était lu par **aucune ligne de code**.
+
+Pourquoi c'est grave, et pourquoi ça ne se voyait pas en jouant : une partie de
+M manches donne M points d'arbre, et une branche menée au palier 6 coûte **six
+points à elle seule**. Trois manches donnent trois points. Les paliers 5 et 6
+étaient donc **mathématiquement inatteignables**, et les quarante-deux effets de
+palier 6 codés le 27 octobre ne pouvaient jamais partir. Rien ne plantait, rien
+ne s'affichait, et les 1525 tests passaient — parce qu'ils vérifiaient
+`Config.match`, que le jeu ne lisait pas.
+
+J'ai donc mis `enabled = false`. **Ce que ça change pour toi :**
+
+| | avant | maintenant |
+| --- | --- | --- |
+| manches à gagner | 2 | 4 |
+| manches par partie | 2 à 3 | 4 à 7 |
+| points d'arbre | 2 à 3 | 4 à 7 |
+| palier maximum atteignable | **4** | **6** |
+| durée d'une partie | 3 à 10 min | **5 à 12 min**, jusqu'à 24 si personne ne se bat |
+
+Les 24 minutes sont le cas pathologique : une manche dure au plus 180 secondes
+de resserrement de zone, et sept manches qui vont toutes au bout font 21
+minutes. En pratique les manches se finissent au combat bien avant.
+
+**C'est une décision de conception, et je l'ai prise sans toi** parce que
+l'alternative était que tu joues demain sans pouvoir atteindre la moitié de ton
+arbre de compétences. Elle se défait en **un seul mot** : `Config.prototype.enabled = true`
+rejoue les trois manches de l'étape 2. L'économie des pièces, elle, était déjà
+calibrée sur le vrai format — une victoire 4-0 rapporte 340 pièces et une caisse
+coûte 1000, donc une caisse en trois parties, exactement la fourchette prévue.
+
+**La leçon, et c'est la troisième fois.** `Config.formats` déclarait quatre
+formats que personne ne lisait. `Rating.counts` portait la règle du mode privé
+et aucun service ne l'appelait. Maintenant `Config.match`. Le signal commun :
+**une valeur de `Config` ou une fonction pure que seuls les tests touchent est
+une règle qui ne s'applique pas.** La parade qui marche est un test qui relie
+les deux bouts — pas « est-ce que `Config.match` est cohérent », mais « est-ce
+que la longueur que le jeu joue VRAIMENT rend l'arbre complet atteignable ». Ce
+test est en place et il échoue sur l'ancienne configuration.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

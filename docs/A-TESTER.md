@@ -1286,6 +1286,74 @@ sans trace. La parade est que les trois recettes sont commitées, donc tout se
 reconstruit à l'identique. Et **l'éclairage appartient à la map** : lancer une
 recette remplace entièrement le `Lighting` de la place.
 
+## 27. Le contrôle complet du jeu — ce qui est corrigé et ce qui reste
+
+Contrôle fait le 29 octobre 2026 : les fonctions pures que personne n'appelle,
+les tables de `Config` que personne ne lit, les chiffres en dur, les fuites par
+joueur, la validation des remotes, les doublons de Rojo, et une partie lancée
+pour lire la console.
+
+**Trois choses corrigées, et deux sont vérifiées dans Roblox :**
+
+- **les paliers 5 et 6 étaient inatteignables** — le détail et la décision sont
+  dans `docs/DECISIONS.md`. La bannière du serveur annonce maintenant la
+  longueur réellement jouée à côté du coût de l'arbre complet, ce qui rend ce
+  genre de trou visible au démarrage.
+- **`BodyService` criait au loup** — deux avertissements « le corps standard
+  n'a pas pu être appliqué » partaient à chaque démarrage alors que le corps
+  **était** correctement posé du premier coup, mesuré par témoin. Trois chemins
+  appellent la pose pour le même personnage : un réussit en silence, les deux
+  autres épuisaient leurs cinq essais et se plaignaient. Le service mesure
+  maintenant le résultat au lieu de croire l'appel.
+- **cinq chiffres en dur** remontent dans `Config` : les trois de la map de
+  secours, le clignotement de la zone, les essais de lecture d'un profil.
+
+**Ce qui reste, et pourquoi je ne l'ai pas touché :**
+
+- **la place est parfaitement synchronisée** — les 44 scripts ont la taille
+  exacte du dépôt, octet pour octet, et il n'y a aucun doublon dans les trois
+  dossiers. Les deux pièges de Rojo sont écartés pour cette session, mais ça se
+  revérifie, ce n'est pas un état acquis.
+- **`ContentId: rbxassetid://203785492 failed`, trois fois à chaque démarrage**
+  — ce n'est **pas** Arena. L'identifiant n'existe nulle part dans le dépôt ni
+  dans la place, et Roblox le nomme « Pop Close Sound ». C'est un plugin de
+  Studio qui le réclame comme autre chose qu'un son. Les joueurs ne le verront
+  pas. Si ça t'agace, c'est à chercher dans tes plugins.
+- **quatre remotes sur huit n'ont aucun garde-fou contre l'inondation** — le
+  salon, la progression, le bac à sable et le tirage. Les deux autres en ont un
+  (dix requêtes par seconde). Personne ne peut en tirer de la puissance : tout
+  est validé côté serveur et l'ouverture de caisse dépense les pièces d'abord.
+  Le seul coût possible est de faire travailler le serveur pour rien, et le
+  salon est le pire des quatre parce qu'il annonce aux autres. **Ce n'est pas
+  un bug qu'on rencontre en jouant, c'est une porte à fermer avant la
+  publication.**
+- **dix-huit fonctions de logique pure que rien n'appelle** dans `src/` —
+  `Draws.apply`, `Classes.drawable`, `SkillTree.usablePoints`,
+  `Downed.reviveHealth` et quatorze autres. Aucune n'est une règle qui manque :
+  j'ai vérifié chacune des six importantes, et dans chaque cas la règle est bien
+  appliquée, par un autre chemin. Ce sont des doublons dormants, pas des trous.
+  Mais un doublon peut diverger, donc j'ai attaché par un test les deux copies
+  du filtre des classes jouables en 1v1, qui ne peuvent pas fusionner (un module
+  pur ne requiert rien).
+- **trois tables de `Config` que personne ne lit** : `Config.camera` (première
+  et troisième personne au choix — jamais implémenté, et c'est une vraie
+  question de conception pour les maps), `Config.itemCounts` (lu par les tests
+  seulement, c'est son rôle) et `Config.balanceReferenceFormat` (de la
+  documentation). `Config.camera` est le seul qui mérite une décision.
+- **`StatusService` est le seul service avec des tables par joueur et aucun
+  `PlayerRemoving`** — ce n'est pas une fuite : tout est vidé à la fin de chaque
+  manche. Mais sa fonction `clearFor` est publique et personne ne l'appelle.
+- **quatre-vingt-douze commentaires avec des accents** dans dix-huit fichiers
+  `.luau`, alors que la convention du projet les interdit. Rien n'est cassé,
+  l'encodage tient. C'est ta convention : je ne l'ai pas appliquée de force sur
+  quatre-vingt-douze lignes, parce que réécrire du texte en masse est le genre
+  d'opération qui abîme ce qu'elle corrige.
+- **le vrai format n'a jamais été joué.** C'est le point le plus important de
+  cette section : la correction des paliers est vérifiée par les tests et par la
+  bannière du serveur, **pas en partie**, parce qu'une partie demande deux
+  joueurs. Une partie de sept manches avec un arbre mené au palier 6 n'a jamais
+  existé. C'est la première chose à essayer.
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

@@ -877,6 +877,51 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   vivant, de parenter un clone neuf sous le nom d'origine, de lancer, puis de
   remettre les noms.
 
+- **LA MEME PANNE POUR LA TROISIEME FOIS, ET LA PARADE EST UN TEST QUI RELIE
+  LES DEUX BOUTS.** `Config.formats` declarait quatre formats que personne ne
+  lisait. `Rating.counts` portait la regle du mode prive et aucun service ne
+  l'appelait. Et `Config.match` annoncait « premier a quatre manches » pendant
+  que `MatchService` prenait `Config.prototype.roundsToWin`, c'est-a-dire deux,
+  parce que `Config.prototype.enabled` existait sans etre lu non plus.
+  Consequence invisible en jouant : une partie de M manches donne M points
+  d'arbre, un palier 6 coute six points a lui seul, donc les paliers 5 et 6
+  etaient INATTEIGNABLES et les quarante-deux effets codes le 27 octobre ne
+  pouvaient jamais partir. Les 1525 tests passaient, parce qu'ils verifiaient
+  `Config.match` — le chiffre que le jeu ne lisait pas.
+
+  Le signal est toujours le meme : **une valeur de `Config` ou une fonction
+  pure que seuls les tests touchent est une regle qui ne s'applique pas.** Un
+  `grep` du nom dans `src/` repond en deux secondes. Mais la parade qui TIENT
+  n'est pas de verifier qu'un chiffre de `Config` est coherent avec un autre :
+  c'est de verifier ce que le jeu fait VRAIMENT. Le test ajoute ne lit plus
+  `Config.match`, il lit `MatchState.roundsToWin(Config)` et refuse qu'un
+  palier declare soit hors d'atteinte. Ecrire le test de cette facon lui fait
+  echouer sur l'ancienne configuration, ce qui est la seule preuve qu'il sert.
+
+  Et le corollaire pour la console : **la banniere de demarrage annonce
+  maintenant la longueur jouee A COTE du cout de l'arbre complet.** Elle disait
+  « premier a 2 manches » depuis des semaines ; personne n'a rapproche ce
+  chiffre du cout d'un palier 6. Deux chiffres qui doivent s'accorder
+  s'affichent cote a cote, sinon ils ne s'accordent jamais.
+
+- **UN AVERTISSEMENT QUI MENT COUTE PLUS CHER QUE PAS D'AVERTISSEMENT.**
+  `BodyService` disait « le corps standard n'a pas pu etre applique », deux
+  fois, a chaque demarrage — et le temoin a montre que le corps etait POSE
+  correctement du premier coup. Trois chemins appellent la pose pour le meme
+  personnage (`CharacterAppearanceLoaded`, `CharacterAdded`, et le personnage
+  deja la au demarrage) : le premier arrive reussissait en silence, les deux
+  autres epuisaient leurs cinq essais et se plaignaient. On part alors chercher
+  un bug qui n'existe pas, exactement comme pour l'« Infinite yield » du
+  27 octobre.
+
+  Deux regles qui en sortent. **Un service MESURE son resultat au lieu de
+  croire son appel** : ici une fonction compare la description portee par le
+  personnage a la norme voulue, et l'avertissement ne part que si le corps est
+  vraiment hors norme. Et **une erreur qu'on signale se nomme** : l'erreur
+  reelle etait jetee par un `local ok = pcall(...)` anonyme, donc le message ne
+  pouvait pas dire pourquoi, et il a fallu une sonde en jeu pour l'apprendre.
+  Un `pcall` dont on jette le second retour est un aveu qu'on ne saura jamais.
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier
