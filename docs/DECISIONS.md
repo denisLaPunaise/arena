@@ -1754,6 +1754,47 @@ la console plutôt que de faire semblant. C'est à Josh de le mettre à R15.
 
 ---
 
+## L'allure des cinquante-six objets restants — 29 octobre 2026
+
+Les soixante-deux objets ont maintenant une allure à pièces. Cinq décisions
+ont été prises sans toi, toutes visuelles, donc aucune ne touche l'équilibrage
+— c'est le premier des six principes, et le bloc `look` n'entre dans aucun
+calcul de dégâts, de portée ni de budget.
+
+**L'armure lourde passe en acier clair.** Elle était en fer sombre. Regardée à
+l'écran à côté de la cotte de mailles et du gilet pare-éclats, elle était une
+boîte noire parmi trois boîtes noires, indistincte à trois mètres. Or c'est
+justement celle qu'on doit reconnaître de loin : elle annonce un adversaire
+lent et dur, et cette information vaut autant pour celui qui la porte que pour
+celui qui la voit arriver. Si tu préfères le fer sombre, c'est un seul mot dans
+le catalogue.
+
+**L'exosquelette reçoit une coque.** Il n'avait que trois nervures, une plaque
+de poitrine et une colonne dorsale, posées sur un torse nu : à l'écran ça ne
+lisait pas comme une armure, mais comme un corps nu avec des pièces vissées
+dessus. Ce qui fait exister une armure est la **silhouette**, donc la cage
+enveloppe maintenant le buste entier et les nervures se lisent par-dessus elle.
+
+**Les bottes à ressort se portent, elles ne se tiennent pas.** Elles étaient
+rangées dans les utilitaires, donc affichées dans la main gauche le temps d'un
+saut. Personne ne tient ses bottes pour sauter avec. Elles habillent donc les
+mollets et les pieds, et `Loadout.wornOf` regarde désormais si un objet
+*déclare* un bloc `worn` au lieu de regarder sa catégorie.
+
+**Le ressort de ces bottes est derrière la cheville, pas sous la semelle.**
+Mesuré : un personnage de Roblox pose la plante de son pied au sol, et rien de
+ce qu'on ajoute dessous ne le soulève. La pile précédente descendait 0,63 stud
+sous le pied, c'est-à-dire entièrement dans le plancher. Derrière la cheville,
+le mécanisme se voit de face comme de profil.
+
+**Les trois grenades-bidons se tiennent debout.** Couchées vers l'avant, elles
+se présentaient à la caméra par leur fond : trois disques noirs identiques,
+impossible de dire laquelle était laquelle. Debout, le corps, les deux bandes
+de couleur et le levier se voient — et c'est la bande qui les distingue, comme
+dans la convention réelle.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

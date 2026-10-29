@@ -1194,6 +1194,38 @@ ne cassera.
 
 ---
 
+## 25. L'allure des cinquante-six autres objets — **regardée, jamais jouée**
+
+Les soixante-deux objets ont maintenant une allure à pièces : treize armes de
+mêlée, dix-huit armes de tir, sept armures, cinq soins, treize utilitaires et
+les six objets d'essai. Je les ai **regardés à l'écran**, un par un, dans
+l'aperçu — c'est ce qui a trouvé les quatre défauts décrits dans le journal,
+dont aucun n'était visible dans les 1525 tests.
+
+Ce que ça ne dit pas, et que seul un vrai duel dira :
+
+- **est-ce qu'on reconnaît un objet à un mètre, pendant un combat ?** Je les
+  ai vus posés, immobiles, bien éclairés, sur fond gris, pendant que j'avais
+  tout mon temps. Un adversaire qui sort une arme à six mètres en courant,
+  c'est une autre question, et c'est la seule qui compte.
+- **est-ce que les sept armures se distinguent entre elles de loin ?** C'est la
+  raison pour laquelle j'ai éclairci l'armure lourde. Regarde surtout la cotte
+  de mailles, le gilet pare-éclats et le gambison côte à côte : les trois sont
+  des bandes horizontales sur un buste, et la couleur est tout ce qui les
+  sépare.
+- **est-ce que le ressort des bottes se voit en jouant ?** Il est derrière la
+  cheville, donc visible de face comme de profil quand on est à l'arrêt. En
+  pleine course, avec l'animation de marche, je ne sais pas.
+- **est-ce que les trois grenades-bidons se distinguent dans la main ?** Elles
+  se ressemblent exprès — elles se lancent pareil — et seules les bandes de
+  couleur les séparent : blanche pour la fumigène, claire pour l'aveuglante,
+  rouge sur olive pour l'incendiaire.
+
+**Ce qui reste structurellement faible, et je le dis franchement :** un torse
+de Roblox est une boîte. Une armure posée dessus reste une boîte un peu plus
+grosse. Les épaulières, les tassettes et les cuissards changent vraiment la
+silhouette ; le plastron, non. C'est la limite du corps, pas celle du dessin.
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
