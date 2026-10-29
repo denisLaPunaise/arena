@@ -1902,9 +1902,13 @@ mais une map ne se juge qu'en y jouant à plusieurs. Les trois sont dans
 
 ## Le contrôle du jeu — 29 octobre 2026
 
-Une seule décision, mais c'est la plus lourde de la nuit.
+**Aucune décision ici, et c'est Josh qui l'a relevé** : « on n'était pas déjà
+censé faire en 4 manches gagnantes, soit 4 à 7 manches ? » Si. La fiche le dit,
+`Config.match` le dit, et les tests le vérifiaient. Le code, lui, ne le lisait
+pas. Ce qui suit est donc une **réparation**, pas un arbitrage — j'avais écrit
+l'inverse dans la première version de cette section, et c'était faux.
 
-**Le prototype est coupé, donc les parties sont plus longues.** `Config.prototype.enabled`
+**Le prototype est coupé, donc les parties retrouvent leur longueur prévue.** `Config.prototype.enabled`
 existait depuis des semaines sans que personne ne le lise : `MatchService`
 prenait `Config.prototype.roundsToWin` quoi qu'il arrive, c'est-à-dire **premier
 à deux manches gagnées**, pendant que `Config.match` annonçait premier à quatre
@@ -1918,9 +1922,10 @@ palier 6 codés le 27 octobre ne pouvaient jamais partir. Rien ne plantait, rien
 ne s'affichait, et les 1525 tests passaient — parce qu'ils vérifiaient
 `Config.match`, que le jeu ne lisait pas.
 
-J'ai donc mis `enabled = false`. **Ce que ça change pour toi :**
+J'ai donc mis `enabled = false`. **Ce que ça change, et la colonne de droite
+est celle qui était prévue depuis le début :**
 
-| | avant | maintenant |
+| | ce que le jeu faisait | ce qui était prévu, et qui marche enfin |
 | --- | --- | --- |
 | manches à gagner | 2 | 4 |
 | manches par partie | 2 à 3 | 4 à 7 |
@@ -1932,11 +1937,13 @@ Les 24 minutes sont le cas pathologique : une manche dure au plus 180 secondes
 de resserrement de zone, et sept manches qui vont toutes au bout font 21
 minutes. En pratique les manches se finissent au combat bien avant.
 
-**C'est une décision de conception, et je l'ai prise sans toi** parce que
-l'alternative était que tu joues demain sans pouvoir atteindre la moitié de ton
-arbre de compétences. Elle se défait en **un seul mot** : `Config.prototype.enabled = true`
-rejoue les trois manches de l'étape 2. L'économie des pièces, elle, était déjà
-calibrée sur le vrai format — une victoire 4-0 rapporte 340 pièces et une caisse
+**Il n'y avait donc rien à arbitrer** : le jeu joue maintenant ce que la
+conception avait décidé, et la seule chose que j'ai choisie est le moment de la
+réparation. Elle se défait quand même en **un seul mot** si tu veux des parties
+courtes pour un essai : `Config.prototype.enabled = true` rejoue les trois
+manches de l'étape 2 — mais ce serait alors un choix délibéré, et il coûterait
+à nouveau les paliers 5 et 6. L'économie des pièces, elle, était déjà calibrée
+sur le vrai format — une victoire 4-0 rapporte 340 pièces et une caisse
 coûte 1000, donc une caisse en trois parties, exactement la fourchette prévue.
 
 **La leçon, et c'est la troisième fois.** `Config.formats` déclarait quatre

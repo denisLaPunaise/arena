@@ -515,10 +515,16 @@ for i = 1, 40 do
 		Enum.Material.Wood
 	)
 	for k = 1, 3 do
+		-- UN `Ball` NE DESSINE QU'UNE SPHERE DU PLUS PETIT DE SES TROIS COTES.
+		-- Ces boules etaient ecrites 20x15x25 : Roblox n'en gardait que le 15,
+		-- donc les cent vingt feuillages de la foret etaient RIGOUREUSEMENT
+		-- identiques et toute la variete ecrite partait a la poubelle. Un seul
+		-- chiffre, donc, et il porte la variete a lui tout seul.
+		local d = 15 + (i % 4) * 4 + (k % 3) * 3
 		local ball = part(
 			string.format("Feuillage%d_%d", i, k),
 			decor,
-			Vector3.new(20 + (i % 4) * 4, 15, 20 + (k % 3) * 5),
+			Vector3.new(d, d, d),
 			CFrame.new(x + (k - 2) * 6, h - 2 + k * 3, z + (k - 2) * 5),
 			if k == 2 then LEAF_DARK else LEAF,
 			Enum.Material.Grass
