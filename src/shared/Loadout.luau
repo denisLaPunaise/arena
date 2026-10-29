@@ -440,7 +440,14 @@ function Loadout.wornOf(config, itemIds: { string }): { any }
 	local found = {}
 	for _, itemId in itemIds do
 		local item = Loadout.find(config, itemId)
-		if item ~= nil and item.category == "armor" then
+		-- CE QUI SE PORTE EST CE QUI DIT SE PORTER, pas ce qui est range dans
+		-- la categorie « armure ». Les bottes a ressort sont un utilitaire, et
+		-- les montrer dans la main gauche le temps d'un saut serait absurde :
+		-- on ne tient pas ses bottes. Un objet qui declare un bloc `worn` est
+		-- donc habille, quelle que soit sa categorie.
+		local wearable = item ~= nil
+			and (item.category == "armor" or (item.look ~= nil and item.look.worn ~= nil))
+		if wearable then
 			table.insert(found, item)
 		end
 	end

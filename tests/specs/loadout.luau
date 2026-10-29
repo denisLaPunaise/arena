@@ -582,6 +582,7 @@ return function(t: harness.Harness)
 	local twiceNamed: string? = nil
 	local pointless: string? = nil
 	local unseated: string? = nil
+	local flattened: string? = nil
 
 	-- UNE ARMURE NE SE REGARDE QUE SUR UN CORPS, donc tout membre qu'une piece
 	-- nomme doit avoir sa place dans le squelette d'examen. Sans ca `preview`
@@ -590,8 +591,10 @@ return function(t: harness.Harness)
 	-- deux listes de garde-fous qui divergent : deux listes qui doivent
 	-- s'accorder finissent toujours par ne plus s'accorder.
 	local seated: { [string]: boolean } = {}
+	local bones: { [string]: { number } } = {}
 	for _, bone in Config.loadout.previewRig do
 		seated[bone.limb] = true
+		bones[bone.limb] = bone.size
 	end
 
 	for _, item in Config.items do
@@ -645,6 +648,10 @@ return function(t: harness.Harness)
 			badPiece = item.id .. " : aucune piece"
 			continue
 		end
+		-- Le membre de reference de ce qui se porte, ou `nil` pour ce qui se
+		-- tient : c'est lui qui donne l'echelle des fractions.
+		local worn = look.worn
+		local fitLimb: string? = if worn ~= nil and worn.fit == true then worn.limb else nil
 
 		local seen: { [string]: boolean } = {}
 		local reach = 0
@@ -663,6 +670,31 @@ return function(t: harness.Harness)
 			seen[piece.name] = true
 			if piece.limb ~= nil and not seated[piece.limb] then
 				unseated = item.id .. " : " .. piece.limb
+			end
+			-- UN `Cylinder` NE DESSINE PAS D'ELLIPSE. Comme un `Ball`, il prend
+			-- le PLUS PETIT de ses deux cotes de section comme diametre :
+			-- verifie par temoin le 29 octobre 2026, trois cylindres de
+			-- sections 1x3, 3x3 et 3x1 donnent des rondes de 1, 3 et 1. Ecrire
+			-- deux cotes differents, c'est donc en ecrire un que Roblox jette,
+			-- et la piece sort beaucoup plus mince que voulu — assez pour
+			-- disparaitre dans le membre qu'elle habille. Les cinq boudins du
+			-- gambison y sont passes : l'armure lisait comme un corps nu.
+			--
+			-- Le rapport se mesure APRES la mise a l'echelle du membre, parce
+			-- que c'est la taille finale qui est dessinee : un bras fait 1,00
+			-- de large pour 1,24 de haut, donc deux fractions egales n'y
+			-- donnent pas deux cotes egaux.
+			if piece.shape == "Cylinder" then
+				local y, z = piece.size[2], piece.size[3]
+				if fitLimb ~= nil then
+					local bone = bones[piece.limb or fitLimb]
+					if bone ~= nil then
+						y, z = y * bone[2], z * bone[3]
+					end
+				end
+				if math.max(y, z) > math.min(y, z) * 1.2 then
+					flattened = item.id .. " : " .. piece.name
+				end
 			end
 			reach = math.max(reach, -(piece.at[3] - piece.size[3] / 2))
 			reach = math.max(reach, piece.at[2] + piece.size[2] / 2)
@@ -683,6 +715,7 @@ return function(t: harness.Harness)
 	t.equal("aucun membre sans place dans le squelette d'examen", unseated, nil)
 	t.equal("aucune piece incomplete", badPiece, nil)
 	t.equal("aucun nom de piece en double", twiceNamed, nil)
+	t.equal("aucun cylindre dont le diametre serait ignore", flattened, nil)
 	t.equal("aucune arme tenue par le mauvais bout", pointless, nil)
 
 	t.section("Chaque mouvement est complet")

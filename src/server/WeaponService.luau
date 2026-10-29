@@ -366,6 +366,10 @@ local R6_FOR: { [string]: string } = {
 	LeftUpperArm = "Left Arm",
 	RightUpperLeg = "Right Leg",
 	LeftUpperLeg = "Left Leg",
+	RightLowerLeg = "Right Leg",
+	LeftLowerLeg = "Left Leg",
+	RightFoot = "Right Leg",
+	LeftFoot = "Left Leg",
 }
 
 local function limbOf(character: Model, name: string): BasePart?
