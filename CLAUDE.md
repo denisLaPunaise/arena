@@ -748,6 +748,23 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   soudée et suit l'animation de marche sans la contrarier. Le refus de
   l'étape 10 portait sur les `IKControl`, qui eux gagnent contre l'animation.
 
+- **CE QUI SE PORTE EST CE QUI DIT SE PORTER**, pas ce qui est rangé dans la
+  catégorie « armure ». Les bottes à ressort sont un utilitaire, et elles
+  s'affichaient dans la main gauche le temps d'un saut : personne ne tient
+  ses bottes pour sauter avec. `Loadout.wornOf` regarde donc le bloc `worn`
+  et non la catégorie. Conséquence à connaître : le squelette d'examen de
+  `Config.loadout.previewRig` doit contenir tout membre qu'une pièce nomme,
+  mollets et pieds compris, sinon l'aperçu saute le groupe **en silence** et
+  on conclut que la pièce n'existe pas.
+
+- **RIEN DE CE QU'ON MET SOUS UNE SEMELLE NE SE VOIT.** Un personnage de
+  Roblox pose la plante de son pied au sol : ajouter des pièces dessous ne le
+  soulève pas, ça les enterre. Mesuré le 29 octobre 2026 — le ressort des
+  bottes descendait 0,63 stud sous le pied, donc entièrement dans le
+  plancher. Il est passé derrière la cheville, où il se voit de face comme de
+  profil. Même famille que la butée de l'épaule : la question n'est pas « où
+  est-ce que je veux le mettre » mais « où est-ce que ça se verra ».
+
 - **LES PROPORTIONS DE RÉFÉRENCE SE PRENNENT SUR UN CORPS STANDARD, JAMAIS SUR
   L'AVATAR QU'ON A SOUS LA MAIN.** La première mesure a été prise sur l'avatar
   de Josh, qui est un **pigeon** : torse de 1,27 stud de large et bras de 0,40.
@@ -775,6 +792,19 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   0,42. La grenade a donc porté des rainures calculées sur une hauteur qui
   n'existait pas, et elles dépassaient du corps comme les anneaux de Saturne.
   Un rayon se calcule sur ce que Roblox dessine, pas sur ce qu'on a écrit.
+
+- **UN `Cylinder` NE DESSINE PAS D'ELLIPSE NON PLUS.** Comme un `Ball`, il
+  prend le **plus petit** de ses deux côtés de section comme diamètre.
+  Vérifié par témoin le 29 octobre 2026 : trois cylindres de sections 1×3,
+  3×3 et 3×1 donnent des rondes de 1, 3 et 1. Écrire deux côtés différents,
+  c'est donc en écrire un que Roblox jette, et la pièce sort beaucoup plus
+  mince que voulu — assez pour disparaître dans ce qu'elle habille. Les cinq
+  boudins du gambison y sont passés : l'armure lisait comme un corps nu, et
+  les 1524 tests passaient. **Un disque s'écrit `[épaisseur, diamètre,
+  diamètre]`** et se couche par `roll` ou `tipLeft`. Un test refuse désormais
+  tout rapport au-delà de 1,2, **mesuré après la mise à l'échelle du membre**
+  — un bras fait 1,00 de large pour 1,24 de haut, donc deux fractions égales
+  n'y donnent pas deux côtés égaux.
 
 - **UN `Cylinder` TIRE SA LONGUEUR DE `Size.X`**, pas de l'axe où on croit le
   poser. Deux conséquences, et les deux ont mordu le même jour : pour le
@@ -849,14 +879,18 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    explosions, et c'est une décision prise sans Josh**. Vérifié en jeu pour
    tout ce qui ne vise personne ; **la moitié offensive n'a jamais touché
    personne**, section 21 d'`A-TESTER.md`
-14. **L'allure des objets, un par un** — commencé : le format d'allure à
-   pièces, les trois emplacements, l'armure à l'échelle du corps, et **six
-   objets d'essai dessinés et regardés à l'écran** (katana, fusil de précision,
-   marteau de guerre, armure de plaques, trousse de soin, grenade). Les 56
-   autres restent au format d'origine, qui marche toujours. Verdict honnête :
-   le katana et le fusil sont bons, la trousse et la grenade aussi, le marteau
-   est passable, **l'armure est la plus faible** et la raison est structurelle
-   — un torse Roblox est une boîte
+14. **L'allure des objets, un par un** — **fait** : les soixante-deux objets
+   ont une allure à pièces, et chacun a été **regardé à l'écran**. Treize
+   armes de mêlée, dix-huit armes de tir, sept armures, cinq soins, treize
+   utilitaires, plus les six objets d'essai. Les familles sont dessinées par
+   des générateurs partagés, pour que soixante-deux objets parlent une seule
+   langue visuelle. Quatre défauts trouvés en regardant et aucun par les
+   tests : le diamètre des cylindres, un rail non miroité, un ressort enterré
+   sous une semelle, et trois grenades présentées par leur fond. Verdict
+   honnête, inchangé : les armes se lisent bien, **les armures restent les
+   plus faibles** et la raison est structurelle — un torse Roblox est une
+   boîte, et seules les épaulières, les tassettes et les cuissards changent
+   vraiment une silhouette
 15. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), **l'allure des armes et des maps**, les skins,
