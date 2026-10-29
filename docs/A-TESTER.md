@@ -1226,6 +1226,66 @@ de Roblox est une boîte. Une armure posée dessus reste une boîte un peu plus
 grosse. Les épaulières, les tassettes et les cuissards changent vraiment la
 silhouette ; le plastron, non. C'est la limite du corps, pas celle du dessin.
 
+## 26. Les trois maps — **mesurées au rayon, jamais jouées**
+
+Trois maps, trois univers, trois recettes dans `tools/`. Le Colisée est celui
+qui est **dans la place en ce moment** ; pour en essayer une autre, il suffit
+de coller `tools/BuildCargoMap.luau` ou `tools/BuildSanctuaireMap.luau` dans la
+barre de commande de Studio. Chaque recette détruit les autres d'abord, parce
+que `MapService` prend la première map conforme qu'il trouve.
+
+Ce que j'ai pu vérifier moi-même, et comment :
+
+- le contrat de nommage est respecté sur les trois (`SpawnsA` et `SpawnsB` à
+  cinq points, `ZoneCenter`, `Cover`, `MapBounds`) — vérifié dans la place ;
+- aucune ligne de départ à départ n'est dégagée — vérifié par **rayon**, pas à
+  l'oeil, et c'est ce qui a trouvé le défaut du Colisée ;
+- chaque camp a **deux sorties** distinctes ;
+- les positions hautes voient le cercle final de 16 studs — vérifié par rayon
+  depuis chaque coursive et chaque balcon ;
+- les rampes montent dans le bon sens — vérifié en **échantillonnant la hauteur
+  du sol** le long du chemin, ce qui a attrapé une rampe du Sanctuaire posée à
+  l'envers ;
+- rien ne dépasse de `MapBounds`, et aucun décor ne bloque un escalier.
+
+Ce que ça ne dit pas, et que seule une vraie partie dira :
+
+- **est-ce que la taille est juste pour les quatre formats ?** C'est la question
+  la plus importante, et je l'ai tranchée par le calcul : 160 studs se
+  traversent en 7 secondes, le premier resserrement de zone arrive à 120. Si le
+  1v1 s'ennuie avant le premier resserrement, c'est trop grand ; si le 4v4 est
+  une mêlée dès la première seconde, c'est trop petit. **Essaie le 1v1 et le
+  4v4 sur la même map avant de juger quoi que ce soit d'autre.**
+- **est-ce que la fosse du Colisée se joue, ou est-ce qu'on l'évite ?** Elle
+  fait 6 studs de profondeur et couvre tout le centre, donc le cercle final
+  tombe dedans. Si tout le monde l'évite jusqu'à y être forcé, c'est un
+  mauvais centre et il faut la combler à moitié. Si on s'y bat, c'est la
+  meilleure idée des trois maps.
+- **est-ce que les coursives du Cargo sont trop fortes ?** Elles sont à 14
+  studs, elles courent sur toute la longueur, et elles ont deux rampes
+  chacune. J'ai baissé les garde-corps à 17 pour qu'on puisse tirer vers le
+  bas. Si un tireur de précision y rend le sol injouable, la réponse est de
+  raccourcir les coursives, pas de les enlever.
+- **est-ce que les quatre chaussées du Sanctuaire suffisent ?** C'est le pari
+  de cette map : on ne traverse pas le bassin, on choisit un passage et
+  l'adversaire voit lequel. Si ça donne quatre embouteillages au lieu de
+  quatre choix, il faut élargir les chaussées ou baisser le bassin.
+- **est-ce qu'elles sont belles ?** Je les ai photographiées et regardées, et
+  je ne peux pas aller plus loin que ça. Le Colisée est le plus abouti, le
+  Cargo le plus lisible, le Sanctuaire le plus ambitieux et le plus fragile
+  — ses arbres, sa pluie et sa brume sont le seul endroit où j'ai cherché une
+  ambiance plutôt qu'une lecture claire.
+- **est-ce que l'éclairage de nuit du Cargo gêne ?** Il est volontairement
+  sombre (c'est le vide), tenu par onze lampes et des néons au sol. Il a été
+  réglé deux fois : trop noir, puis tout blanc. S'il manque de lisibilité en
+  combat, c'est un seul chiffre — `Lighting.Ambient` dans la recette.
+
+**Deux choses à savoir avant d'y toucher.** Une map n'est **ni dans Git ni dans
+Rojo** : elle n'existe que dans la place, et une fausse manoeuvre la supprime
+sans trace. La parade est que les trois recettes sont commitées, donc tout se
+reconstruit à l'identique. Et **l'éclairage appartient à la map** : lancer une
+recette remplace entièrement le `Lighting` de la place.
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

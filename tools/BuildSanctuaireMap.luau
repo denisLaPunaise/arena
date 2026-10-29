@@ -101,7 +101,9 @@ local function pillar(name, parent, radius, height, x, z, y, color, material, ti
 		name,
 		parent,
 		Vector3.new(height, radius * 2, radius * 2),
-		CFrame.new(x, y + height / 2, z) * CFrame.Angles(0, 0, math.pi / 2) * CFrame.Angles(tilt or 0, 0, 0),
+		CFrame.new(x, y + height / 2, z)
+			* CFrame.Angles(0, 0, math.pi / 2)
+			* CFrame.Angles(tilt or 0, 0, 0),
 		color,
 		material
 	)
@@ -110,15 +112,43 @@ local function pillar(name, parent, radius, height, x, z, y, color, material, ti
 end
 
 -- ===== Le sol ===========================================================
-part("Jungle", decor, Vector3.new(900, 8, 900), CFrame.new(0, -5, 0), LEAF_DARK, Enum.Material.Grass)
-part("Dalle", decor, Vector3.new(PLAZA, 3, PLAZA), CFrame.new(0, -1.5, 0), MOSS, Enum.Material.Slate)
+part(
+	"Jungle",
+	decor,
+	Vector3.new(900, 8, 900),
+	CFrame.new(0, -5, 0),
+	LEAF_DARK,
+	Enum.Material.Grass
+)
+part(
+	"Dalle",
+	decor,
+	Vector3.new(PLAZA, 3, PLAZA),
+	CFrame.new(0, -1.5, 0),
+	MOSS,
+	Enum.Material.Slate
+)
 
 -- Les joints de la dalle : sans eux, cent cinquante studs de pierre unie ne
 -- disent rien de la distance, et on ne sait plus ou on court.
 for i = -4, 4 do
 	if i ~= 0 then
-		part(string.format("JointX%d", i), decor, Vector3.new(PLAZA, 0.14, 0.8), CFrame.new(0, 0.07, i * 16), MOSS_DARK).CanCollide = false
-		part(string.format("JointZ%d", i), decor, Vector3.new(0.8, 0.14, PLAZA), CFrame.new(i * 16, 0.07, 0), MOSS_DARK).CanCollide = false
+		part(
+			string.format("JointX%d", i),
+			decor,
+			Vector3.new(PLAZA, 0.14, 0.8),
+			CFrame.new(0, 0.07, i * 16),
+			MOSS_DARK
+		).CanCollide =
+			false
+		part(
+			string.format("JointZ%d", i),
+			decor,
+			Vector3.new(0.8, 0.14, PLAZA),
+			CFrame.new(i * 16, 0.07, 0),
+			MOSS_DARK
+		).CanCollide =
+			false
 	end
 end
 
@@ -140,7 +170,11 @@ for _, s in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
 	local w = part(
 		string.format("Eau%d_%d", sx, sz),
 		decor,
-		Vector3.new(if sx ~= 0 then thin - 1 else wide - 2, 0.9, if sz ~= 0 then thin - 1 else wide - 2),
+		Vector3.new(
+			if sx ~= 0 then thin - 1 else wide - 2,
+			0.9,
+			if sz ~= 0 then thin - 1 else wide - 2
+		),
 		CFrame.new(sx * (MOAT_INNER + thin / 2), -0.3, sz * (MOAT_INNER + thin / 2)),
 		WATER,
 		Enum.Material.Glass
@@ -180,7 +214,8 @@ for tier = 1, 3 do
 		Vector3.new(w + 1, 0.5, w + 1),
 		CFrame.new(0, y + ALTAR_TOP / 3 - 0.1, 0),
 		LIME_DARK
-	).CanCollide = false
+	).CanCollide =
+		false
 end
 
 -- UN ESCALIER PAR FACE. L'autel voit tout : s'il n'avait qu'une montee, une
@@ -202,10 +237,34 @@ end
 -- Les quatre colonnes du sommet et leur linteau d'or : c'est la seule chose
 -- doree de la map, donc c'est elle qu'on vise des qu'on cherche le centre.
 for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
-	pillar(string.format("Fut%d_%d", c[1], c[2]), cover, 1.3, 9, c[1] * 4.5, c[2] * 4.5, ALTAR_TOP, LIME)
+	pillar(
+		string.format("Fut%d_%d", c[1], c[2]),
+		cover,
+		1.3,
+		9,
+		c[1] * 4.5,
+		c[2] * 4.5,
+		ALTAR_TOP,
+		LIME
+	)
 end
-part("Linteau", decor, Vector3.new(13, 1.6, 13), CFrame.new(0, ALTAR_TOP + 9.8, 0), GOLD, Enum.Material.Metal).CanCollide = false
-part("Pierre", cover, Vector3.new(5, 2.4, 5), CFrame.new(0, ALTAR_TOP + 1.2, 0), GOLD, Enum.Material.Metal)
+part(
+	"Linteau",
+	decor,
+	Vector3.new(13, 1.6, 13),
+	CFrame.new(0, ALTAR_TOP + 9.8, 0),
+	GOLD,
+	Enum.Material.Metal
+).CanCollide =
+	false
+part(
+	"Pierre",
+	cover,
+	Vector3.new(5, 2.4, 5),
+	CFrame.new(0, ALTAR_TOP + 1.2, 0),
+	GOLD,
+	Enum.Material.Metal
+)
 
 -- ===== Les deux tours des coins neutres =================================
 -- AUX COINS QUE PERSONNE N'HABITE, donc a egale distance des deux camps.
@@ -214,8 +273,20 @@ part("Pierre", cover, Vector3.new(5, 2.4, 5), CFrame.new(0, ALTAR_TOP + 1.2, 0),
 -- dalle, pas assez pour voir par-dessus l'autel.
 for _, c in { { 1, -1 }, { -1, 1 } } do
 	local x, z = c[1] * SPAWN_XZ, c[2] * SPAWN_XZ
-	part(string.format("Socle%d", c[1]), decor, Vector3.new(26, 8, 26), CFrame.new(x, 4, z), LIME_DARK)
-	part(string.format("Plancher%d", c[1]), decor, Vector3.new(27, 1, 27), CFrame.new(x, 8.3, z), LIME)
+	part(
+		string.format("Socle%d", c[1]),
+		decor,
+		Vector3.new(26, 8, 26),
+		CFrame.new(x, 4, z),
+		LIME_DARK
+	)
+	part(
+		string.format("Plancher%d", c[1]),
+		decor,
+		Vector3.new(27, 1, 27),
+		CFrame.new(x, 8.3, z),
+		LIME
+	)
 	-- Trois pans de mur en ruine, pas quatre : un carre ferme serait une
 	-- boite dont on ne sort que par la rampe.
 	for i, w in { { 1, 0 }, { 0, 1 }, { 0.72, 0.72 } } do
@@ -223,7 +294,8 @@ for _, c in { { 1, -1 }, { -1, 1 } } do
 			string.format("Pan%d_%d", c[1], i),
 			cover,
 			Vector3.new(if w[1] > 0.9 then 2.2 else 20, 9 - i * 1.6, if w[2] > 0.9 then 2.2 else 20),
-			CFrame.new(x + c[1] * w[1] * 12, 13 - i * 0.8, z + c[2] * w[2] * 12) * CFrame.Angles(0, if i == 3 then c[1] * c[2] * math.rad(45) else 0, 0),
+			CFrame.new(x + c[1] * w[1] * 12, 13 - i * 0.8, z + c[2] * w[2] * 12)
+				* CFrame.Angles(0, if i == 3 then c[1] * c[2] * math.rad(45) else 0, 0),
 			MOSS
 		)
 	end
@@ -245,7 +317,17 @@ for _, c in { { 1, -1 }, { -1, 1 } } do
 			* CFrame.Angles(-math.atan2(8, 16), 0, 0),
 		LIME_DARK
 	)
-	pillar(string.format("TourFut%d", c[1]), decor, 2, 22, x + c[1] * 10, z + c[2] * 10, 8, LIME, Enum.Material.Slate)
+	pillar(
+		string.format("TourFut%d", c[1]),
+		decor,
+		2,
+		22,
+		x + c[1] * 10,
+		z + c[2] * 10,
+		8,
+		LIME,
+		Enum.Material.Slate
+	)
 end
 
 -- ===== Les deux camps ===================================================
@@ -259,21 +341,60 @@ for _, side in { -1, 1 } do
 	-- quel cote on est, et il coupe la vue depuis le centre vers le depart.
 	for _, dx in { -1, 1 } do
 		for _, dz in { -1, 1 } do
-			pillar(string.format("Col%s%d%d", team, dx, dz), decor, 1.6, 11, x + dx * 10, z + dz * 10, 4, LIME)
+			pillar(
+				string.format("Col%s%d%d", team, dx, dz),
+				decor,
+				1.6,
+				11,
+				x + dx * 10,
+				z + dz * 10,
+				4,
+				LIME
+			)
 		end
 	end
 	-- LE TOIT EST PLUS PETIT QUE LE PARVIS ET PLUS BAS. A trente studs de
 	-- cote et dix-neuf de haut il ecrasait la moitie de la map a l'ecran :
 	-- un abri de depart doit se voir, pas dominer le temple qui est le sujet.
-	part("Toit" .. team, decor, Vector3.new(25, 1.6, 25), CFrame.new(x, 15.6, z), MOSS_DARK).CanCollide = false
-	part("Faitage" .. team, decor, Vector3.new(27, 0.8, 27), CFrame.new(x, 16.6, z), LIME_DARK).CanCollide = false
-	part("Fronton" .. team, decor, Vector3.new(22, 2.2, 1), CFrame.new(x - side * 1, 14, z - side * 12), tint, Enum.Material.Fabric).CanCollide = false
-	part("Fronton2" .. team, decor, Vector3.new(1, 2.2, 22), CFrame.new(x - side * 12, 14, z - side * 1), tint, Enum.Material.Fabric).CanCollide = false
+	part("Toit" .. team, decor, Vector3.new(25, 1.6, 25), CFrame.new(x, 15.6, z), MOSS_DARK).CanCollide =
+		false
+	part("Faitage" .. team, decor, Vector3.new(27, 0.8, 27), CFrame.new(x, 16.6, z), LIME_DARK).CanCollide =
+		false
+	part(
+		"Fronton" .. team,
+		decor,
+		Vector3.new(22, 2.2, 1),
+		CFrame.new(x - side * 1, 14, z - side * 12),
+		tint,
+		Enum.Material.Fabric
+	).CanCollide =
+		false
+	part(
+		"Fronton2" .. team,
+		decor,
+		Vector3.new(1, 2.2, 22),
+		CFrame.new(x - side * 12, 14, z - side * 1),
+		tint,
+		Enum.Material.Fabric
+	).CanCollide =
+		false
 
 	-- DEUX SORTIES, pas une : un camp a une seule issue se fait enfermer par
 	-- une personne. Le mur du fond les separe et couvre le depart.
-	part("Fond" .. team, cover, Vector3.new(26, 11, 3), CFrame.new(x + side * 2, 9.5, z + side * 14), MOSS)
-	part("Fond2" .. team, cover, Vector3.new(3, 11, 26), CFrame.new(x + side * 14, 9.5, z + side * 2), MOSS)
+	part(
+		"Fond" .. team,
+		cover,
+		Vector3.new(26, 11, 3),
+		CFrame.new(x + side * 2, 9.5, z + side * 14),
+		MOSS
+	)
+	part(
+		"Fond2" .. team,
+		cover,
+		Vector3.new(3, 11, 26),
+		CFrame.new(x + side * 14, 9.5, z + side * 2),
+		MOSS
+	)
 
 	-- Deux blocs devant, pour ne pas aborder la dalle a decouvert.
 	for i, b in { { -18, -6 }, { -6, -18 } } do
@@ -325,17 +446,42 @@ for i, d in DEBRIS do
 		local name = string.format("Debris%d_%d", i, sgn)
 		if d[3] == "colonne" then
 			local p = pillar(name, cover, 1.7, d[4], x, z, 0, LIME)
-			p.CFrame = CFrame.new(x, 1.7, z) * CFrame.Angles(0, i * 0.7, 0) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(0, math.rad(90), 0)
+			p.CFrame = CFrame.new(x, 1.7, z)
+				* CFrame.Angles(0, i * 0.7, 0)
+				* CFrame.Angles(0, 0, math.rad(90))
+				* CFrame.Angles(0, math.rad(90), 0)
 			p.Size = Vector3.new(d[4], 3.4, 3.4)
 		elseif d[3] == "mur" then
-			part(name, cover, Vector3.new(d[4], 6.5, 2.6), CFrame.new(x, 3.25, z) * CFrame.Angles(0, i * 0.8, 0), MOSS)
-			part(name .. "Bas", cover, Vector3.new(d[4] * 0.6, 3.4, 2.6), CFrame.new(x + 2, 1.7, z + 5) * CFrame.Angles(0, i * 0.8 + 0.4, 0), MOSS_DARK)
+			part(
+				name,
+				cover,
+				Vector3.new(d[4], 6.5, 2.6),
+				CFrame.new(x, 3.25, z) * CFrame.Angles(0, i * 0.8, 0),
+				MOSS
+			)
+			part(
+				name .. "Bas",
+				cover,
+				Vector3.new(d[4] * 0.6, 3.4, 2.6),
+				CFrame.new(x + 2, 1.7, z + 5) * CFrame.Angles(0, i * 0.8 + 0.4, 0),
+				MOSS_DARK
+			)
 		else
 			-- Une racine : trois boudins qui sortent du sol en travers. C'est
 			-- la seule chose de la map qui ne soit pas taillee, et c'est elle
 			-- qui dit que la jungle reprend le temple.
 			for k = 1, 3 do
-				local p = pillar(string.format("%sR%d", name, k), cover, 1.1 + k * 0.2, 12 - k, x + k * 2.2, z - k * 1.4, 0, BARK, Enum.Material.Wood)
+				local p = pillar(
+					string.format("%sR%d", name, k),
+					cover,
+					1.1 + k * 0.2,
+					12 - k,
+					x + k * 2.2,
+					z - k * 1.4,
+					0,
+					BARK,
+					Enum.Material.Wood
+				)
 				p.CFrame = CFrame.new(x + k * 2.2, 1 + k * 0.3, z - k * 1.4)
 					* CFrame.Angles(0, i + k * 0.5, 0)
 					* CFrame.Angles(0, 0, math.rad(90))
@@ -357,7 +503,17 @@ for i = 1, 40 do
 	local r = 110 + (i % 4) * 11
 	local x, z = math.sin(a) * r, math.cos(a) * r
 	local h = 24 + (i % 7) * 9
-	pillar(string.format("Tronc%d", i), decor, 2.4 + (i % 3) * 0.5, h, x, z, -1, BARK, Enum.Material.Wood)
+	pillar(
+		string.format("Tronc%d", i),
+		decor,
+		2.4 + (i % 3) * 0.5,
+		h,
+		x,
+		z,
+		-1,
+		BARK,
+		Enum.Material.Wood
+	)
 	for k = 1, 3 do
 		local ball = part(
 			string.format("Feuillage%d_%d", i, k),
@@ -380,7 +536,11 @@ for _, s in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
 			part(
 				string.format("Enceinte%d_%d_%d", s[1], s[2], i),
 				cover,
-				Vector3.new(if s[1] ~= 0 then 3 else 16, 7 - math.abs(i), if s[2] ~= 0 then 3 else 16),
+				Vector3.new(
+					if s[1] ~= 0 then 3 else 16,
+					7 - math.abs(i),
+					if s[2] ~= 0 then 3 else 16
+				),
 				CFrame.new(
 					s[1] * (PLAZA / 2 - 3) + (if s[1] == 0 then along else 0),
 					3.5 - math.abs(i) / 2,
@@ -454,7 +614,12 @@ Lighting.OutdoorAmbient = Color3.fromRGB(104, 120, 100)
 Lighting.ExposureCompensation = 0
 Lighting.FogEnd = 100000
 for _, old in Lighting:GetChildren() do
-	if old:IsA("Atmosphere") or old:IsA("Sky") or old:IsA("BloomEffect") or old:IsA("ColorCorrectionEffect") then
+	if
+		old:IsA("Atmosphere")
+		or old:IsA("Sky")
+		or old:IsA("BloomEffect")
+		or old:IsA("ColorCorrectionEffect")
+	then
 		old:Destroy()
 	end
 end

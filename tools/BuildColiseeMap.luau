@@ -171,8 +171,7 @@ for _, a in { 45, 135, 225, 315 } do
 			string.format("Marche%d_%d", a, s),
 			decor,
 			Vector3.new(9, 1, 2.6),
-			CFrame.new(math.sin(rad) * r, y + 0.5, math.cos(rad) * r)
-				* CFrame.Angles(0, rad, 0),
+			CFrame.new(math.sin(rad) * r, y + 0.5, math.cos(rad) * r) * CFrame.Angles(0, rad, 0),
 			STONE
 		)
 	end
@@ -280,16 +279,7 @@ end
 for i = 1, 4 do
 	local a = (i - 1) / 4 * math.pi * 2 + math.pi / 4
 	local x, z = math.sin(a) * 15, math.cos(a) * 15
-	local drum = pillar(
-		string.format("Tambour%d", i),
-		cover,
-		2.6,
-		5.4,
-		x,
-		z,
-		-PIT_DEPTH,
-		STONE
-	)
+	local drum = pillar(string.format("Tambour%d", i), cover, 2.6, 5.4, x, z, -PIT_DEPTH, STONE)
 	-- Couche, pas debout : un tambour tombe se lit tout de suite comme une
 	-- ruine, et il fait une couverture a hauteur de poitrine.
 	drum.CFrame = CFrame.new(x, -PIT_DEPTH + 2.6, z) * CFrame.Angles(0, a + math.pi / 2, 0)
@@ -486,8 +476,11 @@ for i = 1, PIERS do
 			string.format("Claveau%d_%d", i, tilt),
 			decor,
 			Vector3.new(4, 9, 6),
-			CFrame.new(bx - math.sin(b + tilt * math.pi / 2) * 3, 19, bz - math.cos(b + tilt * math.pi / 2) * 3)
-				* CFrame.Angles(0, b, tilt * math.rad(32)),
+			CFrame.new(
+				bx - math.sin(b + tilt * math.pi / 2) * 3,
+				19,
+				bz - math.cos(b + tilt * math.pi / 2) * 3
+			) * CFrame.Angles(0, b, tilt * math.rad(32)),
 			STONE_DARK
 		)
 	end
@@ -561,7 +554,12 @@ Lighting.OutdoorAmbient = Color3.fromRGB(134, 120, 98)
 Lighting.ExposureCompensation = 0.1
 Lighting.FogEnd = 100000
 for _, old in Lighting:GetChildren() do
-	if old:IsA("Atmosphere") or old:IsA("Sky") or old:IsA("BloomEffect") or old:IsA("ColorCorrectionEffect") then
+	if
+		old:IsA("Atmosphere")
+		or old:IsA("Sky")
+		or old:IsA("BloomEffect")
+		or old:IsA("ColorCorrectionEffect")
+	then
 		old:Destroy()
 	end
 end

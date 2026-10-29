@@ -821,6 +821,62 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   est de **remesurer dans Studio**, jamais de recalculer la valeur attendue
   dans le test : c'est la première moitié du test qui rend la seconde crédible.
 
+- **UNE MAP NE SE JUGE PAS A L'OEIL, ELLE SE MESURE AU RAYON.** Les trois
+  defauts de jeu reels des maps du 29 octobre 2026 ont tous ete trouves par
+  `Workspace:Raycast`, aucun en regardant : une ligne de tir degagee de 120
+  studs entre les deux departs, deux coursives aveugles sur le cercle final a
+  cause d'une passerelle centrale, et un garde-corps a 18,2 studs qui bouchait
+  la vue vers le bas depuis un oeil a 19,8. **Et le sens d'une rampe se
+  verifie en echantillonnant la hauteur du sol le long du chemin** : une rampe
+  du Sanctuaire etait posee a l'envers et ca ne se voyait pas sur une capture.
+  L'oeil dit si c'est joli ; le rayon dit si ca se joue.
+
+- **LES MAPS NE PEUVENT PAS COHABITER, ET L'ECLAIRAGE APPARTIENT A LA MAP.**
+  `MapService` prend la PREMIERE map conforme de `Workspace`, donc deux maps
+  presentes veut dire que la seconde ne sert jamais : chaque recette de
+  `tools/` detruit les autres avant de construire. Et comme `Lighting` est un
+  reglage de place et pas un enfant de la map, chaque recette pose aussi tout
+  son eclairage — lancer une autre recette le remplace entierement. Une map
+  sans son eclairage herite de celui de la precedente, et un desert eclaire a
+  minuit ne ressemble a rien.
+
+- **La `Baseplate` gagne un pixel sur deux.** Un sol de map pose au meme
+  niveau que la Baseplate laisse apparaitre la grille grise par plaques, de
+  facon aleatoire selon l'angle de vue. Chaque recette detruit donc la
+  `Baseplate` ET le `SpawnLocation` — ce dernier fait apparaitre les joueurs
+  hors de leur camp.
+
+- **`CorrodedMetal` peint sa propre rouille PAR-DESSUS la couleur.** Les six
+  piles de conteneurs du Cargo etaient de trois couleurs differentes dans le
+  code et toutes orange a l'ecran. Un materiau Roblox qui porte sa propre
+  teinte (`CorrodedMetal`, `Grass`, `Sand` a un moindre degre) ne se choisit
+  pas pour sa texture en esperant garder sa couleur.
+
+- **LA CAMERA NE SE PILOTE QU'EN MODE JEU.** En mode edition Studio garde la
+  POSITION qu'on lui donne mais IMPOSE son orientation : un `CFrame.lookAt` ne
+  cadre rien, et la mesure le dit — `LookVector` releve a 0,510 / 0,137 /
+  -0,849 pour un 0,642 / -0,420 / -0,642 demande. En mode jeu elle obeit, mais
+  le jeu la rend au personnage a chaque apparition, donc il faut la reprendre a
+  chaque image. Le moyen employe est un `CFrameValue` dans `Workspace` et une
+  boucle `RenderStepped` cote client qui la tient et masque les `ScreenGui` ;
+  detruire le `CFrameValue` rend la camera et reaffiche l'interface.
+
+- **`loadstring` est verrouille depuis le pont MCP**, et le message ne le dit
+  pas : `ServerScriptService.LoadStringEnabled is not a valid member`. Le moyen
+  de charger une recette de `tools/` dans Studio sans la coller a la main est
+  un `ModuleScript` jetable dont on pose la `Source`, suivi d'un `require` puis
+  d'un `Destroy`. La recette arrive par `HttpService:GetAsync` depuis un
+  `python -m http.server` lance a la racine du depot — et `HttpService.HttpEnabled`
+  **se remet comme il etait**, c'est un reglage de la place.
+
+- **`execute_luau` sert la version en cache d'un module, indexee sur
+  l'INSTANCE.** Modifier `Config.luau` par Rojo et relancer `execute_luau` ne
+  change rien : le pont rend l'ancienne copie. Vu le 29 octobre 2026, un
+  `previewRig` a sept os la ou le depot en declarait neuf, donc un objet qui
+  rendait zero part sans la moindre erreur. Le moyen est de RENOMMER le module
+  vivant, de parenter un clone neuf sous le nom d'origine, de lancer, puis de
+  remettre les noms.
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier
@@ -891,10 +947,17 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    plus faibles** et la raison est structurelle — un torse Roblox est une
    boîte, et seules les épaulières, les tassettes et les cuissards changent
    vraiment une silhouette
-15. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+15. **Trois maps, trois univers** — faites : le Colisée de sable, la soute du
+   cargo et le sanctuaire noyé, une recette chacune dans `tools/`. Toutes les
+   trois autour de 160 studs de côté, `MapBounds` carré, matériaux d'origine
+   seulement, et chacune bâtie autour d'une question tactique differente : le
+   trou central, la position haute, le passage obligé. **Elles ne peuvent pas
+   cohabiter**, puisque `MapService` prend la première conforme. Mesurées au
+   rayon, jamais jouées — section 26 d'`A-TESTER.md`
+16. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
-   une décision de conception), **l'allure des armes et des maps**, les skins,
-   et l'achat de pièces en Robux
+   une décision de conception), **l'allure des armes**, les skins, et l'achat
+   de pièces en Robux
 
 Ce qui a été construit et ce qu'il reste à vérifier en jouant est dans
 `docs/A-TESTER.md`. Les décisions prises sans Josh sont dans

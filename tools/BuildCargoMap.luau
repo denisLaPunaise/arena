@@ -156,7 +156,8 @@ local function container(name, parent, pos, yaw, len, color, hasDoors)
 			CFrame.new(pos) * CFrame.Angles(0, yaw, 0) * CFrame.new(t * len, 0, 0),
 			color,
 			mat
-		).CanCollide = false
+		).CanCollide =
+			false
 	end
 	for _, dy in { -1, 1 } do
 		part(
@@ -166,7 +167,8 @@ local function container(name, parent, pos, yaw, len, color, hasDoors)
 			CFrame.new(pos) * CFrame.Angles(0, yaw, 0) * CFrame.new(0, dy * (h / 2 - 0.5), 0),
 			DECK_DARK,
 			Enum.Material.Metal
-		).CanCollide = false
+		).CanCollide =
+			false
 	end
 	if hasDoors then
 		for _, dz in { -1, 1 } do
@@ -179,14 +181,22 @@ local function container(name, parent, pos, yaw, len, color, hasDoors)
 					* CFrame.new(len / 2 + 0.2, 0, dz * (w / 4)),
 				STEEL,
 				Enum.Material.DiamondPlate
-			).CanCollide = false
+			).CanCollide =
+				false
 		end
 	end
 	return body
 end
 
 -- ===== Le pont et la coque ==============================================
-part("Pont", decor, Vector3.new(HALL_X, 3, HALL_Z), CFrame.new(0, -1.5, 0), DECK, Enum.Material.DiamondPlate)
+part(
+	"Pont",
+	decor,
+	Vector3.new(HALL_X, 3, HALL_Z),
+	CFrame.new(0, -1.5, 0),
+	DECK,
+	Enum.Material.DiamondPlate
+)
 
 -- Les joints du pont : quatre lignes claires qui donnent une echelle au sol.
 -- Un sol uni de dix-huit mille studs carres ne dit rien de la distance.
@@ -198,7 +208,8 @@ for i = -3, 3 do
 		CFrame.new(0, 0.06, i * 17),
 		DECK_DARK,
 		Enum.Material.Metal
-	).CanCollide = false
+	).CanCollide =
+		false
 end
 
 for _, sx in { -1, 1 } do
@@ -230,14 +241,16 @@ for _, sz in { -1, 1 } do
 			CFrame.new(i * 18, 26, sz * (HALL_Z / 2 + 1.4)),
 			Color3.fromRGB(14, 18, 28),
 			Enum.Material.Glass
-		).Transparency = 0.72
+		).Transparency =
+			0.72
 		part(
 			string.format("Meneau%d_%d", sz, i),
 			decor,
 			Vector3.new(1.2, 17, 2),
 			CFrame.new(i * 18 - 7, 26, sz * (HALL_Z / 2 + 1.4)),
 			STEEL
-		).CanCollide = false
+		).CanCollide =
+			false
 	end
 end
 
@@ -254,15 +267,18 @@ for i = -4, 4 do
 		Vector3.new(4, 2.2, HALL_Z + 6),
 		CFrame.new(i * 16, WALL_HEIGHT - 1, 0),
 		DECK_DARK
-	).CanCollide = false
+	).CanCollide =
+		false
 	for _, sz in { -1, 1 } do
 		part(
 			string.format("Jambe%d_%d", i, sz),
 			decor,
 			Vector3.new(2.4, 10, 2.4),
-			CFrame.new(i * 16, WALL_HEIGHT - 6, sz * (HALL_Z / 2 - 2)) * CFrame.Angles(sz * 0.2, 0, 0),
+			CFrame.new(i * 16, WALL_HEIGHT - 6, sz * (HALL_Z / 2 - 2))
+				* CFrame.Angles(sz * 0.2, 0, 0),
 			DECK_DARK
-		).CanCollide = false
+		).CanCollide =
+			false
 	end
 end
 
@@ -299,7 +315,8 @@ for _, sz in { -1, 1 } do
 			Vector3.new(0.5, 2.4, 0.5),
 			CFrame.new(i * 11, DECK_HEIGHT + 2, z - sz * 5.6),
 			STEEL_LIGHT
-		).CanCollide = false
+		).CanCollide =
+			false
 	end
 	part(
 		string.format("Lisse%d", sz),
@@ -307,7 +324,8 @@ for _, sz in { -1, 1 } do
 		Vector3.new(HALL_X - 10, 0.5, 0.5),
 		CFrame.new(0, DECK_HEIGHT + 3, z - sz * 5.6),
 		STEEL_LIGHT
-	).CanCollide = false
+	).CanCollide =
+		false
 	-- Le dessous : une poutre et des poteaux, sinon la coursive flotte.
 	part(
 		string.format("Poutre%d", sz),
@@ -315,7 +333,8 @@ for _, sz in { -1, 1 } do
 		Vector3.new(HALL_X - 10, 2, 2),
 		CFrame.new(0, DECK_HEIGHT - 2, z),
 		DECK_DARK
-	).CanCollide = false
+	).CanCollide =
+		false
 	for i = -3, 3 do
 		part(
 			string.format("Poteau%d_%d", sz, i),
@@ -379,7 +398,8 @@ for _, sx in { -1, 1 } do
 				Vector3.new(0.4, 2.3, 0.4),
 				CFrame.new(px + dx * 4.3, DECK_HEIGHT + 1.9, i * 5.6),
 				STEEL_LIGHT
-			).CanCollide = false
+			).CanCollide =
+				false
 		end
 	end
 	for _, dx in { -1, 1 } do
@@ -389,7 +409,8 @@ for _, sx in { -1, 1 } do
 			Vector3.new(0.4, 0.4, 96),
 			CFrame.new(px + dx * 4.3, DECK_HEIGHT + 2.9, 0),
 			STEEL_LIGHT
-		).CanCollide = false
+		).CanCollide =
+			false
 		neon(
 			string.format("LisereP%d_%d", sx, dx),
 			decor,
@@ -436,7 +457,15 @@ for i, c in STACKS do
 		-- ce qu'un joueur apprend d'un cote ne servirait pas de l'autre.
 		local x, z = c[1] * sgn, c[2] * sgn
 		local yaw = c[4] * math.pi / 2 + (if sgn < 0 then math.pi else 0)
-		container(string.format("Caisse%d_%d", i, sgn), cover, Vector3.new(x, 5, z), yaw, c[3], c[6], i % 2 == 0)
+		container(
+			string.format("Caisse%d_%d", i, sgn),
+			cover,
+			Vector3.new(x, 5, z),
+			yaw,
+			c[3],
+			c[6],
+			i % 2 == 0
+		)
 		if c[5] then
 			container(
 				string.format("Caisse%d_%dB", i, sgn),
@@ -456,8 +485,24 @@ end
 -- avant que quiconque ait bouge. Elles sont a vingt studs du centre : juste
 -- en dehors du dernier cercle de la zone, qui fait seize.
 for _, sx in { -1, 1 } do
-	container(string.format("Axe%d", sx), cover, Vector3.new(sx * 21, 5, 0), math.pi / 2, 22, CRATE_AMBER, true)
-	container(string.format("Axe%dB", sx), cover, Vector3.new(sx * 21, 15, 1.5 * sx), math.pi / 2, 16, CRATE_GREY, false)
+	container(
+		string.format("Axe%d", sx),
+		cover,
+		Vector3.new(sx * 21, 5, 0),
+		math.pi / 2,
+		22,
+		CRATE_AMBER,
+		true
+	)
+	container(
+		string.format("Axe%dB", sx),
+		cover,
+		Vector3.new(sx * 21, 15, 1.5 * sx),
+		math.pi / 2,
+		16,
+		CRATE_GREY,
+		false
+	)
 end
 
 -- ===== Les caisses basses du centre =====================================
@@ -479,19 +524,25 @@ for i, c in { { 9, 7, 0.5 }, { -10, 6, -0.3 }, { 6, -11, 0.9 }, { -7, -9, -1.1 }
 		Vector3.new(6.3, 0.6, 6.3),
 		CFrame.new(c[1], 3.6, c[2]) * CFrame.Angles(0, c[3], 0),
 		HAZARD
-	).CanCollide = false
+	).CanCollide =
+		false
 end
 
 -- ===== Le portique de grue ==============================================
 -- Pur decor, mais c'est lui qui remplit le volume au-dessus de la
 -- passerelle : sans rien entre quatorze et quarante studs, la soute parait
 -- deux fois trop haute.
-part("Rail1", decor, Vector3.new(HALL_X - 10, 2, 3), CFrame.new(0, 30, -34), STEEL).CanCollide = false
-part("Rail2", decor, Vector3.new(HALL_X - 10, 2, 3), CFrame.new(0, 30, 34), STEEL).CanCollide = false
-part("Portique", decor, Vector3.new(6, 3, 76), CFrame.new(-14, 31, 0), STEEL_LIGHT).CanCollide = false
+part("Rail1", decor, Vector3.new(HALL_X - 10, 2, 3), CFrame.new(0, 30, -34), STEEL).CanCollide =
+	false
+part("Rail2", decor, Vector3.new(HALL_X - 10, 2, 3), CFrame.new(0, 30, 34), STEEL).CanCollide =
+	false
+part("Portique", decor, Vector3.new(6, 3, 76), CFrame.new(-14, 31, 0), STEEL_LIGHT).CanCollide =
+	false
 part("Chariot", decor, Vector3.new(9, 4, 9), CFrame.new(-14, 28, 10), HAZARD).CanCollide = false
-part("Cable", decor, Vector3.new(0.4, 12, 0.4), CFrame.new(-14, 21, 10), DECK_DARK).CanCollide = false
-part("Crochet", decor, Vector3.new(3, 2.5, 3), CFrame.new(-14, 15.5, 10), STEEL_LIGHT).CanCollide = false
+part("Cable", decor, Vector3.new(0.4, 12, 0.4), CFrame.new(-14, 21, 10), DECK_DARK).CanCollide =
+	false
+part("Crochet", decor, Vector3.new(3, 2.5, 3), CFrame.new(-14, 15.5, 10), STEEL_LIGHT).CanCollide =
+	false
 
 -- ===== Les departs ======================================================
 for _, side in { -1, 1 } do
@@ -501,7 +552,14 @@ for _, side in { -1, 1 } do
 
 	-- Le sas : un renfoncement eclaire dans la cloison du fond. Il dit d'ou
 	-- on vient et il protege les trois premieres secondes.
-	part("Sas" .. team, decor, Vector3.new(14, 22, 34), CFrame.new(x + side * 8, 11, 0), DECK_DARK, Enum.Material.DiamondPlate)
+	part(
+		"Sas" .. team,
+		decor,
+		Vector3.new(14, 22, 34),
+		CFrame.new(x + side * 8, 11, 0),
+		DECK_DARK,
+		Enum.Material.DiamondPlate
+	)
 	for _, dz in { -1, 1 } do
 		part(
 			string.format("Montant%s%d", team, dz),
@@ -512,7 +570,13 @@ for _, side in { -1, 1 } do
 		)
 	end
 	part("Linteau" .. team, decor, Vector3.new(16, 3, 34), CFrame.new(x + side * 8, 21, 0), STEEL)
-	neon("Enseigne" .. team, decor, Vector3.new(0.4, 2.4, 26), CFrame.new(x + side * 0.5, 19, 0), tint)
+	neon(
+		"Enseigne" .. team,
+		decor,
+		Vector3.new(0.4, 2.4, 26),
+		CFrame.new(x + side * 0.5, 19, 0),
+		tint
+	)
 	lamp(decor, Vector3.new(x + side * 6, 17, 0), tint, 34, 2.4)
 
 	-- Deux blocs devant le sas : on ne commence pas a decouvert, et ils
@@ -530,7 +594,13 @@ for _, side in { -1, 1 } do
 	end
 	-- Bande d'avertissement au sol : elle marque la limite du camp, ce qui
 	-- aide a lire ou on en est quand la zone se referme.
-	neon("Seuil" .. team, decor, Vector3.new(0.8, 0.12, 30), CFrame.new(x - side * 4, 0.08, 0), tint)
+	neon(
+		"Seuil" .. team,
+		decor,
+		Vector3.new(0.8, 0.12, 30),
+		CFrame.new(x - side * 4, 0.08, 0),
+		tint
+	)
 
 	local folder = Instance.new("Folder")
 	folder.Name = "Spawns" .. team
@@ -610,7 +680,12 @@ Lighting.OutdoorAmbient = Color3.fromRGB(34, 40, 52)
 Lighting.ExposureCompensation = 0
 Lighting.FogEnd = 100000
 for _, old in Lighting:GetChildren() do
-	if old:IsA("Atmosphere") or old:IsA("Sky") or old:IsA("BloomEffect") or old:IsA("ColorCorrectionEffect") then
+	if
+		old:IsA("Atmosphere")
+		or old:IsA("Sky")
+		or old:IsA("BloomEffect")
+		or old:IsA("ColorCorrectionEffect")
+	then
 		old:Destroy()
 	end
 end

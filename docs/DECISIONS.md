@@ -1795,6 +1795,111 @@ dans la convention réelle.
 
 ---
 
+## Les trois maps — 29 octobre 2026
+
+Tu m'as laissé choisir les univers et prendre les décisions. Voilà les trois,
+et tout ce que j'ai tranché seul. Elles sont dans `tools/`, une recette par
+map, donc aucune n'est perdue même si la place est écrasée.
+
+| Map | Recette | Univers | Parts |
+| --- | --- | --- | --- |
+| **Le Colisée de sable** | `tools/BuildColiseeMap.luau` | arène antique en plein désert, fin d'après-midi | 934 |
+| **La soute du cargo** | `tools/BuildCargoMap.luau` | soute d'un vaisseau en orbite, nuit, néons | ~519 |
+| **Le sanctuaire noyé** | `tools/BuildSanctuaireMap.luau` | temple de jungle sous la pluie, plan en diagonale | ~356 |
+
+**Les trois ne peuvent pas cohabiter**, et c'est une contrainte du code, pas un
+choix : `MapService` prend la **première** map conforme de `Workspace`. Donc
+chaque recette détruit les trois autres avant de construire, et elle pose aussi
+tout l'éclairage, puisque `Lighting` est un réglage de place et pas de map.
+Changer de map, c'est coller une recette dans la barre de commande. **C'est le
+Colisée qui est actuellement dans la place.**
+
+### Une seule taille pour les quatre formats, et c'est mesuré
+
+Les trois font autour de 160 studs de côté. Le raisonnement : le rayon final de
+la zone est de 16 studs et le premier resserrement arrive à 120 secondes, donc
+ce qui compte n'est pas la surface mais le **temps qu'il faut pour traverser**.
+À la vitesse de base, 160 studs se traversent en un peu plus de 7 secondes —
+assez pour qu'un 1v1 ait de la place pour tourner, assez peu pour qu'un 4v4 ne
+se perde pas. Plus petit, le 4v4 devient une mêlée dès la première seconde ;
+plus grand, le 1v1 devient une partie de cache-cache jusqu'au premier
+resserrement.
+
+**`MapBounds` est carré sur les trois.** Le rayon de départ de la zone vaut la
+moitié du plus petit côté : avec un rectangle, la zone de départ laisse les
+deux bouts de la map hors jeu dès la première seconde, et tout ce qu'on y a
+construit ne sert jamais. Le Cargo est le seul dont la salle est rectangulaire
+(150 × 120), et son `MapBounds` fait quand même 170 × 170 pour englober les
+coursives.
+
+### Chaque map est bâtie autour d'une idée de jeu différente
+
+Ce n'est pas de la décoration : les trois posent une question tactique qui
+n'est pas la même.
+
+- **Le Colisée pose la question de la hauteur et du trou.** Une fosse de 6
+  studs au centre, avec quatre escaliers en diagonale : s'y battre, c'est
+  renoncer à voir ce qui arrive, et toute poussée vers le bas y coûte la
+  position. Douze colonnes de trois hauteurs différentes cassent les lignes de
+  vue sans jamais fermer le passage, et deux balcons latéraux donnent une vraie
+  position haute — avec deux rampes chacun, donc jamais imprenable.
+- **Le Cargo pose la question du dessus.** Deux coursives à 14 studs courent
+  sur toute la longueur, reliées par deux passerelles. Le sol est un labyrinthe
+  de conteneurs, le dessus est dégagé mais à découvert. Les deux passerelles
+  sont à x = ±18 et **jamais au-dessus du centre**, parce qu'une passerelle
+  centrale aveuglait les deux coursives sur le cercle final : la position haute
+  doit voir la fin de la manche, sinon elle n'en est pas une.
+- **Le Sanctuaire pose la question de la diagonale.** Le plan est tourné de 45
+  degrés : les deux camps partent de coins opposés, et l'autel central à trois
+  étages est entouré d'un bassin franchissable par quatre chaussées seulement.
+  Donc on ne traverse pas, on choisit une chaussée, et l'adversaire voit
+  laquelle. Les deux tours en ruine sont aux coins **neutres**, pas aux coins
+  de départ.
+
+### Ce que j'ai décidé seul, et qui se défait facilement
+
+**Les deux camps sont marqués en bleu et rouge sur les trois maps.** Les points
+d'apparition, les bandes au sol et les portiques de départ portent la couleur.
+Rien dans le code ne lit ces couleurs — c'est de la lisibilité pure, pour
+qu'on sache de quel côté on est en sortant de son portique.
+
+**Deux sorties par camp, partout.** La première version du Colisée n'en avait
+qu'une : un seul escalier de six studs, qu'un Colosse bouche à lui tout seul.
+Camper la sortie adverse est une tactique légitime ; la fermer avec un corps
+n'en est pas une. Chaque terrasse de départ a donc deux escaliers séparés par
+un éperon.
+
+**La ligne de départ à départ est coupée sur les trois.** Trouvée par rayon, et
+pas à l'oeil : au Colisée les deux terrasses se voyaient sur 120 studs, donc un
+tireur de précision touchait l'adversaire avant qu'il ait fait un pas. Deux
+stèles à x = ±36 cassent la ligne sans rien fermer.
+
+**Matériaux d'origine uniquement, pas un seul maillage.** Je peux générer des
+matériaux et des maillages, et j'ai renoncé : un maillage généré devient un
+*asset* publié sur un compte, donc un identifiant que personne ne peut
+vérifier en lisant le dépôt, et qui disparaît si l'asset est modéré. Une
+recette de 900 parts en matériaux Roblox se relit, se rejoue et se corrige.
+Si tu veux de vrais matériaux générés, c'est une couche à ajouter par-dessus,
+pas à l'intérieur.
+
+**Chaque recette détruit la `Baseplate` et le `SpawnLocation`.** La Baseplate
+est au même niveau que les sols de map et gagnait un pixel sur deux : la grille
+grise apparaissait à travers le sable. Et un `SpawnLocation` resté là fait
+apparaître les joueurs hors de leur camp.
+
+**La symétrie est rotationnelle, pas en miroir.** Les trois maps sont
+symétriques par rotation de 180 degrés autour du centre. C'est ce qui garantit
+qu'aucun camp n'a d'avantage, tout en laissant la map asymétrique vue d'un
+joueur — une symétrie en miroir donne deux moitiés qui se ressemblent trop pour
+qu'on sache où on est.
+
+**Ce que je n'ai pas pu juger : si elles sont belles, et si elles sont
+amusantes.** Je les ai mesurées au rayon, regardées à l'écran et photographiées,
+mais une map ne se juge qu'en y jouant à plusieurs. Les trois sont dans
+`docs/A-TESTER.md`, section 26.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si
