@@ -1569,7 +1569,7 @@ tools/BuildCarriereMap.luau
 détruit les autres maps avant de construire — **elles ne peuvent pas
 cohabiter**, `MapService` prend la première conforme.
 
-### Elle se mesure elle-même, et c'est nouveau
+### Elle se mesure elle-même, et les trois autres aussi maintenant
 
 À chaque construction, la recette imprime dans la console :
 
@@ -1585,6 +1585,13 @@ cohabiter**, `MapService` prend la première conforme.
 
 **Lis cette sortie avant de juger la map.** Si elle avertit, dis-le-moi : c'est
 du calcul, pas du goût, et ça se corrige.
+
+**Et les trois autres recettes ont reçu la même chose** — lignes de tir entre les
+départs, sol sous chaque point de départ, couverture du cercle final. Donc en
+relançant le Colisée, le Cargo ou le Sanctuaire, tu auras aussi leur verdict.
+Elles n'ont pas le contrôle des rampes : seule la Carrière déclare les siennes.
+Si l'une des trois avertit, dis-le-moi — c'est un défaut qui existait avant
+cette nuit et que personne n'avait mesuré.
 
 ### À regarder
 

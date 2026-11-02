@@ -713,13 +713,14 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 
 - **UNE RECETTE DE MAP PEUT SE MESURER ELLE-MEME, et c'est moins cher qu'une
   sonde.** Les trois défauts de jeu réels des maps du 29 octobre ont tous été
-  trouvés au rayon, aucun en regardant. `tools/BuildCarriereMap.luau` le fait
-  donc à chaque construction : les lignes de tir entre chaque couple de points
-  de départ, le nombre de directions d'où le cercle final est couvert, et **la
-  hauteur du sol échantillonnée le long de chaque rampe**. Elle imprime un
-  verdict et avertit. C'est la méthode à reprendre pour les trois autres
-  recettes : une map qui se mesure au moment où on la construit n'a pas besoin
-  qu'on y revienne.
+  trouvés au rayon, aucun en regardant. **Les quatre recettes le font donc
+  elles-mêmes**, à chaque construction : les lignes de tir entre chaque couple
+  de points de départ, le sol sous chaque point de départ, et le nombre de
+  directions d'où le cercle final est couvert — plus, à la Carrière, **la
+  hauteur du sol échantillonnée le long de chaque rampe**. Elles impriment un
+  verdict et avertissent. Une mesure qu'il faut penser à refaire ne se refait
+  pas : celle-là part toute seule, et quelqu'un qui déplace un bloc voit tout
+  de suite ce que ça casse.
 
 - **UNE RAMPE NE RENTRE PAS TOUJOURS DANS LE GRADIN QU'ELLE MONTE.** Douze
   studs de montée demandent vingt-deux studs de course, et le gradin de la

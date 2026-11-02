@@ -775,4 +775,127 @@ dof.NearIntensity = 0
 dof.FarIntensity = 0.6
 dof.Parent = Lighting
 
+--------------------------------------------------------------------------------
+-- CE QUE LA MAP SE MESURE A ELLE-MEME
+--------------------------------------------------------------------------------
+
+-- UNE MAP NE SE JUGE PAS A L'OEIL, ELLE SE MESURE AU RAYON. Les trois defauts
+-- de jeu reels trouves dans les maps le 29 octobre 2026 l'ont tous ete comme
+-- ca, aucun en regardant : une ligne de tir degagee de 120 studs entre les deux
+-- departs, deux coursives aveugles sur le cercle final, et une rampe posee a
+-- l'envers. L'oeil dit si c'est joli ; le rayon dit si ca se joue.
+--
+-- Alors la recette le fait elle-meme, a chaque construction, et elle AVERTIT.
+-- Une mesure qu'il faut penser a refaire ne se refait pas : celle-ci part toute
+-- seule, et quelqu'un qui deplace un bloc voit tout de suite ce que ca casse.
+
+local probe = RaycastParams.new()
+probe.FilterType = Enum.RaycastFilterType.Include
+probe.FilterDescendantsInstances = { map }
+
+-- Hauteur des yeux au-dessus du point d'apparition. Un point de depart est
+-- pose quatre studs au-dessus de son sol dans les quatre recettes, et la tete
+-- arrive a peu pres a cette hauteur-la.
+local EYE = 3.5
+local alarms = 0
+
+print("")
+print(string.format("[Arena] ===== %s se mesure =====", map.Name))
+
+local spawnsA = map:FindFirstChild("SpawnsA")
+local spawnsB = map:FindFirstChild("SpawnsB")
+
+-- 1. LES LIGNES DE TIR ENTRE LES DEUX DEPARTS. Le premier a cliquer gagne
+-- l'echange sans que personne ait joue : c'est le defaut qui a ete trouve dans
+-- la soute du cargo, et c'est le plus cher parce qu'il frappe a chaque manche.
+if spawnsA and spawnsB then
+	local open, longest, couples = 0, 0, 0
+	for _, a in spawnsA:GetChildren() do
+		for _, b in spawnsB:GetChildren() do
+			couples += 1
+			local from = a.Position + Vector3.new(0, EYE, 0)
+			local delta = (b.Position + Vector3.new(0, EYE, 0)) - from
+			if Workspace:Raycast(from, delta, probe) == nil then
+				open += 1
+				longest = math.max(longest, delta.Magnitude)
+			end
+		end
+	end
+	if open == 0 then
+		print(string.format("  Departs : aucune des %d lignes n'est degagee. Bon.", couples))
+	else
+		alarms += 1
+		warn(
+			string.format(
+				"[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs. "
+					.. "Il manque un obstacle sur l'axe des deux camps.",
+				open,
+				couples,
+				longest
+			)
+		)
+	end
+
+	-- 2. CHAQUE POINT DE DEPART A-T-IL DU SOL SOUS LUI ? Un point pose dans un
+	-- mur ou au-dessus du vide ne se voit sur aucune capture, et il coute une
+	-- manche entiere au joueur qui tombe dessus.
+	local floating = 0
+	for _, folder in { spawnsA, spawnsB } do
+		for _, marker in folder:GetChildren() do
+			local hit = Workspace:Raycast(marker.Position, Vector3.new(0, -12, 0), probe)
+			if hit == nil then
+				floating += 1
+			end
+		end
+	end
+	if floating == 0 then
+		print("  Departs : tous ont du sol sous eux. Bon.")
+	else
+		alarms += 1
+		warn(
+			string.format(
+				"[Arena]   %d point(s) de depart n'ont rien a moins de douze studs "
+					.. "sous eux : le joueur apparaitra en chute.",
+				floating
+			)
+		)
+	end
+end
+
+-- 3. LA COUVERTURE DU CERCLE FINAL. Trop nu, on s'y fait tirer de partout ;
+-- trop encombre, on ne peut plus s'y disputer. Les deux sont des defauts, donc
+-- l'avertissement part dans les deux sens.
+local centreMark = map:FindFirstChild("ZoneCenter")
+if centreMark then
+	local origin = centreMark.Position + Vector3.new(0, EYE, 0)
+	local covered = 0
+	for step = 0, 15 do
+		local angle = step / 16 * math.pi * 2
+		local direction = Vector3.new(math.cos(angle), 0, math.sin(angle)) * 25
+		if Workspace:Raycast(origin, direction, probe) then
+			covered += 1
+		end
+	end
+	print(
+		string.format(
+			"  Cercle final : %d directions sur 16 trouvent un couvert a moins de 25 studs.",
+			covered
+		)
+	)
+	if covered < 4 then
+		alarms += 1
+		warn("[Arena]   Le cercle final est trop nu : on s'y fait tirer de partout.")
+	elseif covered > 12 then
+		alarms += 1
+		warn("[Arena]   Le cercle final est trop encombre : on ne peut plus s'y disputer.")
+	end
+end
+
+if alarms == 0 then
+	print("  Rien a signaler.")
+else
+	warn(string.format("[Arena] %d point(s) a regarder ci-dessus.", alarms))
+end
+print("")
+
 print(string.format("[Arena] Cargo construit : %d parts.", #map:GetDescendants()))
