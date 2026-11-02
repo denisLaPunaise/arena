@@ -250,6 +250,7 @@ return function(t: harness.Harness)
 	claim(Config.loadout.editKey, "l'écran d'équipement")
 	claim(Config.sandbox.toggleKey, "le bac à sable")
 	claim(Config.seating.lobbyKey, "le salon")
+	claim(Config.menu.reopenKey, "le menu d'accueil")
 
 	t.equal(if #collisions > 0 then collisions[1] else "aucune collision", #collisions, 0)
 

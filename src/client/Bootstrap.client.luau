@@ -37,6 +37,7 @@ local Audio = require(script.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local LoadoutPanel = require(script.Parent:WaitForChild("LoadoutPanel"))
 local LobbyPanel = require(script.Parent:WaitForChild("LobbyPanel"))
+local MenuPanel = require(script.Parent:WaitForChild("MenuPanel"))
 local ProgressPanel = require(script.Parent:WaitForChild("ProgressPanel"))
 local SandboxPanel = require(script.Parent:WaitForChild("SandboxPanel"))
 local TreePanel = require(script.Parent:WaitForChild("TreePanel"))
@@ -156,10 +157,16 @@ local SANDBOX_KEY = (Enum.KeyCode :: any)[Config.sandbox.toggleKey]
 -- laisser croire a un reglage qu'on n'a pas.
 local LOBBY_KEY = (Enum.KeyCode :: any)[Config.seating.lobbyKey]
 
+-- L'ACCUEIL. La seule touche du jeu qui serve hors partie : elle rouvre
+-- l'ecran d'ou on lance une partie classee, cree un salon ou rejoint un code.
+local MENU_KEY = (Enum.KeyCode :: any)[Config.menu.reopenKey]
+
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
 local HINT = string.format(
-	"Clic frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement  ·  P pièces  ·  %s bac à sable",
-	Config.sandbox.toggleKey
+	"Clic frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement  ·  P pièces"
+		.. "  ·  %s bac à sable  ·  %s menu",
+	Config.sandbox.toggleKey,
+	Config.menu.reopenKey
 )
 hint.Text = HINT
 
@@ -378,6 +385,8 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		ProgressPanel.toggle()
 	elseif input.KeyCode == LOBBY_KEY then
 		LobbyPanel.toggle()
+	elseif input.KeyCode == MENU_KEY then
+		MenuPanel.toggle()
 	elseif input.KeyCode == SANDBOX_KEY then
 		-- Le panneau ne s'ouvre que si le serveur a dit que le bac a sable
 		-- tourne : en partie, cette touche ne fait rien du tout.
@@ -390,6 +399,7 @@ Effects.start()
 DraftPanel.start()
 LoadoutPanel.start()
 LobbyPanel.start()
+MenuPanel.start()
 ProgressPanel.start()
 SandboxPanel.start()
 TreePanel.start()

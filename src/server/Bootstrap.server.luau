@@ -20,6 +20,7 @@ local CombatService = require(script.Parent:WaitForChild("CombatService"))
 local DownedService = require(script.Parent:WaitForChild("DownedService"))
 local DraftService = require(script.Parent:WaitForChild("DraftService"))
 local MatchService = require(script.Parent:WaitForChild("MatchService"))
+local MenuService = require(script.Parent:WaitForChild("MenuService"))
 local ProgressService = require(script.Parent:WaitForChild("ProgressService"))
 local SandboxService = require(script.Parent:WaitForChild("SandboxService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
@@ -140,4 +141,7 @@ ProgressService.init()
 -- Le bac a sable s'initialise avant MatchService, parce que c'est la boucle de
 -- partie qui lui passe la main quand il n'y a qu'un joueur.
 SandboxService.init()
+-- L'accueil avant la boucle de partie : c'est lui qui dit qui est dans la
+-- file, et MatchService le lit des son premier tour.
+MenuService.init()
 MatchService.start()

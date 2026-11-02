@@ -100,6 +100,42 @@ Config.seating = {
 }
 
 --------------------------------------------------------------------------------
+-- LE MENU D'ACCUEIL
+--------------------------------------------------------------------------------
+
+Config.menu = {
+	-- A false, le jeu retrouve son comportement d'avant le menu : on tombe
+	-- dans un serveur et la partie part toute seule des qu'il y a du monde.
+	-- C'est l'interrupteur de comparaison, comme pour la zone et l'arbre.
+	enabled = true,
+
+	-- CE QUI CHANGE VRAIMENT, et qui vaut plus que l'ecran lui-meme : avant le
+	-- menu, TOUTE personne presente etait assise d'office. Quelqu'un qui
+	-- arrivait pour regarder, ou qui lisait son arbre, se retrouvait en
+	-- partie. Maintenant on entre en appuyant sur « Jouer », et on en sort.
+	readyRequired = true,
+
+	-- Cinq signes font vingt-huit millions de combinaisons avec l'alphabet de
+	-- Lobbies, qui n'a ni zero ni un. C'est beaucoup pour un code qui ne vit
+	-- que quelques heures, et c'est court assez pour se dicter.
+	codeLength = 5,
+
+	-- Au-dela, le serveur reserve de Roblox a de bonnes chances de s'etre
+	-- eteint faute de monde : le code menerait alors a un serveur neuf et
+	-- vide, ce qui se lit comme un bug plutot que comme une expiration.
+	codeHours = 12,
+
+	-- Le magasin ou vivent les correspondances code court -> code de Roblox.
+	-- Separe des profils : ce sont des donnees jetables, et on ne veut pas
+	-- qu'une purge de codes approche des pieces de qui que ce soit.
+	dataStoreName = "ArenaLobbies",
+
+	-- La touche qui rouvre le menu. Un test refuse qu'elle en double une
+	-- autre ; libres au 2 novembre 2026 : tout sauf 1-4, E, T, L, P, B, C.
+	reopenKey = "M",
+}
+
+--------------------------------------------------------------------------------
 -- LA PARTIE ET LA MANCHE
 --------------------------------------------------------------------------------
 

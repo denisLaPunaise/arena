@@ -65,6 +65,7 @@ local EffectsService = require(script.Parent:WaitForChild("EffectsService"))
 local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
 local ProgressService = require(script.Parent:WaitForChild("ProgressService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
+local MenuService = require(script.Parent:WaitForChild("MenuService"))
 local SandboxService = require(script.Parent:WaitForChild("SandboxService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local Venue = require(script.Parent:WaitForChild("Venue"))
@@ -864,7 +865,20 @@ end
 
 local function loop()
 	while true do
-		local players = Players:GetPlayers()
+		-- QUI EST ASSIS A LA PARTIE : ceux qui ont appuye sur « Jouer », et eux
+		-- seuls. Avant le menu, c'etait TOUTE personne presente sur le serveur
+		-- -- quelqu'un qui lisait son arbre ou parlait a un ami se retrouvait
+		-- en manche sans l'avoir demande. Le compte des presents reste a cote,
+		-- parce que l'ecran d'attente doit dire « 2 prets sur 5 presents » et
+		-- pas « 2 joueurs », sinon les trois autres croient le jeu casse.
+		local present = Players:GetPlayers()
+		local players: { Player } = {}
+		for _, player in present do
+			if MenuService.isReady(player) then
+				table.insert(players, player)
+			end
+		end
+
 		local plan = Seating.plan(Config, candidatesFor(players), lobbyNow(), rng)
 
 		if plan == nil then
@@ -872,8 +886,12 @@ local function loop()
 			-- main que quand un deuxieme joueur arrive, et c'est tout ce que
 			-- cette boucle a besoin de savoir de lui — elle reprend alors son
 			-- cours exactement ici.
+			-- `availability` compte les PRESENTS, parce que le bac a sable
+			-- refuse de s'ouvrir des qu'il y a quelqu'un d'autre. Il faut donc
+			-- verifier a part qu'il y a bien un joueur PRET a y mettre : sans
+			-- ca, un joueur reste au menu ouvrait le bac a sable sur personne.
 			local ok, why = SandboxService.availability()
-			if ok then
+			if ok and players[1] ~= nil then
 				SandboxService.run(map :: Instance, players[1])
 				CombatService.setRoster({})
 				DownedService.setRoster({})
@@ -885,9 +903,12 @@ local function loop()
 			tellLobby(
 				"En attente de joueurs",
 				string.format(
-					"%d / %d joueurs%s%s",
+					"%d / %d joueurs%s%s%s",
 					#players,
 					neededNow(),
+					if #present > #players
+						then string.format("  ·  %d au menu", #present - #players)
+						else "",
 					if note ~= "" then "  ·  " .. note else "",
 					if why ~= "" then "  ·  bac à sable : " .. why else ""
 				)
@@ -976,6 +997,28 @@ function MatchService.start()
 	end
 
 	DownedService.onStatusChanged(onStatusChanged)
+
+	-- LES REGLAGES ARRIVES AVEC LE CREATEUR DU SALON. Le serveur reserve
+	-- n'existait pas encore quand il a choisi le format : ils ont voyage en
+	-- donnee de teleportation, et c'est ici qu'ils atterrissent. Lus UNE SEULE
+	-- FOIS, parce qu'on ne doit pas ecraser ce que les amis auraient regle
+	-- depuis leur arrivee.
+	if lobbyAllowed() then
+		local arrived = MenuService.arrivedLobby()
+		if arrived ~= nil then
+			lobby.formatId = arrived.formatId
+			lobby.teamMode = arrived.teamMode
+			lobby.classMode = arrived.classMode
+			print(
+				string.format(
+					"[Arena] Salon créé au menu : format %s, équipes %s, %s",
+					formatLabel(lobby.formatId),
+					teamModeLabel(lobby.teamMode),
+					classModeLabel(lobby.classMode)
+				)
+			)
+		end
+	end
 
 	-- Sans ca, le compteur du banc garde une reference sur chaque joueur qui a
 	-- traverse le serveur, et celui qui revient retrouve son rang d'il y a deux

@@ -40,6 +40,10 @@
 		{
 			"name": "Lobby",
 			"className": "RemoteEvent"
+		},
+		{
+			"name": "Menu",
+			"className": "RemoteEvent"
 		}
 	]
 }
