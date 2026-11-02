@@ -1484,6 +1484,135 @@ courbe qui descend sans accroc.
 
 ---
 
+## 31. L'écran d'accueil — **jamais vu à l'écran, et le code à partager n'a jamais voyagé**
+
+Le menu s'ouvre tout seul quand tu arrives : trois cartes — **JOUER EN CLASSÉ**,
+**CRÉER UN SALON**, **REJOINDRE** — ton classement, tes pièces, tes fragments et
+ta collection en haut, et la touche `M` pour y revenir.
+
+Le vrai changement n'est pas l'écran : **personne n'est plus assis d'office**. On
+entre en partie en appuyant sur JOUER. Avant, toute personne présente sur le
+serveur était embarquée dans la manche suivante, qu'elle le veuille ou non.
+
+**Deux choses n'ont pas pu être vérifiées, et pour deux raisons différentes.**
+
+1. **Je ne l'ai pas vu.** Studio était fermé. Les cinq panneaux du jeu passent
+   par `Screens.fit`, donc le centrage et l'échelle sont la règle commune et elle
+   est mesurée ; mais la lisibilité, elle, ne se mesure pas. Le panneau
+   d'équipement avait « marché du premier coup » et était inutilisable. Donc à
+   regarder.
+
+2. **Le code de salon ne se teste pas en solo.** Créer un salon appelle
+   `TeleportService:ReserveServer`, qui demande un jeu **publié** — ça ne
+   fonctionne pas dans Studio, et le menu te le dira franchement
+   (« Impossible de réserver un salon. Le jeu doit être publié pour ça. »). Et
+   rejoindre demande deux comptes. C'est le seul morceau du jeu que je ne peux
+   pas atteindre, même avec Studio ouvert.
+
+### À regarder quand tu lanceras
+
+1. **Le menu s'ouvre-t-il tout seul** à l'arrivée, et est-il lisible ? Les trois
+   cartes doivent avoir leurs boutons alignés en bas.
+2. **Les quatre chiffres du haut** — classement, pièces, fragments, collection.
+   Ils arrivent par le même message que l'écran `P`, donc s'ils sont justes là,
+   ils sont justes ici.
+3. **JOUER ferme le menu**, et la partie part quand il y a assez de monde. `M`
+   doit le rouvrir **sans** te sortir de la file : la carte doit alors dire
+   « TU ES DANS LA FILE » avec un bouton QUITTER LA FILE.
+4. **L'écran d'attente** doit dire « 1 / 2 joueurs · N au menu » quand quelqu'un
+   est resté au menu. C'est ce qui évite qu'on croie le jeu bloqué.
+5. **Dans Studio, les cartes CRÉER et REJOINDRE disparaissent** — Studio compte
+   comme privé, et on ne crée pas un salon depuis un salon. Si tu les vois, c'est
+   un bug.
+6. **Une fois publié**, le vrai test : créer un salon, lire le code, le dicter à
+   quelqu'un, et vérifier qu'il arrive bien **avec tes réglages** (format, camps,
+   classes). Le code s'affiche en haut de l'écran du salon créé, et la touche `C`
+   doit montrer exactement les réglages que tu avais choisis.
+7. **Un code faux** doit donner une phrase et pas un écran figé : « Aucun salon
+   ne porte le code XXXXX ». Un refus doit fermer, jamais figer.
+
+### Ce qu'il faut savoir
+
+- Un code vit **douze heures**. Au-delà, le serveur réservé s'est probablement
+  éteint et le jeu le dit plutôt que de t'y envoyer.
+- L'alphabet n'a **ni 0 ni O, ni 1 ni I ni L** : un code se dicte à voix haute.
+  Si quelqu'un t'en donne un avec un zéro, tape-le quand même — le jeu nettoie
+  ce qu'il peut.
+- `Config.menu.readyRequired` à `false` rend au jeu son comportement d'avant le
+  menu, si jamais la file te gêne pour tester.
+
+---
+
+## 32. La Carrière, quatrième map — **écrite sans Studio, donc jamais vue du tout**
+
+Une carrière de glace à l'aube, par temps couvert. Trois gradins dans la roche
+noire, un lac gelé au fond, un chevalement d'extraction rouillé au centre, et
+huit projecteurs au sodium qui sont la seule couleur chaude de la map. Rien à
+voir avec le sable, l'acier ou la jungle.
+
+**Son idée, et aucune des trois autres ne la pose : on descend vite, on remonte
+lentement.** On se laisse tomber de partout — douze studs vers un gradin,
+vingt-quatre d'un coup vers le lac sur les deux côtés qui n'ont pas de gradin —
+mais on ne remonte que par quatre rampes, placées en diagonale l'une de l'autre.
+Sortir du lac à l'ouest dépose en z = +30 ; la rampe suivante part de z = −41.
+Soixante-dix studs de gradin à découvert entre les deux. Descendre est donc un
+engagement, et la zone qui se referme sur le lac force tout le monde à le
+prendre un jour. La question devient *quand*, et *avec qui*.
+
+Pour la construire :
+
+```
+tools/BuildCarriereMap.luau
+```
+
+À coller dans la barre de commande de Studio, comme les trois autres. Elle
+détruit les autres maps avant de construire — **elles ne peuvent pas
+cohabiter**, `MapService` prend la première conforme.
+
+### Elle se mesure elle-même, et c'est nouveau
+
+À chaque construction, la recette imprime dans la console :
+
+- **les dix lignes de tir entre les deux départs**, et combien sont dégagées.
+  Elle avertit s'il en reste une : c'est le défaut qui avait été trouvé au rayon
+  dans la soute du cargo, une ligne droite de 120 studs entre les deux camps.
+- **combien de directions sur seize** trouvent un couvert à moins de 25 studs du
+  centre. Trop nu, on s'y fait tirer de partout ; trop encombré, on ne peut plus
+  s'y disputer. Elle avertit dans les deux sens.
+- **le sens de chacune des quatre rampes**, en échantillonnant la hauteur du sol
+  le long du chemin. C'est exactement le défaut qui avait échappé à toutes les
+  captures au Sanctuaire : une rampe posée à l'envers ne se voit pas.
+
+**Lis cette sortie avant de juger la map.** Si elle avertit, dis-le-moi : c'est
+du calcul, pas du goût, et ça se corrige.
+
+### À regarder
+
+1. **Est-ce qu'elle est belle ?** Je ne l'ai pas vue une seule fois. C'est la
+   première map du projet dans ce cas, et c'est la question qui compte.
+2. **Les projecteurs au sodium** sont le seul levier de couleur chaude. S'ils ne
+   suffisent pas, le bleu se lira comme un écran mal réglé et pas comme du froid.
+3. **Le ciel couvert** — les nuages sont à 0,92, plus haut qu'au Colisée où 0,88
+   avait mangé toutes les ombres. J'ai remonté la clarté et l'ambiance extérieure
+   pour compenser : il faut un gris **lumineux**, pas une nuit. Si c'est sombre,
+   c'est là qu'il faut regarder.
+4. **Tomber doit être un choix.** L'arête du vide porte un liseré de roche claire
+   pour qu'on la voie. Si on tombe par accident en courant sur la margelle, c'est
+   raté.
+5. **La remontée est-elle jouable ?** Soixante-dix studs à découvert, c'est le
+   pari central de la map. S'il est impossible à tenir, personne ne remontera
+   jamais, et un chemin qu'on ne prend pas est un chemin qui n'existe pas. Les
+   caisses et les tas de déblais du gradin sont là pour ça.
+6. **La passerelle** enjambe la fosse sous le chevalement, au niveau de la
+   margelle. C'est le seul moyen de changer de côté sans descendre. Est-ce
+   qu'elle se paie assez cher ?
+7. **Les cylindres** des molettes et des roues de wagonnet — un cylindre Roblox
+   prend le **plus petit** de ses deux côtés de section comme diamètre. Les
+   miennes sont écrites avec deux côtés égaux, donc ça devrait aller, mais c'est
+   le piège qui a mangé cinq boudins de gambison le 29 octobre.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

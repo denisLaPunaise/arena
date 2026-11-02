@@ -2041,6 +2041,96 @@ fenêtre est tiré au sort** : sept joueurs n'attendent pas le huitième.
 
 ---
 
+## L'écran d'accueil — 3 novembre 2026
+
+Tu as demandé « un beau menu complet quand on arrive sur le jeu ». En
+l'écrivant, cinq décisions ont dû être prises sans toi.
+
+**Personne n'est plus assis d'office à la partie suivante**, et c'est de loin la
+plus grosse. Avant ce menu, `MatchService` composait la partie avec *toute*
+personne présente sur le serveur : quelqu'un qui lisait son arbre, regardait sa
+collection ou parlait à un ami se retrouvait en manche sans l'avoir demandé.
+Maintenant on entre en appuyant sur **JOUER**, et on en sort par **QUITTER LA
+FILE**. L'écran d'attente dit « 2 / 4 joueurs · 3 au menu », parce que sans ça
+les trois autres croiraient le jeu cassé. L'interrupteur de comparaison existe :
+`Config.menu.readyRequired` à `false` rend au jeu son comportement d'avant.
+
+**Un jeu Roblox ne peut pas créer de serveur privé**, et ça change la forme de
+la chose. Ce que Roblox appelle « serveur privé » s'achète depuis la page du
+jeu, et aucune API ne le déclenche. Ce qui existe est `ReserveServer`, qui rend
+un serveur neuf et vide dont `PrivateServerId` est rempli — donc `Venue` le voit
+déjà comme privé, sans une ligne de plus. Son code d'accès fait plusieurs
+dizaines de caractères, impossible à dicter : le jeu fabrique donc **un code
+court à lui**, cinq signes, et range la correspondance dans un DataStore. C'est
+ce code-là qui se partage.
+
+**L'alphabet des codes n'a ni zéro ni O, ni un ni I ni L.** Un code se lit à
+voix haute ou se recopie depuis une capture d'écran, et « 0 » contre « O » est
+l'erreur la plus facile du monde. Il reste 31 signes, donc 28 629 151
+combinaisons pour cinq caractères — mesuré par un test, pas supposé. **Un code
+vit douze heures**, parce qu'un serveur réservé finit par s'éteindre quand il se
+vide : rejoindre un code d'hier mènerait à un serveur neuf et vide, ce qui se
+lit comme un bug.
+
+**La touche du menu ne change jamais l'état.** `M` ouvre et ferme l'affichage,
+et c'est tout ; entrer dans la file ou en sortir se fait par un bouton nommé.
+C'est la leçon du panneau du salon prise à l'envers : là, un refus figeait
+l'écran ; ici, le risque serait une touche pressée par erreur qui te sorte de la
+file sans le dire.
+
+**Les réglages voyagent avec le créateur, et ne sont relus qu'une fois.** Le
+serveur réservé n'existe pas encore quand tu choisis le format : il part en
+donnée de téléportation, et le serveur d'arrivée le pose dans son salon à la
+première demande. Pas à chaque partie — sinon ça écraserait ce que vous auriez
+réglé avec la touche `C` depuis votre arrivée.
+
+Ce qui n'a pas bougé : les **règles du jeu ne sont pas réglables**, ta décision
+du 27 octobre ; le menu ne propose que le format, les camps et les classes,
+exactement les trois réglages du salon. Et **le classement, les pièces et la
+collection s'affichent sur l'accueil sans coûter un seul message réseau de
+plus** : ils arrivent déjà par le remote de la progression, où le panneau se
+branche en lecture.
+
+---
+
+## La quatrième map, et ce qu'elle a changé dans la méthode — 3 novembre 2026
+
+**La Carrière** est une carrière de glace à l'aube, par temps couvert : trois
+gradins taillés dans la roche noire, un lac gelé au fond, un chevalement
+d'extraction rouillé au centre. Sa question tactique n'existe nulle part
+ailleurs dans le jeu : **on descend vite, on remonte lentement.** On se laisse
+tomber de n'importe où — douze studs vers un gradin, vingt-quatre d'un coup vers
+le lac sur les deux côtés qui n'en ont pas — mais on ne remonte que par quatre
+rampes, et elles sont placées **en diagonale l'une de l'autre** : la rampe qui
+sort du lac est à l'autre bout du gradin que celle qui mène à la margelle. Donc
+descendre est un engagement, et la zone qui se referme sur le lac force tout le
+monde à le prendre un jour. La question devient *quand*, et *avec qui*.
+
+**Sa symétrie est de rotation, pas de miroir**, et c'est une décision. Les
+quatre rampes se superposent par un demi-tour : les deux camps ont exactement le
+même chemin. Un miroir aurait donné à un camp la rampe de gauche et à l'autre
+celle de droite, ce qui n'est pas la même chose quand on tire en courant. Même
+raison pour la passerelle, qui est sur l'axe du milieu : décalée, elle aurait
+été un raccourci pour un seul camp.
+
+**Et elle se mesure elle-même.** Les trois défauts de jeu réels des maps du
+29 octobre ont tous été trouvés au rayon, aucun en regardant. Alors la recette
+le fait maintenant toute seule, à chaque construction : elle lance des rayons
+entre les dix couples de points de départ, compte les directions d'où le cercle
+final est couvert, et **échantillonne la hauteur du sol le long de chaque rampe
+pour vérifier qu'elle monte** — c'est exactement le défaut qui avait échappé à
+toutes les captures au Sanctuaire. Elle imprime un verdict dans la console et
+avertit si quelque chose ne va pas. C'est la méthode qu'il faudra reprendre pour
+les trois autres recettes.
+
+**Ce que je n'ai pas pu faire, et il faut le dire franchement : je ne l'ai pas
+vue.** Studio était fermé quand je l'ai écrite. Les chiffres sont calculés et le
+fichier se compile, mais aucun oeil ne s'est posé dessus, et c'est précisément
+la chose dont ce projet a appris qu'elle ne se remplace pas. Elle est donc à
+construire et à regarder avant d'être jugée — section 32 de `A-TESTER.md`.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si
