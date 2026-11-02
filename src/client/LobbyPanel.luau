@@ -50,7 +50,7 @@ local HEADER_HEIGHT = 96
 local ROW_LABEL = 26
 local ROW_BUTTON = 44
 local ROW_GAP = 22
-local ROWS = 3
+local ROWS = 4
 local FOOTER_HEIGHT = 56
 local PANEL_HEIGHT = HEADER_HEIGHT
 	+ (ROWS * (ROW_LABEL + ROW_BUTTON + ROW_GAP))
@@ -70,6 +70,7 @@ local panelFrame: Frame? = nil
 local fit: () -> ()
 
 local formatRow: Frame? = nil
+local classRow: Frame? = nil
 local teamRow: Frame? = nil
 local sideRow: Frame? = nil
 local sideLabel: TextLabel? = nil
@@ -201,7 +202,7 @@ local function build()
 	note.TextXAlignment = Enum.TextXAlignment.Center
 	note.TextColor3 = MUTED
 	note.Text =
-		"Partie privée. Le format et les équipes se règlent ici ; les règles du jeu, non."
+		"Partie privée. Le format, les équipes et les classes se règlent ici ; les règles du jeu, non."
 	note.Parent = frame
 
 	local top = HEADER_HEIGHT
@@ -228,6 +229,18 @@ local function build()
 	teamTitle.Text = "ÉQUIPES"
 	teamTitle.Parent = frame
 	teamRow = row("TeamRow", top + ROW_LABEL, frame)
+	top += ROW_LABEL + ROW_BUTTON + ROW_GAP
+
+	local classTitle = label(
+		"ClassLabel",
+		UDim2.fromOffset(PANEL_WIDTH - (EDGE * 2), ROW_LABEL),
+		UDim2.fromOffset(EDGE, top),
+		17
+	)
+	classTitle.TextColor3 = MUTED
+	classTitle.Text = "CLASSES"
+	classTitle.Parent = frame
+	classRow = row("ClassRow", top + ROW_LABEL, frame)
 	top += ROW_LABEL + ROW_BUTTON + ROW_GAP
 
 	local mine = label(
@@ -316,6 +329,18 @@ local function redraw(view: any)
 		view.teamMode,
 		function(mode)
 			lobbyRemote:FireServer({ teamMode = mode })
+		end
+	)
+
+	fill(
+		classRow,
+		{
+			{ id = "drawn", text = "tirées au sort" },
+			{ id = "picked", text = "chacun choisit" },
+		},
+		view.classMode,
+		function(mode)
+			lobbyRemote:FireServer({ classMode = mode })
 		end
 	)
 

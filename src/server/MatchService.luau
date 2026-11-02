@@ -97,6 +97,7 @@ local wantedSide: { [Player]: string } = {}
 local lobby: Seating.Lobby = {
 	formatId = Config.seating.defaultFormat,
 	teamMode = Config.seating.defaultTeamMode,
+	classMode = Config.seating.defaultClassMode,
 }
 
 -- Le tirage des camps. Un seul generateur pour toute la vie du serveur : en
@@ -135,6 +136,7 @@ local function lobbyNow(): Seating.Lobby
 		return {
 			formatId = Config.seating.defaultFormat,
 			teamMode = Config.seating.defaultTeamMode,
+			classMode = Config.seating.defaultClassMode,
 		}
 	end
 	return lobby
@@ -154,6 +156,13 @@ local function teamModeLabel(mode: string): string
 		return "au hasard"
 	end
 	return "chacun choisit"
+end
+
+local function classModeLabel(mode: string): string
+	if mode == Seating.PICKED then
+		return "chacun choisit sa classe"
+	end
+	return "classes tirées au sort"
 end
 
 -- Combien de joueurs il faut MAINTENANT. Avec un format impose, c'est le sien
@@ -239,10 +248,15 @@ local function lobbyLineFor(player: Player): string
 		then "tirage au sort"
 		else "ton camp : " .. (wantedSide[player] or "auto")
 
+	-- Le mode des classes ne s'affiche QUE s'il n'est pas celui par defaut :
+	-- une ligne d'etat qui enumere tout ce qui est normal ne se lit plus.
+	local classes = if current.classMode == Seating.PICKED then "  ·  classes au choix" else ""
+
 	return string.format(
-		"Salon : %s  ·  %s  ·  %s pour régler",
+		"Salon : %s  ·  %s%s  ·  %s pour régler",
 		formatLabel(current.formatId),
 		mine,
+		classes,
 		Config.seating.lobbyKey
 	)
 end
@@ -261,6 +275,7 @@ local function pushLobby(player: Player)
 		allowed = lobbyAllowed(),
 		formatId = current.formatId,
 		teamMode = current.teamMode,
+		classMode = current.classMode,
 		side = wantedSide[player] or Seating.AUTO,
 		present = #Players:GetPlayers(),
 		needed = neededNow(),
@@ -642,7 +657,7 @@ local function runMatch(players: { Player }, teams: { [Player]: string }, format
 	local drawn: { [Player]: string }? = nil
 	if Config.draft.enabled then
 		tellAll("PHASE DE BANS", "Votez pour la classe à écarter")
-		drawn = DraftService.run(players, teams)
+		drawn = DraftService.run(players, teams, lobbyNow().classMode)
 	end
 
 	local entries = buildEntries(players, teams, drawn)
@@ -1034,6 +1049,23 @@ function MatchService.start()
 					lobby.formatId = asked
 					announce(
 						string.format("%s a choisi le format : %s", player.Name, formatLabel(asked))
+					)
+				end
+			end
+		end
+
+		-- LA FACON DONT LES CLASSES ARRIVENT.
+		if typeof(payload.classMode) == "string" then
+			local asked = payload.classMode
+			if asked == Seating.DRAWN or asked == Seating.PICKED then
+				if lobby.classMode ~= asked then
+					lobby.classMode = asked
+					announce(
+						string.format(
+							"%s a choisi les classes : %s",
+							player.Name,
+							classModeLabel(asked)
+						)
 					)
 				end
 			end

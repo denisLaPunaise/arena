@@ -171,6 +171,105 @@ end
 -- Le miroir du 1v1 n'est pas un cas particulier bricole : c'est la seule
 -- facon d'avoir un format ou l'equilibrage est parfait par construction, et
 -- il est classe comme les autres pour cette raison.
+-- LE MIROIR SE LIT DANS LE FORMAT, jamais devine : c'est une decision de
+-- conception, pas une consequence du nombre de joueurs presents. Sorti de
+-- `assign` le 2 novembre 2026 parce que le choix de classe a besoin de la
+-- meme reponse, et qu'une regle recopiee a deux endroits finit par diverger
+-- — c'est la lecon des planchers de statistiques et de `piercedRatio`.
+function Draft.mirrors(config, teamRosters: { [string]: { string } }): boolean
+	local teams = 0
+	local playersPerTeam = 0
+	for _, keys in teamRosters do
+		teams += 1
+		playersPerTeam = math.max(playersPerTeam, #keys)
+	end
+
+	for _, format in config.formats do
+		if format.playersPerTeam == playersPerTeam then
+			return format.mirror == true and teams == 2
+		end
+	end
+	return false
+end
+
+--------------------------------------------------------------------------------
+-- LE CHOIX DE CLASSE
+--------------------------------------------------------------------------------
+
+-- EN PARTIE PRIVEE SEULEMENT, et a la place du tirage. Chacun choisit sa
+-- classe a son tour, et une classe prise ne revient pas : c'est le vivier
+-- lui-meme qui garantit « une seule personne par classe », puisque choisir
+-- retire du vivier exactement comme tirer le fait.
+--
+-- L'ORDRE EST UN SERPENTIN -- A, B, puis B, A, puis A, B -- et pas une simple
+-- alternance. Avec une alternance, le camp qui passe en premier prend la
+-- meilleure classe restante a CHAQUE tour, et l'autre ne rattrape jamais : au
+-- quatrieme tour l'ecart est de quatre rangs. En serpentin, celui qui choisit
+-- en dernier a un tour choisit en premier au suivant, donc l'avantage du
+-- premier choix se paie tout de suite. C'est la reponse standard, et elle ne
+-- coute qu'une inversion d'indice.
+function Draft.pickOrder(teamRosters: { [string]: { string } }): { string }
+	local teams: { string } = {}
+	for team in teamRosters do
+		table.insert(teams, team)
+	end
+	table.sort(teams)
+
+	local maxSize = 0
+	for _, keys in teamRosters do
+		maxSize = math.max(maxSize, #keys)
+	end
+
+	local order: { string } = {}
+	for position = 1, maxSize do
+		for index = 1, #teams do
+			local team = if position % 2 == 1 then teams[index] else teams[#teams - index + 1]
+			local key = teamRosters[team][position]
+			if key ~= nil then
+				table.insert(order, key)
+			end
+		end
+	end
+	return order
+end
+
+-- Un choix. Rend false et ne touche a rien si la classe n'est plus
+-- disponible ou si ce joueur a deja la sienne : le serveur peut donc relayer
+-- n'importe quel message de client sans le verifier lui-meme.
+function Draft.pick(state: State, key: string, classId: string): boolean
+	if state.assigned[key] ~= nil then
+		return false
+	end
+
+	local index = indexOf(state.pool, classId)
+	if index == nil then
+		return false
+	end
+
+	table.remove(state.pool, index)
+	state.assigned[key] = classId
+	return true
+end
+
+-- QUI N'A PAS CHOISI EST TIRE AU SORT, et c'est la regle qui empeche la
+-- partie de se figer. Un joueur parti, une fenetre laissee passer, un client
+-- muet : le choix doit FERMER, pas attendre. Meme regle que le panneau du
+-- salon qui doit pouvoir se fermer quand le serveur dit non.
+function Draft.fillRemaining(state: State, keys: { string }, rng: Rng): number
+	local filled = 0
+	for _, key in keys do
+		if state.assigned[key] ~= nil then
+			continue
+		end
+		local classId = take(state, rng)
+		if classId ~= nil then
+			state.assigned[key] = classId
+			filled += 1
+		end
+	end
+	return filled
+end
+
 function Draft.assign(
 	config,
 	state: State,
@@ -183,21 +282,7 @@ function Draft.assign(
 	end
 	table.sort(teams)
 
-	-- Le miroir se lit dans le format, jamais devine : c'est une decision de
-	-- conception, pas une consequence du nombre de joueurs presents.
-	local playersPerTeam = 0
-	for _, keys in teamRosters do
-		playersPerTeam = math.max(playersPerTeam, #keys)
-	end
-
-	local mirror = false
-	for _, format in config.formats do
-		if format.playersPerTeam == playersPerTeam then
-			mirror = format.mirror == true and #teams == 2
-		end
-	end
-
-	if mirror then
+	if Draft.mirrors(config, teamRosters) then
 		local classId = take(state, rng)
 		if classId ~= nil then
 			for _, team in teams do

@@ -360,6 +360,100 @@ local function showBanned(payload: any)
 	end
 end
 
+-- LE CHOIX DE CLASSE, en partie privee. C'est le MEME ecran que les bans --
+-- la meme grille, les memes cartes, le meme compte a rebours -- et c'est
+-- volontaire : on y lit les memes trois choses (le role, le pouvoir, la
+-- faiblesse), et on y fait le meme geste. Un deuxieme ecran a construire et a
+-- tenir a jour pour la meme information aurait ete du travail en double.
+--
+-- La difference tient en une ligne : un ban est un VOTE d'equipe, qu'on peut
+-- changer tant que la fenetre dure, alors qu'un choix est DEFINITIF et
+-- individuel. Donc le clic part et la grille se verrouille, au lieu de
+-- deplacer une surbrillance.
+local function showPicks(payload: any)
+	build()
+	clearGrid()
+	myVote = nil
+
+	local screen = gui
+	local area = grid
+	if screen == nil or area == nil then
+		return
+	end
+
+	showGrid(true)
+
+	local mine = payload.mine == true
+	deadline = os.clock() + (payload.seconds or 0)
+
+	if header then
+		header.Text = if mine
+			then "À VOUS DE CHOISIR"
+			else string.format("%s CHOISIT", string.upper(tostring(payload.picking)))
+		header.TextColor3 = if mine then ACCENT else Color3.fromRGB(240, 244, 255)
+	end
+	if subheader then
+		subheader.Text = if mine
+			then "Prenez votre classe. Elle ne sera plus disponible pour personne."
+			else "Regardez ce qu'il prend : c'est une classe de moins pour tout le monde."
+	end
+	if footer then
+		footer.Text = string.format(
+			"Choix %d sur %d.%s",
+			payload.rank or 0,
+			payload.total or 0,
+			if mine then "  Rien de choisi ? Une classe est tirée au sort pour vous." else ""
+		)
+	end
+
+	for index, class in payload.pool do
+		local card = makeCard(class, index, mine)
+		card.Parent = area
+
+		if mine then
+			card.Activated:Connect(function()
+				-- UN CHOIX NE SE REPREND PAS. Toute la grille se verrouille au
+				-- premier clic : sans ca, on cliquerait deux fois en pensant
+				-- changer d'avis, alors que le serveur a deja pris le premier.
+				if myVote ~= nil then
+					return
+				end
+				myVote = class.id
+				card.BackgroundColor3 = CARD_VOTED
+				for _, other in cards do
+					other.Active = false
+					other.AutoButtonColor = false
+				end
+				draftRemote:FireServer({ pick = class.id })
+			end)
+		end
+
+		cards[class.id] = card
+	end
+
+	screen.Enabled = true
+	fit()
+end
+
+local function showPicked(payload: any)
+	if subheader then
+		subheader.Text = string.format(
+			"%s (équipe %s) prend %s.",
+			tostring(payload.who),
+			tostring(payload.team),
+			tostring(payload.name)
+		)
+	end
+	local card = cards[payload.classId]
+	if card ~= nil then
+		card.BackgroundColor3 = Color3.fromRGB(22, 42, 30)
+		local name = card:FindFirstChild("Name")
+		if name and name:IsA("TextLabel") then
+			name.TextColor3 = ACCENT
+		end
+	end
+end
+
 local function showReroll(payload: any)
 	build()
 	clearGrid()
@@ -511,6 +605,10 @@ function DraftPanel.start()
 			showBans(payload)
 		elseif payload.kind == "banned" then
 			showBanned(payload)
+		elseif payload.kind == "picks" then
+			showPicks(payload)
+		elseif payload.kind == "picked" then
+			showPicked(payload)
 		elseif payload.kind == "reroll" then
 			showReroll(payload)
 		elseif payload.kind == "class" then

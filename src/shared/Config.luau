@@ -81,6 +81,17 @@ Config.seating = {
 	-- existe. « random » : tirage au sort, refait a chaque partie.
 	defaultTeamMode = "chosen",
 
+	-- « drawn » : les classes sont tirees au sort, ce que le jeu a toujours
+	-- fait. « picked » : chacun choisit la sienne a son tour, et une classe
+	-- prise ne revient pas.
+	--
+	-- LE TIRAGE RESTE LE DEFAUT, et ce n'est pas de la timidite : c'est lui
+	-- qui tient le troisieme principe du jeu, en forcant a jouer ce qui tombe
+	-- plutot que ce qu'on maitrise. Le choix est une facon de jouer entre
+	-- amis, demandee par Josh le 2 novembre 2026, et comme tout le reste du
+	-- salon il n'existe qu'en partie privee -- donc hors classement.
+	defaultClassMode = "drawn",
+
 	-- Combien de temps un changement de reglage reste affiche. L'annonce du
 	-- salon est ECRASEE par le rafraichissement, qui part toutes les secondes :
 	-- sans ce delai, « Josh a choisi 2v2 » clignote moins d'une seconde et
@@ -194,6 +205,13 @@ Config.draft = {
 	-- Chaque classe n'apparait qu'une fois dans toute la partie, pas une fois
 	-- par equipe.
 	uniqueClassesPerMatch = true,
+
+	-- Le temps laisse a chacun pour choisir sa classe, quand le salon est en
+	-- « picked ». Plus long que le vote de ban : on bannit CONTRE, ce qui se
+	-- decide vite, alors qu'on choisit POUR parmi tout ce qui reste. Qui
+	-- laisse passer sa fenetre est tire au sort, donc ce chiffre ne peut pas
+	-- figer une partie, seulement la rendre penible s'il est trop court.
+	pickSeconds = 25,
 
 	-- Un relancement par joueur et par partie, aveugle : on accepte avant de
 	-- voir. Sinon le reroll devient un choix deguise.

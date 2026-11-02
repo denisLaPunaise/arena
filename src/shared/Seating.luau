@@ -26,9 +26,10 @@
 	ou si elle etait simplement une de plus.
 
 	LE SALON, en partie privee seulement. Les amis qui jouent ensemble reglent
-	deux choses, et DEUX SEULEMENT : le format, et la facon de composer les
-	camps. Les regles du jeu — la zone, l'agonie, l'arbre, les bans — ne sont
-	pas reglables, et c'est une decision de Josh : le jeu reste le jeu.
+	TROIS choses, et trois seulement : le format, la facon de composer les
+	camps, et la facon dont les classes arrivent. Les regles du jeu — la zone,
+	l'agonie, l'arbre, les bans — ne sont pas reglables, et c'est une decision
+	de Josh : le jeu reste le jeu.
 
 	Le format impose ne change PAS qui joue. L'ordre du banc decide toujours de
 	ca, parce que c'est une question d'equite entre les personnes, pas
@@ -67,6 +68,11 @@ export type Lobby = {
 	-- Comment les camps se composent : CHOSEN (chacun demande le sien) ou
 	-- RANDOM (tirage au sort, refait a chaque partie).
 	teamMode: string,
+	-- Comment les classes arrivent : DRAWN (tirage au sort) ou PICKED (chacun
+	-- choisit la sienne a son tour). Ce module ne s'en sert pas lui-meme -- il
+	-- ne connait pas les classes -- mais c'est un reglage du salon, et le
+	-- salon tient dans ce type.
+	classMode: string,
 }
 
 export type Plan = {
@@ -86,6 +92,10 @@ Seating.AUTO = "auto"
 -- Les deux facons de composer les camps.
 Seating.CHOSEN = "chosen"
 Seating.RANDOM = "random"
+
+-- Les deux facons d'obtenir sa classe.
+Seating.DRAWN = "drawn"
+Seating.PICKED = "picked"
 
 -- Les deux camps, tels que Config les nomme. Renvoyes tels quels : l'appelant
 -- lit, il ne modifie pas.

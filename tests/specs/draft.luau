@@ -11,6 +11,8 @@
 	  - un relancement doit toujours changer quelque chose
 	  - le jeu doit continuer quand personne ne vote, et quand le vivier est
 	    plus petit que le nombre de joueurs
+	  - le choix de classe doit garder l'unicite, ne jamais figer la partie
+	    quand quelqu'un ne choisit pas, et rendre l'ordre en serpentin
 ]]
 
 local Classes = require("../../src/shared/Classes")
@@ -158,5 +160,82 @@ return function(t: harness.Harness)
 	t.check(
 		"les deux equipes sont servies aussi mal l'une que l'autre",
 		math.abs(served.A - served.B) <= 1
+	)
+
+	--------------------------------------------------------------------------
+	t.section("Le choix de classe")
+
+	-- L'ORDRE EST LE COEUR DE L'AFFAIRE. Une alternance simple donnerait
+	-- A1 B1 A2 B2 A3 B3, et le camp A choisirait en premier a chaque tour.
+	-- Le serpentin inverse les camps un tour sur deux.
+	local order = Draft.pickOrder({
+		A = { "a1", "a2", "a3" },
+		B = { "b1", "b2", "b3" },
+	})
+	t.equal("tout le monde choisit, une fois", #order, 6)
+	t.equal("le premier tour commence par A", order[1] .. order[2], "a1b1")
+	t.equal("le deuxieme tour commence par B", order[3] .. order[4], "b2a2")
+	t.equal("le troisieme repart par A", order[5] .. order[6], "a3b3")
+
+	-- La compensation se mesure : sur trois tours, chaque camp a choisi en
+	-- premier autant de fois que l'autre a un pres.
+	local firstPicks = { a = 0, b = 0 }
+	for position = 1, #order, 2 do
+		firstPicks[string.sub(order[position], 1, 1)] += 1
+	end
+	t.check(
+		"aucun camp ne choisit en premier plus d'une fois de plus que l'autre",
+		math.abs(firstPicks.a - firstPicks.b) <= 1
+	)
+
+	local picking = Draft.create(Classes.all, 3)
+	local wanted = picking.pool[1]
+	t.check("on peut prendre une classe du vivier", Draft.pick(picking, "a1", wanted))
+	t.check("une classe prise quitte le vivier", not Draft.isAvailable(picking, wanted))
+	t.check("personne d'autre ne peut la prendre", not Draft.pick(picking, "b1", wanted))
+	t.check("et on ne se reprend pas soi-meme", not Draft.pick(picking, "a1", picking.pool[1]))
+
+	-- UN CHOIX QUI N'ARRIVE PAS NE FIGE RIEN. C'est la regle qui compte le
+	-- plus : six joueurs ne peuvent pas attendre le septieme pour toujours.
+	local lazy = Draft.create(Classes.all, 3)
+	Draft.pick(lazy, "a1", lazy.pool[2])
+	local filled = Draft.fillRemaining(lazy, { "a1", "a2", "b1", "b2" }, first)
+	t.equal("seuls ceux qui n'ont pas choisi sont tires au sort", filled, 3)
+
+	local seen: { [string]: boolean } = {}
+	local unique = true
+	for _, classId in lazy.assigned do
+		if seen[classId] then
+			unique = false
+		end
+		seen[classId] = true
+	end
+	t.check("choix et tirage melanges gardent l'unicite", unique)
+
+	--------------------------------------------------------------------------
+	t.section("Le miroir refuse le choix")
+
+	-- RELIER LES DEUX BOUTS, et pas verifier Config contre Config : la regle
+	-- qui compte est celle que DraftService applique, c'est-a-dire
+	-- `Draft.mirrors`. En 1v1 les deux joueurs ont la MEME classe, donc
+	-- laisser l'un choisir la donnerait aussi a son adversaire.
+	t.check(
+		"le 1v1 est un miroir, donc le choix n'y a pas lieu",
+		Draft.mirrors(Config, { A = { "a1" }, B = { "b1" } })
+	)
+	t.check(
+		"le 2v2 n'en est pas un",
+		not Draft.mirrors(Config, { A = { "a1", "a2" }, B = { "b1", "b2" } })
+	)
+
+	-- Et la regle sortie de `assign` doit toujours commander `assign` : un
+	-- miroir donne la meme classe aux deux, c'est ce qui prouve qu'elle est
+	-- lue au meme endroit.
+	local mirrored = Draft.create(Classes.all, 1)
+	Draft.assign(Config, mirrored, { A = { "a1" }, B = { "b1" } }, first)
+	t.equal(
+		"le miroir donne toujours la meme classe aux deux",
+		mirrored.assigned.a1,
+		mirrored.assigned.b1
 	)
 end

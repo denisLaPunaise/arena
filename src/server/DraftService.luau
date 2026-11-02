@@ -29,6 +29,7 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Classes = require(Arena:WaitForChild("Classes"))
 local Config = require(Arena:WaitForChild("Config"))
 local Draft = require(Arena:WaitForChild("Draft"))
+local Seating = require(Arena:WaitForChild("Seating"))
 
 local Remotes = Arena:WaitForChild("Remotes")
 local draftRemote = Remotes:WaitForChild("Draft") :: RemoteEvent
@@ -48,6 +49,10 @@ end
 -- fenetre n'a nulle part ou atterrir, et c'est voulu.
 local banVotes: { [Player]: string } = {}
 local rerollAsked: { [Player]: boolean } = {}
+-- Le choix de classe recu, quand le salon est en « picked ». Un seul a la
+-- fois : les choix sont sequentiels, donc seul celui dont c'est le tour peut
+-- en poser un, et la boucle le relit.
+local classPicked: { [Player]: string } = {}
 local listening = false
 
 local function teamOf(player: Player, teams: { [Player]: string }): string?
@@ -135,6 +140,97 @@ local function banPhase(state: Draft.State, teams: { [Player]: string }, teamNam
 	banVotes = {}
 end
 
+-- LE CHOIX DE CLASSE, a la place du tirage, en partie privee seulement.
+--
+-- LA FENETRE SE FERME DES QUE LE JOUEUR A CHOISI, et c'est l'inverse de ce
+-- que fait le tour de ban. Deux raisons, et elles tiennent ensemble : les
+-- bans sont un par equipe, donc attendre la fenetre entiere coute quarante
+-- secondes en tout, alors que les choix sont un par JOUEUR -- a huit joueurs,
+-- vingt-cinq secondes chacun font plus de trois minutes d'ecran d'attente. Et
+-- surtout, il n'y a rien a lire pendant qu'on attend : un ban se regarde
+-- parce qu'il change ce que l'adversaire peut jouer, un choix se voit
+-- immediatement dans le vivier qui retrecit.
+local function pickPhase(
+	state: Draft.State,
+	players: { Player },
+	teams: { [Player]: string },
+	rosters: { [string]: { string } }
+)
+	local byKey: { [string]: Player } = {}
+	for _, player in players do
+		byKey[tostring(player.UserId)] = player
+	end
+
+	local order = Draft.pickOrder(rosters)
+	local seconds = Config.draft.pickSeconds
+
+	for rank, key in order do
+		local picker = byKey[key]
+		-- Parti entre-temps : on ne l'attend pas. `fillRemaining` lui donnera
+		-- une classe si jamais il revient, et MatchService l'a de toute facon
+		-- retire de la partie.
+		if picker == nil or picker.Parent == nil then
+			continue
+		end
+
+		classPicked = {}
+
+		for _, player in players do
+			draftRemote:FireClient(player, {
+				kind = "picks",
+				pool = poolView(state),
+				picking = picker.Name,
+				team = teamOf(picker, teams),
+				mine = player == picker,
+				rank = rank,
+				total = #order,
+				seconds = seconds,
+			})
+		end
+
+		local deadline = os.clock() + seconds
+		while os.clock() < deadline do
+			local wanted = classPicked[picker]
+			if wanted ~= nil and Draft.pick(state, key, wanted) then
+				break
+			end
+			-- Un choix refuse (classe deja prise par un client en retard) est
+			-- efface plutot que reessaye en boucle : le joueur en renvoie un
+			-- autre, et le vivier qu'il vient de recevoir ne la montre plus.
+			classPicked[picker] = nil
+			task.wait(0.1)
+		end
+
+		local classId = state.assigned[key]
+		if classId == nil then
+			-- Fenetre laissee passer : tirage au sort pour lui. Le choix doit
+			-- FERMER, pas figer -- un joueur absent ne bloque pas les sept
+			-- autres.
+			Draft.fillRemaining(state, { key }, rng)
+			classId = state.assigned[key]
+		end
+
+		local class = if classId then Classes.byId[classId] else nil
+		tellAll({
+			kind = "picked",
+			who = picker.Name,
+			team = teamOf(picker, teams),
+			classId = classId,
+			name = if class then class.name else classId,
+		})
+		print(
+			string.format(
+				"[Arena] %s prend %s",
+				picker.Name,
+				if class then class.name else tostring(classId)
+			)
+		)
+		task.wait(0.6)
+	end
+
+	classPicked = {}
+end
+
 local function rerollPhase(state: Draft.State, players: { Player })
 	if Config.draft.rerollsPerPlayer <= 0 then
 		return
@@ -166,7 +262,11 @@ end
 -- joueur. En cas de vivier insuffisant, un joueur peut repartir sans classe :
 -- l'appelant doit le gerer, et MatchService lui donne alors une classe du
 -- prototype plutot que de le laisser sans rien.
-function DraftService.run(players: { Player }, teams: { [Player]: string }): { [Player]: string }
+function DraftService.run(
+	players: { Player },
+	teams: { [Player]: string },
+	classMode: string?
+): { [Player]: string }
 	listening = true
 
 	local teamNames: { string } = {}
@@ -192,8 +292,26 @@ function DraftService.run(players: { Player }, teams: { [Player]: string }): { [
 	local state = Draft.create(Classes.all, playersPerTeam)
 
 	banPhase(state, teams, teamNames)
-	Draft.assign(Config, state, rosters, rng)
-	rerollPhase(state, players)
+
+	-- LE MIROIR GARDE SON TIRAGE, meme quand le salon demande le choix, et
+	-- c'est une decision prise sans Josh. En 1v1 les deux joueurs ont LA MEME
+	-- classe : laisser l'un des deux la choisir, c'est lui donner la classe de
+	-- son adversaire aussi, ce qui est le contraire de ce que le miroir
+	-- existe pour garantir. Un choix partage entre deux adversaires est une
+	-- negociation, et le jeu n'a pas de quoi la tenir. L'ecran le dit.
+	local picking = classMode == Seating.PICKED and not Draft.mirrors(Config, rosters)
+
+	if picking then
+		pickPhase(state, players, teams, rosters)
+	else
+		Draft.assign(Config, state, rosters, rng)
+	end
+
+	-- Le relancement n'a aucun sens apres un choix : on relancerait ce qu'on
+	-- vient de prendre expres.
+	if not picking then
+		rerollPhase(state, players)
+	end
 
 	-- La revelation, enfin. C'est le premier moment ou quelqu'un voit sa
 	-- classe, et c'est voulu.
@@ -234,6 +352,8 @@ function DraftService.init()
 
 		if typeof(payload.vote) == "string" then
 			banVotes[player] = payload.vote
+		elseif typeof(payload.pick) == "string" then
+			classPicked[player] = payload.pick
 		elseif payload.reroll == true then
 			rerollAsked[player] = true
 		end
@@ -242,6 +362,7 @@ function DraftService.init()
 	Players.PlayerRemoving:Connect(function(player: Player)
 		banVotes[player] = nil
 		rerollAsked[player] = nil
+		classPicked[player] = nil
 	end)
 end
 
