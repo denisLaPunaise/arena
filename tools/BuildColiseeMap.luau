@@ -130,6 +130,28 @@ local function pillar(name, parent, radius, height, x, z, y, color, material)
 	return p
 end
 
+-- LE PREMIER BISEAU DU PROJET. Les trois maps n'utilisaient que des boites,
+-- deux spheres et six cylindres : aucun `WedgePart`. C'est ce qui donnait a
+-- tout une arete vive a quatre-vingt-dix degres, la signature d'une place
+-- faite de parts par defaut. Un coin coute exactement le meme prix qu'une
+-- boite et remplit ce qu'une boite ne peut pas : un ecoincon, une rampe, un
+-- eboulis, un fronton.
+--
+-- La pente d'un `WedgePart` descend le long de son axe Z : la face inclinee
+-- regarde +Y et +Z. Donc un ecoincon se pose en tournant la piece, pas en
+-- changeant sa taille.
+local function wedge(name, parent, size, cf, color, material)
+	local p = Instance.new("WedgePart")
+	p.Name = name
+	p.Size = size
+	p.CFrame = cf
+	p.Anchored = true
+	p.Color = color or STONE
+	p.Material = material or Enum.Material.Sandstone
+	p.Parent = parent
+	return p
+end
+
 local function disc(name, parent, radius, height, y, color, material)
 	return pillar(name, parent, radius, height, 0, 0, y - height / 2, color, material)
 end
@@ -463,41 +485,152 @@ end
 -- ===== La facade : deux etages d'arcades =================================
 -- C'est elle qui fait un colisee plutot qu'un rond de sable. Quarante-huit
 -- piles, leurs arcs, et une corniche qui court tout autour.
-local PIERS = 48
+-- TRENTE PILES, PAS QUARANTE-HUIT, et c'est la correction qui a demande deux
+-- essais. Quarante-huit piles sur un cercle de cinq cent quinze studs donnent
+-- des baies de 5,7 studs pour vingt-quatre de haut : une fente, pas une
+-- arcade. Aucune arche ne peut sauver une proportion pareille, puisque son
+-- rayon est impose par la largeur de la baie.
+--
+-- Le Colisee reel a quatre-vingts arcades sur cinq cent vingt-sept metres,
+-- soit une baie de 6,6 m pour une ouverture de 4,2 m sur 7,2 m — l'ouverture
+-- fait donc les DEUX TIERS de la baie, et elle est une fois et demie plus
+-- haute que large. A trente piles la baie fait 17,2 studs, l'ouverture 11,2,
+-- et le rapport retombe a 1,5. Et il y a moins de parts qu'avant.
+local PIERS = 30
+
+-- UNE ARCHE DANS LE VIDE ENTRE DEUX PILES. Elle se construit dans le plan
+-- vertical qui contient la TANGENTE du cercle : c'est le plan de la facade a
+-- cet endroit-la. Chaque claveau est donc oriente par deux vecteurs — le
+-- rayon du colisee, qui traverse le mur, et le rayon de l'ARCHE, qui part du
+-- centre de l'arc vers le claveau.
+--
+-- `CFrame.fromMatrix` existe pour exactement ca : on lui donne les deux
+-- directions qu'on connait et il en deduit la troisieme. Composer des angles
+-- d'Euler ici donnerait un resultat different selon l'ordre, et c'est la
+-- faute qui a coute une journee sur le penchement du buste.
+-- `voussoirColor` est la bague de l'arc, `wallColor` le mur autour. CE SONT
+-- DEUX COULEURS DIFFERENTES, et c'est tout ce qui fait qu'une arche se voit :
+-- au premier essai les claveaux et le tympan partageaient la meme teinte,
+-- donc la bague se fondait dans le mur et il ne restait qu'un trou a sommet
+-- rond. Un arc de pierre se lit parce qu'il est APPAREILLE autrement que ce
+-- qu'il porte.
+local function arch(id, a, springY, radius, topY, voussoirColor, keyColor, wallColor)
+	local b = a + math.pi / PIERS
+	local centre =
+		Vector3.new(math.sin(b) * (FLOOR_RADIUS + 4), springY, math.cos(b) * (FLOOR_RADIUS + 4))
+	-- Le rayon du colisee a cet angle : il traverse le mur, donc c'est
+	-- l'EPAISSEUR du claveau qui se pose dessus.
+	local through = Vector3.new(math.sin(b), 0, math.cos(b))
+	-- La tangente, dans laquelle l'arche s'ouvre.
+	local along = Vector3.new(math.cos(b), 0, -math.sin(b))
+
+	-- NEUF CLAVEAUX : avec un rayon de 5,6 studs, sept pierres donnaient un
+	-- arc visiblement polygonal de pres. La corde se calcule, elle ne se
+	-- recopie pas.
+	local VOUSSOIRS = 9
+	-- La corde d'un claveau, avec un recouvrement : sans lui, le polygone
+	-- laisse voir le jour entre deux pierres. Meme raison que les dalles de
+	-- `annulus`.
+	local chord = 2 * radius * math.sin(math.pi / (2 * VOUSSOIRS)) * 1.3
+
+	for k = 1, VOUSSOIRS do
+		local theta = (k - 0.5) / VOUSSOIRS * math.pi
+		local outward = (along * math.cos(theta)) + Vector3.new(0, math.sin(theta), 0)
+		local pos = centre + outward * radius
+		-- LA CLE DE VOUTE RESSORT. Une arche romaine se lit a sa clef, qui
+		-- est plus grande et depasse du nu du mur ; sans elle les sept
+		-- pierres se valent et l'arc redevient un trou rond.
+		local isKey = k == math.ceil(VOUSSOIRS / 2)
+		local p = part(
+			string.format("Claveau%d_%d", id, k),
+			decor,
+			-- LA CLEF MORD DANS LE TYMPAN et ressort du nu du mur : au premier
+			-- essai elle etait a peine plus grosse que ses voisines et on la
+			-- lisait comme une tuile posee au hasard au milieu du mur.
+			Vector3.new(
+				if isKey then 8.4 else 7,
+				if isKey then radius * 0.8 else 2.4,
+				if isKey then chord * 1.25 else chord
+			),
+			CFrame.fromMatrix(pos, through, outward),
+			if isKey then keyColor else voussoirColor
+		)
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+	end
+
+	-- LES ECOINCONS : les deux triangles entre la courbe de l'arc et
+	-- l'horizontale au-dessus. Sans eux il reste un croissant de ciel de
+	-- chaque cote de la clef, ce qui est exactement ce qu'un mur n'est pas.
+	-- C'est le cas d'ecole du biseau : une boite ne peut pas faire ce coin.
+	local crown = springY + radius
+	for _, side in { -1, 1 } do
+		wedge(
+			string.format("Ecoincon%d_%d", id, side),
+			decor,
+			Vector3.new(6.58, radius, radius),
+			CFrame.fromMatrix(
+				centre + along * (side * radius * 0.5) + Vector3.new(0, radius * 0.5, 0),
+				through * side,
+				Vector3.new(0, 1, 0)
+			),
+			wallColor
+		)
+	end
+
+	-- LE TYMPAN, et c'etait le vrai defaut du premier essai. Les ouvertures
+	-- faisaient vingt-quatre studs de haut pour six de large : l'arche
+	-- ressortait comme un petit detail en haut d'une fente, et on voyait le
+	-- ciel a travers toute la facade. Un colisee romain a des arcades a peine
+	-- deux fois plus hautes que larges, et TOUT LE RESTE EST PLEIN. C'est ce
+	-- bloc qui transforme une rangee de poteaux en mur perce d'arcades.
+	if topY > crown then
+		part(
+			string.format("Tympan%d", id),
+			decor,
+			-- LA LARGEUR DE L'OUVERTURE, pas un chiffre choisi : un tympan
+			-- plus large que sa baie recouvre les piles et la facade
+			-- redevient un mur plat a pilastres.
+			Vector3.new(6.6, topY - crown, 2 * radius + 0.6),
+			CFrame.fromMatrix(
+				centre + Vector3.new(0, radius + (topY - crown) / 2, 0),
+				through,
+				Vector3.new(0, 1, 0)
+			),
+			wallColor
+		)
+	end
+end
+
 for i = 1, PIERS do
 	local a = (i - 1) / PIERS * math.pi * 2
 	local x, z = math.sin(a) * (FLOOR_RADIUS + 4), math.cos(a) * (FLOOR_RADIUS + 4)
 	part(
 		string.format("Pile%d", i),
 		decor,
-		Vector3.new(5, 24, 8),
+		Vector3.new(6, 24, 8),
 		CFrame.new(x, 12, z) * CFrame.Angles(0, a, 0),
 		STONE
 	)
-	-- L'arc, en deux claveaux inclines : deux blocs suffisent a faire lire une
-	-- arcade de loin, et une vraie voussure couterait cent parts par arche.
-	local b = a + math.pi / PIERS
-	local bx, bz = math.sin(b) * (FLOOR_RADIUS + 4), math.cos(b) * (FLOOR_RADIUS + 4)
-	for _, tilt in { -1, 1 } do
-		part(
-			string.format("Claveau%d_%d", i, tilt),
-			decor,
-			Vector3.new(4, 9, 6),
-			CFrame.new(
-				bx - math.sin(b + tilt * math.pi / 2) * 3,
-				19,
-				bz - math.cos(b + tilt * math.pi / 2) * 3
-			) * CFrame.Angles(0, b, tilt * math.rad(32)),
-			STONE_DARK
-		)
-	end
 	part(
 		string.format("Etage%d", i),
 		decor,
-		Vector3.new(5, 14, 7),
+		Vector3.new(6, 14, 7),
 		CFrame.new(x, 31, z) * CFrame.Angles(0, a, 0),
 		STONE_WARM
 	)
+
+	-- UNE VRAIE VOUSSURE, et l'ancien commentaire se trompait de prix : il
+	-- disait qu'elle couterait cent parts par arche, alors qu'un arc se lit
+	-- des SEPT claveaux. Les deux blocs inclines d'avant faisaient une
+	-- encoche, pas une arche — et l'arche est la signature d'un colisee.
+	-- Avec les ecoincons, le compte passe de deux parts a neuf par arcade.
+	-- PROPORTION ROMAINE : l'arcade nait a sept studs et sa clef est a dix,
+	-- pour six de large. Tout ce qui est au-dessus est du mur plein, porte
+	-- par le tympan. L'etage repete le motif en plus petit, comme la facade
+	-- reelle le fait.
+	arch(i, a, 11, 5.6, 24, STONE_DARK, STONE, STONE)
+	arch(i + PIERS, a, 26.5, 5, 38, STONE_DARK, STONE, STONE_WARM)
 end
 annulus("Corniche", decor, FLOOR_RADIUS - 1, FLOOR_RADIUS + 10, 25, 2, 72, STONE_DARK)
 annulus("Attique", decor, FLOOR_RADIUS - 1, FLOOR_RADIUS + 10, 39, 2.4, 72, STONE)

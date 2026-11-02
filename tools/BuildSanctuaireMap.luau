@@ -114,6 +114,24 @@ local function part(name, parent, size, cf, color, material)
 	return p
 end
 
+-- LE PREMIER BISEAU DE CETTE MAP. Les trois recettes n'utilisaient que des
+-- boites : d'ou des toits plats, et des abris de camp qui lisaient comme des
+-- tables de pique-nique. Un coin coute exactement le meme prix qu'une boite.
+-- Sa pente descend le long de son axe Z : la face inclinee regarde +Y et +Z,
+-- donc l'arete haute est du cote -Z.
+local function wedge(name, parent, size, cf, color, material)
+	local p = Instance.new("WedgePart")
+	p.Name = name
+	p.Size = size
+	p.CFrame = cf
+	p.Anchored = true
+	p.CanCollide = false
+	p.Color = color or MOSS
+	p.Material = material or Enum.Material.Slate
+	p.Parent = parent
+	return p
+end
+
 local function pillar(name, parent, radius, height, x, z, y, color, material, tilt)
 	local p = part(
 		name,
@@ -423,9 +441,25 @@ for _, side in { -1, 1 } do
 	-- LE TOIT EST PLUS PETIT QUE LE PARVIS ET PLUS BAS. A trente studs de
 	-- cote et dix-neuf de haut il ecrasait la moitie de la map a l'ecran :
 	-- un abri de depart doit se voir, pas dominer le temple qui est le sujet.
-	part("Toit" .. team, decor, Vector3.new(25, 1.6, 25), CFrame.new(x, 15.6, z), MOSS_DARK).CanCollide =
+	--
+	-- ET IL EST A DEUX PANS, pas plat. Une dalle posee sur quatre colonnes
+	-- est une table de pique-nique, et c'est exactement ce a quoi les deux
+	-- camps ressemblaient. Deux coins dos a dos font un vrai toit, avec une
+	-- arete, et ca ne coute pas une part de plus que la dalle plus son
+	-- faitage. C'est le defaut le plus visible que le biseau repare.
+	part("Sablière" .. team, decor, Vector3.new(26, 1, 26), CFrame.new(x, 15.4, z), LIME_DARK).CanCollide =
 		false
-	part("Faitage" .. team, decor, Vector3.new(27, 0.8, 27), CFrame.new(x, 16.6, z), LIME_DARK).CanCollide =
+	for _, dir in { 1, -1 } do
+		wedge(
+			string.format("Pan%s%d", team, dir),
+			decor,
+			Vector3.new(26, 5.5, 13),
+			CFrame.new(x, 18.65, z + dir * 6.5)
+				* CFrame.Angles(0, if dir > 0 then 0 else math.pi, 0),
+			MOSS_DARK
+		)
+	end
+	part("Faitage" .. team, decor, Vector3.new(27, 0.7, 1.1), CFrame.new(x, 21.6, z), LIME_DARK).CanCollide =
 		false
 	part(
 		"Fronton" .. team,
