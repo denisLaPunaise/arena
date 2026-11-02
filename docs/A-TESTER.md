@@ -1354,6 +1354,78 @@ pour lire la console.
   joueurs. Une partie de sept manches avec un arbre mené au palier 6 n'a jamais
   existé. C'est la première chose à essayer.
 
+## 28. Les trois maps polies — **regardées, toujours jamais jouées**
+
+Tu les avais classées « pas mal / ça va / moyen ». Ce qui a changé, et ce qu'il
+faut regarder en y jouant :
+
+**Le sanctuaire** (celui que tu trouvais moyen) a le plus bougé. Le soleil est
+descendu à l'aube, il y a de vrais nuages volumétriques, l'eau n'est plus un
+ruban bleu de piscine, les arbres ont trois étages — des émergents qui percent,
+une voûte, du sous-bois — avec des troncs penchés, des contreforts et des
+lianes, et la dalle a des plaques de mousse et des flaques.
+
+👉 **Ce qu'il faut me dire** : est-ce que la dalle est assez **lisible** pour
+s'y battre ? J'ai dû arbitrer entre un ciel lourd et une arène claire, et j'ai
+choisi l'arène. Si c'est encore trop sombre, dis-le — c'est un chiffre.
+
+**Le Colisée** : la pierre est passée au calcaire pâle et le sable au jaune
+chaud, donc le bâtiment se détache enfin de son terrain ; le soleil est à 17 h
+et les piliers rayent le sol ; il y a sept dunes basses au lieu de trois bosses.
+
+👉 **Ce qu'il faut me dire** : est-ce que l'intérieur de l'arène est assez
+éclairé ? Le mur bloque le soleil rasant, c'est juste physiquement mais ça peut
+être pénible à jouer.
+
+**Le Cargo** a seulement reçu le nettoyage des nuages (une soute n'a pas de
+ciel). Tu le trouvais « ça va » et je n'y ai pas touché autrement.
+
+**Ce que je n'ai pas pu faire** : changer la **couleur du ciel**. Le ciel par
+défaut de Roblox est une texture de plein jour, et aucun réglage ne la teinte —
+vérifié trois fois. Les nuages la couvrent en partie, c'est tout ce qui est
+possible sans aller chercher un asset de skybox, ce que je ne sais pas faire de
+façon fiable (`search_asset` ne cherche pas par le sens).
+
+---
+
+## 29. Le choix de classe en partie privée — **jamais joué à plusieurs**
+
+Nouveau, et c'est ce que tu avais demandé. En **partie privée uniquement**,
+touche `C` pour ouvrir le salon : il a maintenant une troisième rangée,
+**CLASSES**, avec « tirées au sort » (le défaut, inchangé) et « chacun
+choisit ».
+
+Comment ça se déroule : les bans ont lieu normalement, puis chacun choisit sa
+classe **à son tour**, sur le même écran que les bans. Une classe prise
+disparaît du vivier pour tout le monde — donc une seule personne par classe,
+comme tu voulais. L'ordre est en **serpentin** (A, B, puis B, A, puis A, B)
+pour que le camp qui choisit en premier ne prenne pas la meilleure classe à
+chaque tour. Qui laisse passer sa fenêtre de 25 secondes est tiré au sort.
+
+**En 1v1 le choix ne s'applique pas**, et c'est une décision que j'ai prise
+sans toi : les deux joueurs y ont la même classe (c'est le miroir), donc
+laisser l'un choisir reviendrait à lui faire choisir celle de son adversaire.
+Détail du raisonnement dans `docs/DECISIONS.md`. Si tu veux du choix en 1v1,
+c'est une vraie question de conception et elle est pour toi.
+
+👉 **Ce qu'il faut tester, et que je ne peux pas** :
+1. À **deux au moins**, en partie privée : ouvrir `C`, basculer CLASSES sur
+   « chacun choisit », lancer, et vérifier que chacun prend bien la sienne.
+2. Que **deux personnes ne peuvent pas prendre la même classe** — cliquez en
+   même temps sur la même carte, exprès.
+3. Que la partie **ne se fige pas** si quelqu'un ne clique rien pendant les 25
+   secondes, et s'il **quitte** pendant son tour.
+4. Que ça reste **impossible en partie publique** : la rangée ne doit pas même
+   s'afficher.
+5. Si l'attente est pénible à 3v3 ou 4v4 : la fenêtre se ferme dès qu'on a
+   cliqué, mais six à huit choix d'affilée, ça se mesure en jouant.
+
+Vérifié de mon côté : 1545 tests, plus la logique rejouée dans la machine
+virtuelle de Roblox (le serpentin, l'unicité, le tirage de secours, le miroir).
+**Jamais joué à plus d'un**, parce qu'il faut deux personnes.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

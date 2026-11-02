@@ -1957,6 +1957,90 @@ test est en place et il échoue sur l'ancienne configuration.
 
 ---
 
+## Le polissage des trois maps — 2 novembre 2026
+
+Tu les avais classées « pas mal / ça va / moyen ». Les quatre défauts que j'ai
+trouvés en **regardant** l'écran, dont aucun n'apparaît dans les 1545 tests :
+
+- **Le soleil était au zénith** sur les deux maps extérieures. Mesuré : 37,4
+  degrés au Colisée. Chaque objet posait donc son ombre sous lui-même, et toute
+  la géométrie écrite — quarante arbres, quarante-huit piliers, un autel à
+  étages — ne se voyait pas. Descendu à 15 degrés : les ombres traversent le
+  terrain. C'est le réglage le moins cher et le plus visible des deux maps.
+- **L'eau du sanctuaire était un ruban bleu cobalt**, et j'ai mis deux essais à
+  comprendre pourquoi. Le `Glass` de Roblox réfléchit **par lui-même**, et
+  `Reflectance` n'y change rien : je l'ai descendue de 0,70 à 0,25 et la douve
+  est restée exactement du même bleu, parce que ce bleu ne venait pas d'elle
+  mais du ciel. C'est la **matière** qu'il fallait changer.
+- **Le Colisée était entièrement du même beige** — sol, gradins, piliers, dunes
+  tenaient dans un écart de vingt niveaux. La pierre part maintenant vers le
+  calcaire pâle et froid, le sable vers le jaune chaud, comme dans la réalité.
+- **Les couronnes d'arbres étaient des sphères.** Trois sphères empilées
+  redonnent une sphère : de loin le contour reste un rond parfait, et un rond
+  parfait sur un bâton est une sucette. Ce sont maintenant des grappes de cinq
+  petites, chacune décalée.
+
+**Et la trouvaille qui portera ailleurs : le ciel par défaut de Roblox est une
+texture de plein jour, pas un dégradé calculé.** Ni `ClockTime`, ni
+`Atmosphere.Color`, ni `ColorCorrection` ne la teintent — vérifié trois fois de
+suite, en descendant l'heure jusqu'à 6h50 et en posant une brume chaude : le
+soleil bougeait bien (mesuré), le ciel restait d'un bleu de place vide. Le seul
+levier procédural qui reste, sans aller chercher un asset, est **`Clouds`**, qui
+se parente au **Terrain** et pas à `Lighting`. Il change tout : le sanctuaire a
+enfin un ciel de sanctuaire noyé.
+
+**La décision que j'ai prise seul** est l'arbitrage entre la beauté et la
+lisibilité. À 0,88 de couverture nuageuse le ciel du sanctuaire était superbe et
+la dalle était sombre — les nuages mangent le soleil, donc ils mangent aussi les
+ombres qu'on venait d'aller chercher. Je suis redescendu à 0,72 : **une arène se
+joue avant d'être jolie**. Si tu préfères l'ambiance plus lourde, c'est un
+chiffre dans `tools/BuildSanctuaireMap.luau`.
+
+---
+
+## Le choix de classe en partie privée — 2 novembre 2026
+
+Tu voulais pouvoir choisir ta classe entre amis. Le salon (touche `C`) a donc
+une troisième rangée, **CLASSES**, avec deux boutons : « tirées au sort » (ce
+que le jeu a toujours fait, et le défaut) et « chacun choisit ». Trois
+décisions, parce que tu n'étais pas là.
+
+**L'ordre est un serpentin**, A B puis B A puis A B, et pas une alternance
+simple. Avec une alternance, le camp qui passe en premier prend la meilleure
+classe restante à *chaque* tour, et l'autre ne rattrape jamais : au quatrième
+tour l'écart est de quatre rangs. En serpentin, celui qui choisit en dernier à
+un tour choisit en premier au suivant, donc l'avantage du premier choix se paie
+tout de suite. C'est la réponse standard dans les drafts, et elle ne coûte
+qu'une inversion d'indice.
+
+**La fenêtre se ferme dès que le joueur a choisi**, à l'inverse du tour de ban
+qui attend toujours sa fenêtre entière. Deux raisons qui tiennent ensemble : les
+bans sont un par **équipe**, donc attendre coûte quarante secondes en tout,
+alors que les choix sont un par **joueur** — à huit joueurs, vingt-cinq secondes
+chacun feraient plus de trois minutes d'écran d'attente. Et surtout il n'y a
+rien à lire pendant qu'on attend : un ban se regarde parce qu'il change ce que
+l'adversaire peut jouer, un choix se voit immédiatement dans le vivier qui
+rétrécit.
+
+**Le miroir du 1v1 garde son tirage**, même quand le salon demande le choix. En
+1v1 les deux joueurs ont la *même* classe : laisser l'un des deux la choisir,
+c'est lui donner la classe de son adversaire aussi, ce qui est exactement le
+contraire de ce que le miroir existe pour garantir. Un choix partagé entre deux
+adversaires est une négociation, et le jeu n'a pas de quoi la tenir. L'écran le
+dit. **Si tu veux du choix en 1v1, c'est une vraie question de conception et
+elle est pour toi** — par exemple : chacun propose, et on tire au sort entre les
+deux propositions.
+
+Ce qui n'a pas bougé, et volontairement : le tirage reste le **défaut**, parce
+que c'est lui qui tient le troisième principe du jeu en forçant à jouer ce qui
+tombe plutôt que ce qu'on maîtrise ; le choix n'existe **qu'en partie privée**,
+donc hors classement ; les bans ont toujours lieu avant ; et une classe reste
+unique dans la partie — c'est le vivier lui-même qui le garantit, puisque
+choisir en retire exactement comme tirer le fait. Enfin, **qui laisse passer sa
+fenêtre est tiré au sort** : sept joueurs n'attendent pas le huitième.
+
+---
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si
