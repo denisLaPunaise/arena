@@ -1426,6 +1426,64 @@ virtuelle de Roblox (le serpentin, l'unicité, le tirage de secours, le miroir).
 
 ---
 
+## 30. L'équilibrage des 34 armes — **mesuré, et une question pour toi**
+
+Tu m'as demandé de vérifier qu'aucune arme n'est trop forte. Je l'ai fait par
+le calcul, sur les 24 armes principales et les 10 secondaires. La mesure qui
+compte est les **dégâts par seconde** (`dégâts ÷ cadence`), parce que c'est la
+seule façon de comparer une arme lente et forte à une arme rapide et faible.
+
+**La bonne nouvelle : aucune arme n'est morte.** Pas une seule n'est dominée
+par une autre de sa catégorie — c'est-à-dire : aucune ne coûte autant ou plus
+qu'une rivale tout en frappant moins fort, en portant moins loin, sans rien
+apporter de plus et en subissant les mêmes contraintes. Un objet comme ça ne se
+voit jamais en jouant (on prend simplement l'autre), et il coûte aussi cher à
+dessiner et à lire que les autres. **Un test le vérifie désormais** — et je l'ai
+cassé exprès pour prouver qu'il sert : en baissant les griffes, il a nommé les
+quatre armes qui les dominaient alors.
+
+**Ce que la mesure montre, et qui est une question de conception.** Voici le
+meilleur rapport dégâts/point à chaque palier, pour les armes principales :
+
+| Coût | Meilleur rapport | Arme | Moyenne du palier |
+| --- | --- | --- | --- |
+| 4 pts | 0,348 | griffes | 0,297 |
+| 5 pts | 0,276 | fusil à pompe | 0,259 |
+| 6 pts | **0,240** | épée longue | **0,213** |
+| 7 pts | **0,329** | mitrailleuse | 0,229 |
+
+La courbe descend normalement — payer plus cher donne moins par point, c'est ce
+qui fait d'un budget un choix — puis **elle remonte à sept points**. Autrement
+dit : **le palier à six points est un creux**, sur le meilleur comme sur la
+moyenne. Avec douze points de budget, « 6 + 6 » est le partage le plus naturel,
+et c'est précisément celui qui rend le moins. Un joueur qui s'en aperçoit
+n'achètera plus jamais d'arme à six points.
+
+Le cas extrême est la **mitrailleuse** : 2,30 dégâts par seconde là où la
+meilleure arme à six points en fait 1,44, soit **60 % de plus**, et avec plus de
+portée que toutes sauf deux. Sa contrepartie est réelle — elle te cloue presque
+sur place pendant le tir (0,45 s de ralentissement, pour une cadence de 0,46 s,
+donc tu es immobile tant que tu tires). **Est-ce que cette contrepartie pèse
+vraiment autant ? Ça ne se calcule pas, ça se joue.** Dans une arène dont la
+zone se referme, être immobilisé peut être très cher — ou pas du tout, si tu
+tires depuis un couvert.
+
+👉 **Ce que j'attends de toi** : joue la mitrailleuse, et joue contre. Si elle
+te paraît trop forte, le geste est d'un seul chiffre — ses dégâts passent de
+1,06 à 0,92 et son rapport tombe à 0,286, en ligne avec le katana, tout en
+restant la plus grosse cadence du jeu. Et dis-moi si les armes à six points te
+semblent molles : là, c'est les six qu'il faudrait remonter, pas la
+mitrailleuse qu'il faudrait baisser.
+
+**Je n'ai touché à aucun chiffre de dégâts**, volontairement. C'est la chose la
+plus sensible au ressenti de tout le jeu, tu joues demain, et un rééquilibrage
+appliqué sans toi t'aurait fait juger des armes que je viens de changer.
+
+Les secondaires, elles, sont saines : 0,486 → 0,343 → 0,327 de moyenne, une
+courbe qui descend sans accroc.
+
+---
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :

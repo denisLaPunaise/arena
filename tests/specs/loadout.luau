@@ -1207,4 +1207,106 @@ return function(t: harness.Harness)
 		)
 	end
 	t.check("il y a bien des bonds a verifier", leaps >= 2)
+
+	--------------------------------------------------------------------------
+	t.section("Aucune arme n'est morte")
+
+	-- UN OBJET QU'ON NE PRENDRAIT JAMAIS EST UN OBJET MORT, et il coute aussi
+	-- cher a dessiner, a equilibrer et a lire que les autres. Une arme est
+	-- morte quand une autre de la MEME categorie coute autant ou moins, frappe
+	-- aussi fort ou plus, porte aussi loin ou plus, apporte tout ce qu'elle
+	-- apporte, et subit tout ce qu'elle subit. Personne ne la prendrait, et ca
+	-- ne se voit jamais en jouant : on prend l'autre, voila tout.
+	--
+	-- Le catalogue en est exempt au 2 novembre 2026, et c'est justement
+	-- pourquoi ce test vaut d'exister : il attrapera la soixante-troisieme
+	-- arme, pas les soixante-deux d'aujourd'hui.
+	local BONUS = {
+		"armorPierceRatio",
+		"onHit",
+		"offset",
+		"use",
+		"weaponBlast",
+		"resistsKnockback",
+	}
+	local MALUS = { "minRangeStuds", "selfSlowSeconds", "shotsPerRound" }
+
+	type Arme = {
+		id: string,
+		category: string,
+		cost: number,
+		dps: number,
+		range: number,
+		bonus: { [string]: boolean },
+		malus: { [string]: boolean },
+	}
+
+	local armes: { Arme } = {}
+	for _, raw in Config.items do
+		local item = raw :: any
+		if item.category ~= "primary" and item.category ~= "secondary" then
+			continue
+		end
+		local bonus: { [string]: boolean } = {}
+		for _, key in BONUS do
+			if item[key] ~= nil then
+				bonus[key] = true
+			end
+		end
+		local malus: { [string]: boolean } = {}
+		for _, key in MALUS do
+			if item[key] ~= nil then
+				malus[key] = true
+			end
+		end
+		table.insert(armes, {
+			id = item.id,
+			category = item.category,
+			cost = item.cost,
+			-- Les degats par seconde, qui sont la seule facon de comparer une
+			-- arme lente et forte a une arme rapide et faible.
+			dps = item.scale.attackDamage / item.scale.attackCooldownSeconds,
+			range = item.scale.attackRangeStuds,
+			bonus = bonus,
+			malus = malus,
+		})
+	end
+	t.check("il y a bien des armes a comparer", #armes >= 30)
+
+	local function couvre(a: Arme, b: Arme): boolean
+		for key in b.bonus do
+			if not a.bonus[key] then
+				return false
+			end
+		end
+		for key in a.malus do
+			if not b.malus[key] then
+				return false
+			end
+		end
+		return true
+	end
+
+	local mortes: { string } = {}
+	for _, b in armes do
+		for _, a in armes do
+			if a.id == b.id or a.category ~= b.category then
+				continue
+			end
+			if a.cost > b.cost or a.dps < b.dps or a.range < b.range then
+				continue
+			end
+			if a.cost == b.cost and a.dps == b.dps and a.range == b.range then
+				continue
+			end
+			if couvre(a, b) then
+				table.insert(mortes, string.format("%s (par %s)", b.id, a.id))
+			end
+		end
+	end
+	t.equal(
+		"aucune arme n'en domine une autre de sa categorie : " .. table.concat(mortes, ", "),
+		#mortes,
+		0
+	)
 end
