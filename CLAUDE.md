@@ -548,7 +548,8 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
 
 - **Deux reglages peuvent reclamer la meme touche, en silence.** Les touches
   sont a trois endroits de `Config` — `loadout.useKeys`, `loadout.editKey`,
-  `sandbox.toggleKey`, et maintenant `seating.lobbyKey` — et rien ne les
+  `sandbox.toggleKey`, `seating.lobbyKey`, et maintenant `menu.reopenKey`
+  — et rien ne les
   comparait. Le choix du camp a failli prendre « 1 », qui sert deja au premier
   objet : une touche qui fait deux choses selon le moment coute une manche, et
   ca ne leve aucune erreur. Un test de `tests/specs/config.luau` les reunit
@@ -681,6 +682,61 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   en une minute et demie environ. Les variantes arrivent dans
   `MaterialService.AssistantMaterials`, pas a la racine du service — les chercher
   par `GetDescendants`, sinon on conclut a tort que l'outil n'a rien fait.
+
+- **UN JEU ROBLOX NE PEUT PAS CREER DE SERVEUR PRIVE**, et il faut le savoir
+  avant de promettre un salon entre amis. Ce que Roblox appelle « serveur
+  privé » est une fonctionnalité de sa plateforme, achetée depuis la page du
+  jeu, et **aucune API ne la déclenche**. Ce qui existe est
+  `TeleportService:ReserveServer`, qui rend un serveur neuf et vide dont
+  `PrivateServerId` est rempli — donc `Venue` le voit déjà comme privé, sans
+  une ligne de plus.
+
+  Trois conséquences qui ont façonné `MenuService`. Son `accessCode` fait
+  plusieurs dizaines de caractères, **impossible à dicter** : le jeu fabrique
+  donc un code court à lui, cinq signes, et range la correspondance dans un
+  DataStore. Les réglages du salon **ne peuvent pas être posés à l'avance**,
+  puisque le serveur n'existe pas encore quand on choisit le format : ils
+  partent en donnée de téléportation et le serveur d'arrivée les relit **une
+  seule fois**, sinon ils écraseraient ce que les amis auraient réglé depuis
+  leur arrivée. Et surtout, **`ReserveServer` ne marche pas du tout dans
+  Studio** : c'est le seul morceau du jeu que l'assistant ne peut pas atteindre,
+  même avec Studio ouvert et connecté. Donc chaque appel est sous `pcall`, et
+  chaque échec rend une phrase au joueur en le laissant **devant** le menu.
+
+- **Un alphabet de code se choisit pour l'oreille, pas pour le compte.**
+  `Lobbies.ALPHABET` n'a ni `0` ni `O`, ni `1` ni `I` ni `L` : un code se lit à
+  voix haute ou se recopie depuis une capture d'écran, et « zéro » contre
+  « O » est l'erreur la plus facile du monde. Il reste 31 signes, soit
+  28 629 151 combinaisons à cinq caractères — **mesuré par un test, pas
+  supposé**, et le test tombe si l'un des deux réglages rétrécit. Celui qui
+  « compléterait » l'alphabet ne verrait rien de cassé.
+
+- **UNE RECETTE DE MAP PEUT SE MESURER ELLE-MEME, et c'est moins cher qu'une
+  sonde.** Les trois défauts de jeu réels des maps du 29 octobre ont tous été
+  trouvés au rayon, aucun en regardant. `tools/BuildCarriereMap.luau` le fait
+  donc à chaque construction : les lignes de tir entre chaque couple de points
+  de départ, le nombre de directions d'où le cercle final est couvert, et **la
+  hauteur du sol échantillonnée le long de chaque rampe**. Elle imprime un
+  verdict et avertit. C'est la méthode à reprendre pour les trois autres
+  recettes : une map qui se mesure au moment où on la construit n'a pas besoin
+  qu'on y revienne.
+
+- **UNE RAMPE NE RENTRE PAS TOUJOURS DANS LE GRADIN QU'ELLE MONTE.** Douze
+  studs de montée demandent vingt-deux studs de course, et le gradin de la
+  Carrière fait vingt studs de large : la rampe du haut ne peut donc pas le
+  traverser, elle **longe la paroi** sur sa longueur et on débouche sur la
+  margelle par le côté. Ça ne se voit pas en lisant les chiffres de la fosse ;
+  ça se voit en posant la soustraction. Une rampe écrite sans cette
+  soustraction dépasse de la map, et la part sort simplement dans le vide.
+
+- **Une bordure se pose dans le repère de ce qu'elle borde.** Les garde-corps
+  d'une rampe inclinée se calculent par un **produit de `CFrame`** à partir de
+  celui de la rampe (`cf * CFrame.new(0, 1.1, ±largeur/2)`), jamais en
+  recalculant ses axes à côté. Et il faut savoir sur quel axe local la rampe
+  est longue : posée sur l'axe de la longueur au lieu de celui de la largeur,
+  la bordure **traverse la rampe au milieu** au lieu de la border. Même famille
+  que les angles d'Euler nommés par leur effet — on ne redérive pas une
+  orientation qu'on a déjà.
 
 - **Les listes de garde-fous doivent rester à jour** : `HANDLED` et
   `HANDLED_TIER6` dans `AbilityService`, et dans `LoadoutService.init` la table
@@ -1052,7 +1108,25 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    sienne à son tour**, en serpentin, une seule personne par classe. Le miroir
    du 1v1 garde son tirage, et c'est une décision prise sans Josh. Sections 28
    et 29 d'`A-TESTER.md` — **jamais joué à plus d'un**
-17. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+17. **L'écran d'accueil** — fait le 3 novembre 2026, et il répare un trou plus
+   grand que lui : **personne n'était jamais assis d'office**, avant, c'était
+   l'inverse. `MatchService` composait la partie avec *toute* personne présente
+   sur le serveur, donc quelqu'un qui lisait son arbre ou parlait à un ami se
+   retrouvait en manche sans l'avoir demandé. Maintenant on entre par un
+   bouton. Trois cartes — classé, créer un salon, rejoindre avec un code — le
+   classement, les pièces, les fragments et la collection, et aucun message
+   réseau de plus pour les afficher. **Le code de salon n'a jamais voyagé** :
+   `ReserveServer` demande un jeu publié, donc c'est le seul morceau du jeu
+   inatteignable depuis Studio. Section 31 d'`A-TESTER.md`
+18. **La Carrière, quatrième map** — écrite le 3 novembre 2026, **jamais vue** :
+   Studio était fermé. Une carrière de glace à l'aube, et une question qu'aucune
+   des trois autres ne pose : **on descend vite, on remonte lentement**. Quatre
+   rampes seulement, placées en diagonale l'une de l'autre, donc remonter veut
+   dire traverser un gradin à découvert. Symétrie de **rotation** et pas de
+   miroir, pour que les deux camps aient le même chemin. Et c'est la première
+   recette qui **se mesure elle-même** à la construction. Section 32
+   d'`A-TESTER.md`
+19. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), **l'allure des armes**, les skins, et l'achat
    de pièces en Robux
