@@ -710,4 +710,69 @@ grade.Contrast = 0.14
 grade.TintColor = Color3.fromRGB(226, 236, 255)
 grade.Parent = Lighting
 
+-- ===== Le ciel ==========================================================
+-- AUCUN NUAGE ICI, ET C'EST VOULU : la soute est fermee et ce qu'on voit par
+-- ses ouvertures est le vide. Mais les deux autres maps en posent, et
+-- `Clouds` vit dans le TERRAIN, qu'aucune recette ne detruit -- donc sans
+-- cette boucle le Colisee laisserait ses nuages au-dessus d'un vaisseau.
+for _, old in Workspace.Terrain:GetChildren() do
+	if old:IsA("Clouds") then
+		old:Destroy()
+	end
+end
+
+--------------------------------------------------------------------------------
+-- LE RENDU
+--------------------------------------------------------------------------------
+
+-- LE PLUS GROS LEVIER DE ROBLOX EST `Lighting.Technology`, et il ne coute rien.
+-- En `Legacy` ou `ShadowMap`, une lampe n'eclaire rien, le metal ne brille pas
+-- et les ombres sont dures. En `Future`, chaque lumiere eclaire vraiment, les
+-- surfaces repondent au ciel, et les ombres s'adoucissent avec la distance.
+--
+-- MAIS C'EST UNE PROPRIETE PROTEGEE : seul un script lance a la main dans la
+-- barre de commande peut y toucher, et encore. Un `pcall` muet autour serait
+-- le piege du chiffre cache dans un repli -- la map aurait l'air terne et
+-- personne ne saurait pourquoi. Donc on essaie, on RELIT, et on le DIT.
+local tech = "inconnue"
+pcall(function()
+	Lighting.Technology = Enum.Technology.Future
+end)
+pcall(function()
+	tech = Lighting.Technology.Name
+end)
+if tech ~= "Future" then
+	warn(
+		string.format(
+			"[Arena] Rendu en « %s » et pas « Future ». C'est le réglage qui change le "
+				.. "plus l'allure du jeu, et il ne se pose pas depuis un script : "
+				.. "dans Studio, Explorer → Lighting → Properties → Technology → Future. "
+				.. "À faire une seule fois, ça reste avec la place.",
+			tech
+		)
+	)
+end
+Lighting.GlobalShadows = true
+Lighting.ShadowSoftness = 0.12
+
+-- Ces deux-la decident de combien le CIEL se reflete dans les matieres. A zero
+-- (le defaut de certaines places) la pierre est plate et le metal est gris.
+Lighting.EnvironmentDiffuseScale = 0.25
+Lighting.EnvironmentSpecularScale = 0.9
+
+for _, old in Lighting:GetChildren() do
+	if old:IsA("SunRaysEffect") or old:IsA("DepthOfFieldEffect") then
+		old:Destroy()
+	end
+end
+-- La profondeur de champ ne sert pas a flouter le jeu : `FarIntensity` reste
+-- bas et `FocusDistance` couvre toute l'arene, donc ce qu'on combat est net et
+-- seul le lointain s'adoucit. C'est ce qui separe le decor du terrain.
+local dof = Instance.new("DepthOfFieldEffect")
+dof.FocusDistance = 70
+dof.InFocusRadius = 110
+dof.NearIntensity = 0
+dof.FarIntensity = 0.6
+dof.Parent = Lighting
+
 print(string.format("[Arena] Cargo construit : %d parts.", #map:GetDescendants()))

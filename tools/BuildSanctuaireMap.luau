@@ -52,7 +52,15 @@ local MOSS = Color3.fromRGB(96, 112, 82)
 local MOSS_DARK = Color3.fromRGB(64, 76, 58)
 local LIME = Color3.fromRGB(152, 158, 134)
 local LIME_DARK = Color3.fromRGB(112, 118, 98)
-local WATER = Color3.fromRGB(62, 118, 110)
+-- L'EAU LISAIT COMME UNE PISCINE, et il a fallu DEUX essais. Le premier a
+-- fonce le fond, ce qui etait juste : une eau parait profonde parce qu'on ne
+-- voit pas son fond. Mais il avait aussi monte la reflectance a 0,70, et une
+-- surface a 70 % de miroir ne montre plus sa propre couleur -- elle montre le
+-- CIEL. La douve est donc ressortie bleu plastique, exactement le defaut
+-- qu'on voulait corriger. Une eau se regarde toujours sous un ciel : ce qui
+-- compte n'est pas la couleur ecrite, c'est ce qu'elle reflete.
+local WATER = Color3.fromRGB(26, 62, 58)
+local WATER_BED = Color3.fromRGB(14, 28, 24)
 local GOLD = Color3.fromRGB(184, 152, 72)
 local LEAF = Color3.fromRGB(48, 92, 50)
 local LEAF_DARK = Color3.fromRGB(34, 68, 40)
@@ -81,6 +89,16 @@ cover.Parent = map
 local decor = Instance.new("Folder")
 decor.Name = "Decor"
 decor.Parent = map
+
+-- UN HASARD REPRODUCTIBLE. Une map est une recette : relancee deux fois elle
+-- doit rendre la meme map, sinon on ne peut plus corriger ce qu'on a vu. Donc
+-- pas de `math.random`, qui repart d'une graine differente a chaque session,
+-- mais une suite calculee depuis une graine ecrite ici.
+local seed = 20261102
+local function rnd()
+	seed = (seed * 1103515245 + 12345) % 2147483648
+	return seed / 2147483648
+end
 
 local function part(name, parent, size, cf, color, material)
 	local p = Instance.new("Part")
@@ -152,6 +170,44 @@ for i = -4, 4 do
 	end
 end
 
+-- LE DAMIER NE SUFFIT PAS. Les joints disent la distance, mais ils la disent
+-- PARTOUT PAREIL : cent cinquante studs de dalle reguliere lisent comme un
+-- sol de test. Ce qui sauve une grande surface plate est l'irregularite --
+-- des plaques de mousse et des flaques, qui donnent a chaque coin de la dalle
+-- quelque chose qui n'appartient qu'a lui.
+--
+-- Un disque s'ecrit [epaisseur, diametre, diametre] et se couche : un
+-- `Cylinder` prend toujours le plus PETIT de ses deux cotes de section, donc
+-- deux cotes differents en feraient jeter un par Roblox.
+for i = 1, 70 do
+	local x = (rnd() - 0.5) * (PLAZA - 14)
+	local z = (rnd() - 0.5) * (PLAZA - 14)
+	local loin = math.max(math.abs(x), math.abs(z))
+	-- Ni sur l'autel, ni dans la douve : la mousse ne flotte pas, et une
+	-- plaque posee sur l'escalier passerait au travers.
+	if loin > 15 and (loin < 19 or loin > 33) then
+		local flaque = rnd() < 0.3
+		local d = 4 + rnd() * (if flaque then 7 else 11)
+		local p = part(
+			string.format(if flaque then "Flaque%d" else "Mousse%d", i),
+			decor,
+			Vector3.new(0.12, d, d),
+			CFrame.new(x, 0.06, z) * CFrame.Angles(0, rnd() * math.pi, math.pi / 2),
+			if flaque then WATER else (if rnd() < 0.5 then MOSS_DARK else LEAF_DARK),
+			if flaque then Enum.Material.SmoothPlastic else Enum.Material.Grass
+		)
+		p.Shape = Enum.PartType.Cylinder
+		p.CanCollide = false
+		if flaque then
+			-- UNE FLAQUE EST UN MIROIR AU SOL, et c'est la seule chose de la
+			-- map qui attrape le soleil rasant. C'est pour elle qu'on a
+			-- descendu l'heure.
+			p.Reflectance = 0.42
+			p.Transparency = 0.25
+		end
+	end
+end
+
 -- ===== La douve =========================================================
 -- QUATRE BANDES, PAS UN ANNEAU : la douve est carree comme le temple. Elle
 -- ne ralentit personne, elle DESSINE le dernier cercle de la zone pour qu'on
@@ -165,7 +221,8 @@ for _, s in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
 		decor,
 		Vector3.new(if sx ~= 0 then thin else wide, 1.6, if sz ~= 0 then thin else wide),
 		CFrame.new(sx * (MOAT_INNER + thin / 2), -0.8, sz * (MOAT_INNER + thin / 2)),
-		LIME_DARK
+		WATER_BED,
+		Enum.Material.Slate
 	)
 	local w = part(
 		string.format("Eau%d_%d", sx, sz),
@@ -177,11 +234,21 @@ for _, s in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
 		),
 		CFrame.new(sx * (MOAT_INNER + thin / 2), -0.3, sz * (MOAT_INNER + thin / 2)),
 		WATER,
-		Enum.Material.Glass
+		Enum.Material.SmoothPlastic
 	)
-	w.Transparency = 0.45
+	-- LE `Glass` DE ROBLOX REFLECHIT TOUT SEUL, et `Reflectance` n'y change
+	-- rien. C'est ce qui a coute deux essais : la reflectance est passee de
+	-- 0,70 a 0,25 et la douve est restee du meme bleu cobalt, parce que ce
+	-- bleu ne venait pas d'elle. En rendu `Future`, le verre recoit un reflet
+	-- et une refraction propres a la matiere, donc une nappe de verre sous un
+	-- ciel bleu est un ruban bleu, quelle que soit sa couleur ecrite.
+	--
+	-- `SmoothPlastic` ne reflete que ce qu'on lui demande. La douve montre
+	-- alors sa propre couleur, le fond noir-vert se devine a travers, et le
+	-- quart de reflet qui reste suffit a poser le ciel dessus.
+	w.Transparency = 0.42
 	w.CanCollide = false
-	w.Reflectance = 0.25
+	w.Reflectance = 0.22
 end
 
 -- Les quatre chaussees, sur les DIAGONALES : les faces portent deja les
@@ -494,6 +561,64 @@ end
 -- ===== La jungle autour =================================================
 -- Elle borne la dalle sans mur : on voit qu'on sort du temple parce que la
 -- pierre s'arrete et que les arbres commencent.
+--
+-- QUARANTE SUCETTES NE FONT PAS UNE JUNGLE. La premiere version posait un
+-- cylindre droit et trois boules par arbre, tous a la meme hauteur : vu de la
+-- dalle, ca lisait comme une rangee de lampadaires verts. Ce qui fait une
+-- foret est la SUPERPOSITION -- quelques geants qui percent, une voute dense
+-- au milieu, et du sous-bois dessous. Trois etages, donc, et aucun arbre ne
+-- se tient parfaitement droit.
+local LEAF_PALE = Color3.fromRGB(70, 118, 62)
+local BARK_PALE = Color3.fromRGB(94, 78, 58)
+
+-- UN TRONC QUI PENCHE GARDE SON PIED AU SOL. `pillar` ne sait pas pencher :
+-- son argument `tilt` tourne le cylindre AUTOUR DE SA PROPRE LONGUEUR, ce qui
+-- ne se voit pas sur une forme ronde. Il faut donc composer la rotation
+-- soi-meme, et surtout placer le CENTRE a une demi-hauteur le long de l'axe
+-- penche -- sinon le pied s'enfonce ou decolle.
+local function trunk(name, radius, height, base, lean, leanDir, color)
+	local rot = CFrame.Angles(0, leanDir, 0) * CFrame.Angles(0, 0, math.pi / 2 - lean)
+	local axis = rot.RightVector
+	local p = part(
+		name,
+		decor,
+		Vector3.new(height, radius * 2, radius * 2),
+		CFrame.new(base + axis * (height / 2)) * rot,
+		color,
+		Enum.Material.Wood
+	)
+	p.Shape = Enum.PartType.Cylinder
+	return base + axis * height
+end
+
+-- UNE COURONNE EST UNE GRAPPE, PAS UNE BOULE. Trois spheres larges posees
+-- l'une sur l'autre redonnent une sphere : de loin le contour reste un rond
+-- parfait, et un rond parfait sur un baton est une sucette. Ce qui fait un
+-- arbre est un contour IRREGULIER, donc beaucoup de petites spheres dont
+-- aucune ne depasse, chacune decalee et d'un vert un peu different.
+local function crown(name, centre, diameter, color)
+	for k = 1, 5 do
+		local d = diameter * (0.52 + rnd() * 0.4)
+		local b = part(
+			string.format("%s_%d", name, k),
+			decor,
+			Vector3.new(d, d, d),
+			CFrame.new(
+				centre
+					+ Vector3.new(
+						(rnd() - 0.5) * diameter * 0.9,
+						(rnd() - 0.5) * diameter * 0.5,
+						(rnd() - 0.5) * diameter * 0.9
+					)
+			),
+			if rnd() < 0.35 then LEAF_DARK else color,
+			Enum.Material.Grass
+		)
+		b.Shape = Enum.PartType.Ball
+		b.CanCollide = false
+	end
+end
+
 for i = 1, 40 do
 	local a = i / 40 * math.pi * 2 + (i % 3) * 0.08
 	-- CENT DIX STUDS, PAS QUATRE-VINGT-SIX. La dalle fait 150 de cote, donc
@@ -502,35 +627,106 @@ for i = 1, 40 do
 	-- jouait dans les arbres sans les voir venir.
 	local r = 110 + (i % 4) * 11
 	local x, z = math.sin(a) * r, math.cos(a) * r
-	local h = 24 + (i % 7) * 9
-	pillar(
-		string.format("Tronc%d", i),
-		decor,
-		2.4 + (i % 3) * 0.5,
-		h,
-		x,
-		z,
-		-1,
-		BARK,
-		Enum.Material.Wood
-	)
-	for k = 1, 3 do
-		-- UN `Ball` NE DESSINE QU'UNE SPHERE DU PLUS PETIT DE SES TROIS COTES.
-		-- Ces boules etaient ecrites 20x15x25 : Roblox n'en gardait que le 15,
-		-- donc les cent vingt feuillages de la foret etaient RIGOUREUSEMENT
-		-- identiques et toute la variete ecrite partait a la poubelle. Un seul
-		-- chiffre, donc, et il porte la variete a lui tout seul.
-		local d = 15 + (i % 4) * 4 + (k % 3) * 3
-		local ball = part(
-			string.format("Feuillage%d_%d", i, k),
-			decor,
-			Vector3.new(d, d, d),
-			CFrame.new(x + (k - 2) * 6, h - 2 + k * 3, z + (k - 2) * 5),
-			if k == 2 then LEAF_DARK else LEAF,
-			Enum.Material.Grass
+	local base = Vector3.new(x, -1, z)
+	local etage = i % 3
+	local lean = 0.03 + rnd() * 0.09
+	local leanDir = rnd() * math.pi * 2
+	local ecorce = if i % 4 == 0 then BARK_PALE else BARK
+
+	if etage == 0 then
+		-- L'EMERGENT : il perce la voute, donc il est haut et sa couronne est
+		-- petite. C'est lui qui donne une silhouette a la foret de loin.
+		local h = 46 + rnd() * 14
+		local top = trunk(
+			string.format("Tronc%d", i),
+			2.0 + rnd() * 0.5,
+			h,
+			base,
+			lean * 0.5,
+			leanDir,
+			ecorce
 		)
-		ball.Shape = Enum.PartType.Ball
-		ball.CanCollide = false
+		for k = 1, 2 do
+			local d = 16 + rnd() * 7
+			crown(
+				string.format("Feuillage%d_%d", i, k),
+				top + Vector3.new((rnd() - 0.5) * 11, -3 + k * 4, (rnd() - 0.5) * 11),
+				d,
+				if k == 2 then LEAF_DARK else LEAF
+			)
+		end
+		-- Les contreforts : un grand arbre tropical s'assoit sur des ailerons,
+		-- et sans eux un tronc de cinquante studs a l'air plante dans le sol
+		-- comme un poteau.
+		for k = 1, 4 do
+			local ang = k / 4 * math.pi * 2 + i
+			local p = part(
+				string.format("Contrefort%d_%d", i, k),
+				decor,
+				Vector3.new(0.9, 7, 4.5),
+				CFrame.new(x + math.sin(ang) * 2.2, 2.2, z + math.cos(ang) * 2.2)
+					* CFrame.Angles(0, -ang, 0)
+					* CFrame.Angles(0.42, 0, 0),
+				ecorce,
+				Enum.Material.Wood
+			)
+			p.CanCollide = false
+		end
+	elseif etage == 1 then
+		-- LA VOUTE : la plus large, la plus sombre, et c'est elle qui ferme
+		-- l'horizon derriere la dalle.
+		local h = 26 + rnd() * 10
+		local top =
+			trunk(string.format("Tronc%d", i), 2.6 + rnd() * 0.6, h, base, lean, leanDir, ecorce)
+		for k = 1, 3 do
+			local d = 21 + rnd() * 11
+			crown(
+				string.format("Feuillage%d_%d", i, k),
+				top + Vector3.new((rnd() - 0.5) * 14, -5 + k * 3.5, (rnd() - 0.5) * 14),
+				d,
+				if k % 2 == 0 then LEAF_DARK else LEAF
+			)
+		end
+		-- Deux lianes : verticales, fines, elles cassent la rondeur des boules
+		-- et disent la hauteur de la voute mieux que les boules elles-memes.
+		for k = 1, 2 do
+			local len = 9 + rnd() * 11
+			local lx, lz = x + (rnd() - 0.5) * 13, z + (rnd() - 0.5) * 13
+			pillar(
+				string.format("Liane%d_%d", i, k),
+				decor,
+				0.22,
+				len,
+				lx,
+				lz,
+				top.Y - 4 - len,
+				LEAF_DARK,
+				Enum.Material.Grass
+			).CanCollide =
+				false
+		end
+	else
+		-- LE SOUS-BOIS : bas, clair, dense. Il remplit le vide entre les pieds
+		-- des grands, qui sinon laissent voir le vide derriere la foret.
+		local h = 12 + rnd() * 8
+		local top = trunk(
+			string.format("Tronc%d", i),
+			1.6 + rnd() * 0.5,
+			h,
+			base,
+			lean * 1.6,
+			leanDir,
+			ecorce
+		)
+		for k = 1, 2 do
+			local d = 14 + rnd() * 8
+			crown(
+				string.format("Feuillage%d_%d", i, k),
+				top + Vector3.new((rnd() - 0.5) * 9, -2 + k * 2.5, (rnd() - 0.5) * 9),
+				d,
+				if k == 1 then LEAF_PALE else LEAF
+			)
+		end
 	end
 end
 
@@ -609,14 +805,30 @@ bounds.Parent = map
 map.Parent = Workspace
 
 -- ===== La lumiere =======================================================
--- Ciel couvert, lumiere plate et verte, brume courte. Chaque script de map
--- pose tout son eclairage : Lighting est un reglage de place, donc lancer un
--- autre script le remplace entierement.
-Lighting.ClockTime = 11
+-- UN SOLEIL AU ZENITH NE PORTE AUCUNE OMBRE, et c'est ce qui rendait la map
+-- plate. A onze heures, sous une latitude de 4 degres, le soleil est droit
+-- au-dessus : chaque arbre pose son ombre sous lui-meme et la dalle reste un
+-- aplat uniforme. Toute la geometrie ecrite -- quarante arbres, les colonnes,
+-- l'autel a etages -- ne se voyait pas, faute de relief.
+--
+-- A 6h50 il rase l'horizon : les ombres traversent la dalle entiere, la foret
+-- projette sur la pierre, l'autel se detache -- et surtout le ciel procedural
+-- de Roblox passe a l'orange. C'est le second gain, et il est gratuit : le
+-- bleu franc de midi est la marque d'une place vide, et aucune brume ne l'en
+-- enleve completement. Une heure le fait.
+--
+-- Il faut monter la luminosite avec, parce qu'un soleil bas traverse beaucoup
+-- plus d'air, et baisser l'ambiante -- une ombre n'existe que si ce qui la
+-- remplit est plus sombre que ce qui l'entoure. Mais pas trop : c'est une
+-- arene PvP, et on doit voir son adversaire.
+--
+-- Chaque script de map pose tout son eclairage : Lighting est un reglage de
+-- place, donc lancer un autre script le remplace entierement.
+Lighting.ClockTime = 6.9
 Lighting.GeographicLatitude = 4
-Lighting.Brightness = 1.1
-Lighting.Ambient = Color3.fromRGB(78, 90, 76)
-Lighting.OutdoorAmbient = Color3.fromRGB(104, 120, 100)
+Lighting.Brightness = 3.3
+Lighting.Ambient = Color3.fromRGB(54, 66, 56)
+Lighting.OutdoorAmbient = Color3.fromRGB(106, 120, 104)
 Lighting.ExposureCompensation = 0
 Lighting.FogEnd = 100000
 for _, old in Lighting:GetChildren() do
@@ -634,21 +846,126 @@ local air = Instance.new("Atmosphere")
 -- particules : sans elle le ciel restait d'un bleu franc, ce qui contredit
 -- tout le reste de la map. Elle donne aussi de la profondeur a une dalle
 -- plate de cent cinquante studs.
-air.Density = 0.62
-air.Haze = 4.4
-air.Glare = 0.05
-air.Color = Color3.fromRGB(176, 192, 172)
-air.Decay = Color3.fromRGB(96, 116, 96)
+-- LE CIEL RESTAIT D'UN BLEU DE PLACE VIDE, et descendre l'heure n'y suffisait
+-- pas : a 6h50 il etait toujours aussi bleu. L'explication est que
+-- l'`Atmosphere` REMPLACE le degrade du ciel procedural, donc c'est elle qui
+-- decide de sa couleur, pas l'heure. Deux champs la commandent, et ils ne
+-- font pas la meme chose : `Color` teinte la brume, c'est-a-dire le ciel pres
+-- du soleil et l'horizon ; `Decay` teinte ce qui est LOIN du soleil, donc le
+-- zenith. Un ciel ecrit avec les deux neutres reste bleu quelle que soit
+-- l'heure -- ce qui etait exactement le cas.
+--
+-- Donc : une brume chaude pres du soleil, un zenith qui part vers le vert
+-- sombre, et une densite assez haute pour que ca se voie. L'eclat monte avec,
+-- parce que c'est lui qui fait les rais de lumiere entre les troncs.
+air.Density = 0.6
+air.Haze = 4.8
+air.Glare = 0.45
+air.Color = Color3.fromRGB(226, 186, 132)
+air.Decay = Color3.fromRGB(74, 96, 92)
 air.Parent = Lighting
 local bloom = Instance.new("BloomEffect")
-bloom.Intensity = 0.3
-bloom.Size = 26
-bloom.Threshold = 1.3
+-- LE SOLEIL ETAIT UN PATE BLANC. Un disque solaire bas entre dans le cadre,
+-- et un bloom large pose dessus le fait deborder sur un quart de l'ecran.
+-- Le seuil monte pour que seul le soleil lui-meme deborde, et la taille
+-- baisse pour qu'il deborde moins loin.
+bloom.Intensity = 0.22
+bloom.Size = 14
+bloom.Threshold = 2
 bloom.Parent = Lighting
 local grade = Instance.new("ColorCorrectionEffect")
-grade.Saturation = 0.06
-grade.Contrast = 0.05
-grade.TintColor = Color3.fromRGB(236, 250, 236)
+grade.Saturation = 0.14
+grade.Contrast = 0.12
+grade.TintColor = Color3.fromRGB(246, 244, 226)
 grade.Parent = Lighting
+
+-- ===== Le ciel ==========================================================
+-- LE CIEL PAR DEFAUT DE ROBLOX EST UNE TEXTURE, PAS UN DEGRADE CALCULE. Ca a
+-- coute trois essais : l'heure est descendue de 11h a 6h50 et l'`Atmosphere`
+-- a recu une brume chaude, et le ciel est reste exactement aussi bleu, avec
+-- les memes petits nuages blancs de plein jour. Ni `ClockTime` ni
+-- `Atmosphere.Color` ne teintent une image. Le soleil, lui, a bien bouge --
+-- mesure a 12,7 degres au-dessus de l'horizon -- donc les ombres etaient
+-- gagnees ; c'est le ciel seul qui ne suivait pas.
+--
+-- Le seul levier procedural qui reste, sans aller chercher un asset, est
+-- `Clouds`, qui se parente au TERRAIN et pas a Lighting. Il dessine de
+-- vrais nuages volumetriques, eclaires par le soleil de la scene -- donc
+-- eux SUIVENT l'heure, et ils couvrent la texture.
+for _, old in Workspace.Terrain:GetChildren() do
+	if old:IsA("Clouds") then
+		old:Destroy()
+	end
+end
+local nuages = Instance.new("Clouds")
+-- Couvert et bas : il pleut sur cette map, et un ciel degage au-dessus de la
+-- pluie serait le genre de detail qui dit « c'est une maquette ».
+-- SEPT DIXIEMES, PAS NEUF. A 0,88 le ciel etait superbe et la dalle etait
+-- SOMBRE : les nuages mangent le soleil, donc ils mangent aussi les ombres
+-- longues qu'on etait alle chercher en descendant l'heure. Une arene se joue
+-- avant d'etre jolie, et on doit voir son adversaire.
+nuages.Cover = 0.72
+nuages.Density = 0.6
+nuages.Color = Color3.fromRGB(150, 158, 152)
+nuages.Parent = Workspace.Terrain
+
+--------------------------------------------------------------------------------
+-- LE RENDU
+--------------------------------------------------------------------------------
+
+-- LE PLUS GROS LEVIER DE ROBLOX EST `Lighting.Technology`, et il ne coute rien.
+-- En `Legacy` ou `ShadowMap`, une lampe n'eclaire rien, le metal ne brille pas
+-- et les ombres sont dures. En `Future`, chaque lumiere eclaire vraiment, les
+-- surfaces repondent au ciel, et les ombres s'adoucissent avec la distance.
+--
+-- MAIS C'EST UNE PROPRIETE PROTEGEE : seul un script lance a la main dans la
+-- barre de commande peut y toucher, et encore. Un `pcall` muet autour serait
+-- le piege du chiffre cache dans un repli -- la map aurait l'air terne et
+-- personne ne saurait pourquoi. Donc on essaie, on RELIT, et on le DIT.
+local tech = "inconnue"
+pcall(function()
+	Lighting.Technology = Enum.Technology.Future
+end)
+pcall(function()
+	tech = Lighting.Technology.Name
+end)
+if tech ~= "Future" then
+	warn(
+		string.format(
+			"[Arena] Rendu en « %s » et pas « Future ». C'est le réglage qui change le "
+				.. "plus l'allure du jeu, et il ne se pose pas depuis un script : "
+				.. "dans Studio, Explorer → Lighting → Properties → Technology → Future. "
+				.. "À faire une seule fois, ça reste avec la place.",
+			tech
+		)
+	)
+end
+Lighting.GlobalShadows = true
+Lighting.ShadowSoftness = 0.5
+
+-- Ces deux-la decident de combien le CIEL se reflete dans les matieres. A zero
+-- (le defaut de certaines places) la pierre est plate et le metal est gris.
+Lighting.EnvironmentDiffuseScale = 0.75
+Lighting.EnvironmentSpecularScale = 0.5
+
+for _, old in Lighting:GetChildren() do
+	if old:IsA("SunRaysEffect") or old:IsA("DepthOfFieldEffect") then
+		old:Destroy()
+	end
+end
+local rays = Instance.new("SunRaysEffect")
+rays.Intensity = 0.2
+rays.Spread = 1
+rays.Parent = Lighting
+
+-- La profondeur de champ ne sert pas a flouter le jeu : `FarIntensity` reste
+-- bas et `FocusDistance` couvre toute l'arene, donc ce qu'on combat est net et
+-- seul le lointain s'adoucit. C'est ce qui separe le decor du terrain.
+local dof = Instance.new("DepthOfFieldEffect")
+dof.FocusDistance = 80
+dof.InFocusRadius = 140
+dof.NearIntensity = 0
+dof.FarIntensity = 0.65
+dof.Parent = Lighting
 
 print(string.format("[Arena] Sanctuaire construit : %d parts.", #map:GetDescendants()))

@@ -56,11 +56,18 @@ local SPAWN_DISTANCE = 60
 local TERRACE_HEIGHT = 6
 local SIDE_HEIGHT = 7
 
-local SAND = Color3.fromRGB(214, 190, 146)
-local SAND_DARK = Color3.fromRGB(190, 164, 120)
-local STONE = Color3.fromRGB(198, 178, 150)
-local STONE_DARK = Color3.fromRGB(154, 136, 112)
-local STONE_WARM = Color3.fromRGB(176, 142, 104)
+-- TOUT ETAIT DU MEME BEIGE, et c'etait le defaut le plus net de cette map :
+-- le sable, les gradins, les piliers et les dunes tenaient dans un ecart de
+-- vingt niveaux. Un batiment se detache de son terrain par la COULEUR avant
+-- de se detacher par la forme, donc la pierre part vers le calcaire pale et
+-- legerement FROID pendant que le sable part vers le jaune chaud. C'est le
+-- meme ecart que dans la realite : un monument romain est gris-blanc, le
+-- desert autour est dore.
+local SAND = Color3.fromRGB(212, 180, 124)
+local SAND_DARK = Color3.fromRGB(174, 144, 94)
+local STONE = Color3.fromRGB(224, 216, 198)
+local STONE_DARK = Color3.fromRGB(160, 150, 132)
+local STONE_WARM = Color3.fromRGB(192, 162, 120)
 local COLOR_A = Color3.fromRGB(70, 110, 190)
 local COLOR_B = Color3.fromRGB(190, 70, 60)
 
@@ -503,22 +510,41 @@ annulus("Podium", decor, FLOOR_RADIUS - 2, FLOOR_RADIUS, 9, 9, 72, STONE_WARM)
 -- SANS LUI LE COLISEE FLOTTE DANS LE CIEL. On ne joue jamais dessus, mais on
 -- le voit par chaque arcade et par-dessus le mur : c'est lui qui dit que le
 -- batiment est pose sur la terre. Un sol lointain coute six parts.
-disc("Desert", decor, 600, 10, -8, Color3.fromRGB(200, 174, 132), Enum.Material.Sand)
+disc("Desert", decor, 600, 10, -8, Color3.fromRGB(198, 168, 114), Enum.Material.Sand)
 annulus("Socle", decor, FLOOR_RADIUS - 2, FLOOR_RADIUS + 12, 0, 9, 72, STONE_WARM)
 annulus("Assise", decor, FLOOR_RADIUS + 2, FLOOR_RADIUS + 18, -6, 3, 72, STONE_DARK)
 
--- Trois dunes basses, de tailles differentes : elles cassent la ligne
--- parfaite de l'horizon, qu'un disque tout seul rend artificielle.
-for i, d in { { 260, 40, 70, 26 }, { -200, 150, 90, 34 }, { 60, -280, 110, 30 } } do
+-- DES DOMES, PAS DES DUNES. Les trois premieres etaient des spheres enfoncees
+-- a moitie : ca donne une calotte aussi haute que large, c'est-a-dire une
+-- bulle posee sur le sable. Une dune est BASSE ET LARGE -- donc une sphere
+-- beaucoup plus grosse, enfoncee presque entierement, dont on ne garde qu'un
+-- huitieme. Et il en faut plus de trois : trois bosses sur un horizon vide se
+-- comptent, sept se lisent comme un relief.
+--
+-- A savoir : un `Ball` ne garde que le PLUS PETIT de ses trois cotes, donc
+-- une dune aplatie ne s'ecrit pas, elle s'enfonce.
+for i, d in
+	{
+		{ 260, 40, 150 },
+		{ -200, 150, 220 },
+		{ 60, -280, 190 },
+		{ -310, -120, 170 },
+		{ 180, 300, 240 },
+		{ -90, 330, 130 },
+		{ 340, -210, 200 },
+	}
+do
+	local r = d[3]
 	local dune = part(
 		string.format("Dune%d", i),
 		decor,
-		Vector3.new(d[3] * 2, d[4] * 2, d[3] * 2),
-		CFrame.new(d[1], -d[4] * 0.55, d[2]),
-		Color3.fromRGB(206, 180, 138),
+		Vector3.new(r * 2, r * 2, r * 2),
+		CFrame.new(d[1], -r * 0.88, d[2]),
+		if i % 2 == 0 then Color3.fromRGB(206, 176, 122) else Color3.fromRGB(190, 160, 106),
 		Enum.Material.Sand
 	)
 	dune.Shape = Enum.PartType.Ball
+	dune.CanCollide = false
 end
 
 -- ===== Le contrat ========================================================
@@ -546,10 +572,14 @@ map.Parent = Workspace
 -- L'AMBIANCE EST UN REGLAGE DE PLACE, donc elle appartient a la map qui
 -- tourne : chaque script de map pose la sienne, et lancer un autre script la
 -- remplace entierement. Sans ca les trois maps partageraient un seul ciel.
-Lighting.ClockTime = 15.5
+-- LES BARRES D'OMBRE DES PILIERS SONT L'IMAGE MEME D'UN COLISEE, et a 15h30
+-- il n'y en avait aucune : le soleil etait mesure a 37 degres au-dessus de
+-- l'horizon, donc chaque pilier posait son ombre a son pied. A 17h il rase,
+-- et les quarante-huit piliers de l'arcade rayent le sol de l'arene.
+Lighting.ClockTime = 17
 Lighting.GeographicLatitude = 20
-Lighting.Brightness = 2.6
-Lighting.Ambient = Color3.fromRGB(96, 86, 70)
+Lighting.Brightness = 3.1
+Lighting.Ambient = Color3.fromRGB(78, 68, 58)
 Lighting.OutdoorAmbient = Color3.fromRGB(134, 120, 98)
 Lighting.ExposureCompensation = 0.1
 Lighting.FogEnd = 100000
@@ -576,9 +606,100 @@ bloom.Size = 24
 bloom.Threshold = 1.1
 bloom.Parent = Lighting
 local grade = Instance.new("ColorCorrectionEffect")
-grade.Saturation = 0.12
-grade.Contrast = 0.08
-grade.TintColor = Color3.fromRGB(255, 246, 228)
+-- L'ETALONNAGE EST LE SEUL LEVIER QUI ATTEIGNE LE CIEL. Le ciel par defaut de
+-- Roblox est une texture de plein jour : ni l'heure ni l'`Atmosphere` ne la
+-- teintent, verifie trois fois sur le sanctuaire. Mais `ColorCorrection`
+-- passe APRES le rendu, donc lui touche tout, ciel compris. Un desert a 17h
+-- sous un ciel cyan ne tient pas ensemble ; une teinte chaude le repare, et
+-- elle va dans le sens du sable plutot que contre lui.
+grade.Saturation = 0.2
+grade.Contrast = 0.1
+grade.TintColor = Color3.fromRGB(255, 226, 186)
 grade.Parent = Lighting
+
+-- ===== Le ciel ==========================================================
+-- LE CIEL PAR DEFAUT DE ROBLOX EST UNE TEXTURE, PAS UN DEGRADE CALCULE. Ca a
+-- coute trois essais : l'heure est descendue de 11h a 6h50 et l'`Atmosphere`
+-- a recu une brume chaude, et le ciel est reste exactement aussi bleu, avec
+-- les memes petits nuages blancs de plein jour. Ni `ClockTime` ni
+-- `Atmosphere.Color` ne teintent une image. Le soleil, lui, a bien bouge --
+-- mesure a 12,7 degres au-dessus de l'horizon -- donc les ombres etaient
+-- gagnees ; c'est le ciel seul qui ne suivait pas.
+--
+-- Le seul levier procedural qui reste, sans aller chercher un asset, est
+-- `Clouds`, qui se parente au TERRAIN et pas a Lighting. Il dessine de
+-- vrais nuages volumetriques, eclaires par le soleil de la scene -- donc
+-- eux SUIVENT l'heure, et ils couvrent la texture.
+for _, old in Workspace.Terrain:GetChildren() do
+	if old:IsA("Clouds") then
+		old:Destroy()
+	end
+end
+local nuages = Instance.new("Clouds")
+-- Rares et hauts : un desert a un ciel vide, et c'est ce vide qui ecrase.
+-- Quelques nuages suffisent a donner une echelle au ciel sans le fermer.
+nuages.Cover = 0.42
+nuages.Density = 0.5
+nuages.Color = Color3.fromRGB(255, 238, 214)
+nuages.Parent = Workspace.Terrain
+
+--------------------------------------------------------------------------------
+-- LE RENDU
+--------------------------------------------------------------------------------
+
+-- LE PLUS GROS LEVIER DE ROBLOX EST `Lighting.Technology`, et il ne coute rien.
+-- En `Legacy` ou `ShadowMap`, une lampe n'eclaire rien, le metal ne brille pas
+-- et les ombres sont dures. En `Future`, chaque lumiere eclaire vraiment, les
+-- surfaces repondent au ciel, et les ombres s'adoucissent avec la distance.
+--
+-- MAIS C'EST UNE PROPRIETE PROTEGEE : seul un script lance a la main dans la
+-- barre de commande peut y toucher, et encore. Un `pcall` muet autour serait
+-- le piege du chiffre cache dans un repli -- la map aurait l'air terne et
+-- personne ne saurait pourquoi. Donc on essaie, on RELIT, et on le DIT.
+local tech = "inconnue"
+pcall(function()
+	Lighting.Technology = Enum.Technology.Future
+end)
+pcall(function()
+	tech = Lighting.Technology.Name
+end)
+if tech ~= "Future" then
+	warn(
+		string.format(
+			"[Arena] Rendu en « %s » et pas « Future ». C'est le réglage qui change le "
+				.. "plus l'allure du jeu, et il ne se pose pas depuis un script : "
+				.. "dans Studio, Explorer → Lighting → Properties → Technology → Future. "
+				.. "À faire une seule fois, ça reste avec la place.",
+			tech
+		)
+	)
+end
+Lighting.GlobalShadows = true
+Lighting.ShadowSoftness = 0.35
+
+-- Ces deux-la decident de combien le CIEL se reflete dans les matieres. A zero
+-- (le defaut de certaines places) la pierre est plate et le metal est gris.
+Lighting.EnvironmentDiffuseScale = 0.6
+Lighting.EnvironmentSpecularScale = 0.55
+
+for _, old in Lighting:GetChildren() do
+	if old:IsA("SunRaysEffect") or old:IsA("DepthOfFieldEffect") then
+		old:Destroy()
+	end
+end
+local rays = Instance.new("SunRaysEffect")
+rays.Intensity = 0.14
+rays.Spread = 0.9
+rays.Parent = Lighting
+
+-- La profondeur de champ ne sert pas a flouter le jeu : `FarIntensity` reste
+-- bas et `FocusDistance` couvre toute l'arene, donc ce qu'on combat est net et
+-- seul le lointain s'adoucit. C'est ce qui separe le decor du terrain.
+local dof = Instance.new("DepthOfFieldEffect")
+dof.FocusDistance = 90
+dof.InFocusRadius = 150
+dof.NearIntensity = 0
+dof.FarIntensity = 0.5
+dof.Parent = Lighting
 
 print(string.format("[Arena] Colisee construit : %d parts.", #map:GetDescendants()))
