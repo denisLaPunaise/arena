@@ -64,14 +64,24 @@ end
 -- vraiment important : MatchService ne compte que ceux qui sont la-dedans.
 local ready: { [Player]: boolean } = {}
 
--- Les reglages arrives par teleportation, relus une seule fois. Nil quand ce
+-- Les reglages apportes par celui qui a reserve ce serveur. Nil quand ce
 -- serveur n'a ete reserve par personne.
+--
+-- ILS SE RELEVENT A L'ARRIVEE DES JOUEURS, PAS AU DEMARRAGE DU SERVEUR. Un
+-- serveur Roblox demarre AVANT que quiconque ait rejoint : lire
+-- `GetJoinData()` dans `init` ne trouve donc personne, et un relevement « une
+-- seule fois » au demarrage les perdrait pour toujours. C'est le meme genre de
+-- panne que `TimeLength` qui vaut zero a l'instant ou on pose un son — une
+-- valeur qui arrive plus tard que le code qui la lit.
 local arrived: Seating.Lobby? = nil
-local arrivedRead = false
 
 -- Le code court de CE serveur, quand il a ete cree depuis un menu. On ne peut
 -- pas le deduire : c'est le createur qui le fait voyager avec lui.
 local ownCode = ""
+
+-- Vrai des que le premier porteur de reglages est passe. Les suivants ne
+-- changent plus rien : un ami qui rejoint apporte le code, pas les reglages.
+local arrivedSeen = false
 
 local store: DataStore? = nil
 local function lobbyStore(): DataStore?
@@ -272,28 +282,10 @@ function MenuService.isReady(player: Player): boolean
 	return ready[player] == true
 end
 
--- Les reglages apportes par celui qui a cree ce salon, lus UNE SEULE FOIS a
--- la premiere demande. Les relire a chaque partie annulerait ce que les amis
--- auraient regle dans le salon depuis leur arrivee.
+-- Les reglages apportes par celui qui a cree ce salon, ou nil. L'appelant les
+-- applique UNE SEULE FOIS : les relire a chaque partie annulerait ce que les
+-- amis auraient regle dans le salon depuis leur arrivee.
 function MenuService.arrivedLobby(): Seating.Lobby?
-	if arrivedRead then
-		return arrived
-	end
-	arrivedRead = true
-
-	for _, player in Players:GetPlayers() do
-		local ok, data = pcall(function()
-			return player:GetJoinData().TeleportData
-		end)
-		if ok and typeof(data) == "table" then
-			if typeof(data.arenaCode) == "string" and ownCode == "" then
-				ownCode = data.arenaCode
-			end
-			if arrived == nil and typeof(data.arenaLobby) == "table" then
-				arrived = cleanSettings(data.arenaLobby)
-			end
-		end
-	end
 	return arrived
 end
 
@@ -303,24 +295,39 @@ function MenuService.init()
 	-- Le code du salon se releve des la premiere arrivee, pour que l'ecran
 	-- puisse l'afficher a tout le monde : c'est lui qu'on partage, et le
 	-- chercher dans un chat serait absurde quand le jeu le connait.
-	local function noteCode(player: Player)
-		if ownCode ~= "" then
+	local function noteArrival(player: Player)
+		if ownCode ~= "" and arrivedSeen then
 			return
 		end
 		local ok, data = pcall(function()
 			return player:GetJoinData().TeleportData
 		end)
-		if ok and typeof(data) == "table" and typeof(data.arenaCode) == "string" then
+		if not ok or typeof(data) ~= "table" then
+			return
+		end
+
+		local told = false
+		if ownCode == "" and typeof(data.arenaCode) == "string" then
 			ownCode = data.arenaCode
+			told = true
+		end
+		-- Les reglages n'arrivent qu'avec le CREATEUR : celui qui rejoint par
+		-- un code n'en porte pas, et c'est voulu, sinon le dernier arrive
+		-- changerait le format de tout le monde.
+		if not arrivedSeen and typeof(data.arenaLobby) == "table" then
+			arrivedSeen = true
+			arrived = cleanSettings(data.arenaLobby)
+		end
+		if told then
 			MenuService.pushAll()
 		end
 	end
 
 	for _, player in Players:GetPlayers() do
-		noteCode(player)
+		noteArrival(player)
 	end
 	Players.PlayerAdded:Connect(function(player: Player)
-		noteCode(player)
+		noteArrival(player)
 		-- Le compteur de presents bouge pour tout le monde, pas que pour lui.
 		MenuService.pushAll()
 	end)

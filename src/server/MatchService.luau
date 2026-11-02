@@ -863,8 +863,45 @@ local function onStatusChanged(player: Player, status: string)
 	print(string.format("[Arena] %s : %s", player.Name, status))
 end
 
+-- LES REGLAGES ARRIVES AVEC LE CREATEUR DU SALON. Le serveur reserve
+-- n'existait pas encore quand il a choisi le format : ils ont voyage en donnee
+-- de teleportation.
+--
+-- CE N'EST PAS DANS `start` QUE CA SE LIT, et c'etait un vrai bug : un serveur
+-- Roblox demarre AVANT que quiconque ait rejoint, donc `start` ne trouve
+-- personne a interroger et les reglages seraient perdus pour toujours. La
+-- boucle redemande donc jusqu'a ce qu'ils arrivent, et les applique UNE SEULE
+-- FOIS — les relire a chaque tour ecraserait ce que les amis auraient regle
+-- avec la touche du salon depuis leur arrivee.
+local arrivalApplied = false
+
+local function takeArrival()
+	if arrivalApplied or not lobbyAllowed() then
+		return
+	end
+	local arrived = MenuService.arrivedLobby()
+	if arrived == nil then
+		return
+	end
+
+	arrivalApplied = true
+	lobby.formatId = arrived.formatId
+	lobby.teamMode = arrived.teamMode
+	lobby.classMode = arrived.classMode
+	print(
+		string.format(
+			"[Arena] Salon créé au menu : format %s, équipes %s, %s",
+			formatLabel(lobby.formatId),
+			teamModeLabel(lobby.teamMode),
+			classModeLabel(lobby.classMode)
+		)
+	)
+end
+
 local function loop()
 	while true do
+		takeArrival()
+
 		-- QUI EST ASSIS A LA PARTIE : ceux qui ont appuye sur « Jouer », et eux
 		-- seuls. Avant le menu, c'etait TOUTE personne presente sur le serveur
 		-- -- quelqu'un qui lisait son arbre ou parlait a un ami se retrouvait
@@ -997,28 +1034,6 @@ function MatchService.start()
 	end
 
 	DownedService.onStatusChanged(onStatusChanged)
-
-	-- LES REGLAGES ARRIVES AVEC LE CREATEUR DU SALON. Le serveur reserve
-	-- n'existait pas encore quand il a choisi le format : ils ont voyage en
-	-- donnee de teleportation, et c'est ici qu'ils atterrissent. Lus UNE SEULE
-	-- FOIS, parce qu'on ne doit pas ecraser ce que les amis auraient regle
-	-- depuis leur arrivee.
-	if lobbyAllowed() then
-		local arrived = MenuService.arrivedLobby()
-		if arrived ~= nil then
-			lobby.formatId = arrived.formatId
-			lobby.teamMode = arrived.teamMode
-			lobby.classMode = arrived.classMode
-			print(
-				string.format(
-					"[Arena] Salon créé au menu : format %s, équipes %s, %s",
-					formatLabel(lobby.formatId),
-					teamModeLabel(lobby.teamMode),
-					classModeLabel(lobby.classMode)
-				)
-			)
-		end
-	end
 
 	-- Sans ca, le compteur du banc garde une reference sur chaque joueur qui a
 	-- traverse le serveur, et celui qui revient retrouve son rang d'il y a deux
