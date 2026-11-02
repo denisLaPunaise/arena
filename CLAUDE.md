@@ -922,6 +922,51 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   pouvait pas dire pourquoi, et il a fallu une sonde en jeu pour l'apprendre.
   Un `pcall` dont on jette le second retour est un aveu qu'on ne saura jamais.
 
+- **LE CIEL DE ROBLOX EST UNE TEXTURE, PAS UN DEGRADE CALCULE.** Ca a coute
+  trois essais le 2 novembre 2026 : l'heure est descendue de 11 h a 6 h 50 et
+  l'`Atmosphere` a recu une brume chaude, et le ciel est reste exactement
+  aussi bleu, avec les memes petits nuages blancs de plein jour. Le soleil,
+  lui, avait bien bouge — mesure a 12,7 degres au-dessus de l'horizon — donc
+  les ombres etaient gagnees et c'est le ciel seul qui ne suivait pas. Ni
+  `ClockTime`, ni `Atmosphere.Color` ou `Decay`, ni `ColorCorrection.TintColor`
+  ne teintent une image.
+
+  Le seul levier procedural, sans asset, est **`Clouds`**, qui se parente au
+  **Terrain** et pas a `Lighting`. Consequence a ne pas perdre : aucune recette
+  ne detruit le Terrain, donc chaque recette doit effacer les `Clouds` des
+  autres, y compris celle qui n'en veut pas — sinon le Cargo herite d'un ciel
+  nuageux au-dessus d'un vaisseau.
+
+- **UN SOLEIL AU ZENITH NE PORTE AUCUNE OMBRE, et c'est le reglage le moins
+  cher du jeu.** Les deux maps exterieures avaient toute leur geometrie
+  invisible pour cette seule raison : a 37 degres mesures, chaque objet posait
+  son ombre sous lui-meme. Descendre a 15 degres fait traverser les ombres, et
+  quarante arbres ou quarante-huit piliers se mettent a exister. Avant de
+  conclure qu'une map est plate, mesurer `Lighting:GetSunDirection()`.
+
+- **LE `Glass` DE ROBLOX REFLECHIT TOUT SEUL, et `Reflectance` n'y change
+  rien.** L'eau du sanctuaire etait un ruban bleu cobalt ; la reflectance est
+  passee de 0,70 a 0,25 et la douve est restee du meme bleu, parce que ce bleu
+  ne venait pas d'elle mais du CIEL. En rendu `Future`, le verre recoit un
+  reflet et une refraction propres a la matiere. Une nappe d'eau se fait en
+  `SmoothPlastic` avec la reflectance qu'on veut ; le verre se garde pour ce
+  qui est vraiment du verre, comme les baies du Cargo.
+
+- **TROIS SPHERES EMPILEES REDONNENT UNE SPHERE.** Les couronnes d'arbres
+  etaient trois grosses boules l'une sur l'autre : de loin le contour reste un
+  rond parfait, et un rond parfait sur un baton est une sucette. Ce qui fait
+  une masse vegetale est un contour IRREGULIER — beaucoup de petites spheres
+  decalees, dont aucune ne depasse, et des verts differents. Meme famille que
+  les cent vingt feuillages identiques : la variete doit se voir sur la
+  SILHOUETTE, pas seulement dans le code.
+
+- **`Source` s'arrete a 200 000 caracteres depuis le pont MCP.**
+  `Config.luau` en fait 313 000, donc l'astuce du `ModuleScript` jetable ne
+  peut pas le charger. Pour verifier de la logique pure dans la machine
+  virtuelle de Roblox, passer une table minimale a la place — `Draft.mirrors`
+  ne lit que `config.formats`, par exemple. C'est aussi un rappel que les
+  modules purs ne doivent lire que ce dont ils ont besoin.
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier
@@ -999,7 +1044,15 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    trou central, la position haute, le passage obligé. **Elles ne peuvent pas
    cohabiter**, puisque `MapService` prend la première conforme. Mesurées au
    rayon, jamais jouées — section 26 d'`A-TESTER.md`
-16. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+16. **Le polissage des maps et le choix de classe** — fait le 2 novembre 2026.
+   Les trois maps ont recu les quatre corrections que seul l'oeil trouve
+   (soleil rasant, eau sans effet miroir, pierre separee du sable, couronnes
+   en grappes) plus de vrais nuages. Et le salon des parties privées a une
+   troisième rangée : les classes se tirent au sort, ou **chacun choisit la
+   sienne à son tour**, en serpentin, une seule personne par classe. Le miroir
+   du 1v1 garde son tirage, et c'est une décision prise sans Josh. Sections 28
+   et 29 d'`A-TESTER.md` — **jamais joué à plus d'un**
+17. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), **l'allure des armes**, les skins, et l'achat
    de pièces en Robux
