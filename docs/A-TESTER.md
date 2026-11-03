@@ -1838,8 +1838,20 @@ vérifiées à l'écran, mais seul Josh peut dire si c'est beau — et surtout s
 trois pierres du Colisée se distinguent encore **en mouvement**, à la vitesse
 d'un duel, et pas seulement sur une capture immobile.
 
-**Un défaut trouvé en passant, et pas corrigé.** Depuis un point de départ du
-Sanctuaire, la bannière du camp (`FrontonA`, 22 studs de large, à 11,4 studs de
-l'oeil) occupe la moitié haute de l'écran : on apparaît derrière une visière
-bleue. C'était déjà noté à la section 34 comme une gêne ; vu depuis l'oeil du
-joueur, c'est plus que ça. Il faut la reculer, la rétrécir ou la monter.
+**La bannière de camp du Sanctuaire — corrigée.** Depuis un point de départ, les
+deux bannières occupaient **18 % de l'écran** : on apparaissait derrière une
+visière bleue. Elles sont montées sur la rive du toit, où la sablière les cache
+par en dessous — **1 % de l'écran** depuis le même point, et toujours lisibles de
+mi-distance, ce qui est leur seul travail. Les deux moitiés ont été mesurées :
+ce qu'elles prennent d'où elles gênaient, et si elles s'atteignent encore d'où
+elles doivent se lire.
+
+La sonde de la recette, elle, disait « vue dégagée » — elle tire un rayon
+horizontal, et la bannière était deux studs et demi au-dessus de cette ligne.
+**Un rayon mesure une ligne, l'écran montre un cône.**
+
+**Ce qu'il faut regarder en jouant.** Depuis le départ du milieu, une colonne du
+portique est pile dans l'axe du centre. Mesurée, laissée : une colonne fait
+3,2 studs de large à 14 studs, on la contourne d'un pas, et c'est du couvert —
+contrairement à une bannière de 22 studs. À confirmer en jouant que ça ne gêne
+pas au moment où la manche démarre.

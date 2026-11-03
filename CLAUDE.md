@@ -1263,6 +1263,40 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   on pose une part mais jamais quand on déplace la caméra, ce n'est pas le
   rendu qui est gelé — c'est que quelqu'un d'autre tient la caméra.
 
+- **UN RAYON MESURE UNE LIGNE, L'ECRAN MONTRE UN CONE.** La banniere de camp
+  du Sanctuaire occupait la moitie haute de l'image depuis le point de depart,
+  et la sonde de la recette repondait « vue degagee » : elle tire un rayon
+  horizontal vers le centre, et la banniere etait deux studs et demi
+  AU-DESSUS de cette ligne. Le rayon passait dessous. Les deux mesures etaient
+  exactes et ne parlaient pas de la meme chose.
+
+  Pour savoir ce qui BOUCHE LA VUE, il faut balayer le champ — une grille de
+  rayons sur les 70 degres de la camera — et compter la part de l'image que
+  prend chaque piece. Mesure au Sanctuaire : 18 % de l'ecran pour les deux
+  bannieres, 1 % une fois montees sur la rive du toit.
+
+  **Et une piece qu'on deplace pour qu'elle ne gene plus peut devenir
+  invisible**, ce qui supprime l'information au lieu de la deplacer. Les deux
+  moities se mesurent donc ensemble : combien d'ecran elle prend d'ou elle
+  genait, et si elle s'atteint encore d'ou elle doit se lire.
+
+- **CE QUI CACHE PAR EN DESSOUS EST DEJA LA : la geometrie, pas un reglage.**
+  Les bannieres sont masquees du parvis par la SABLIERE du toit, et le seuil se
+  calcule au lieu de se tatonner — pour qu'un oeil du parvis voie un point
+  au-dela de la rive, le segment doit traverser la dalle, ce qui donne une
+  hauteur minimale (15,1 ici). On pose la piece au-dessus et c'est garanti pour
+  toutes les positions de l'oeil, pas seulement celle qu'on a testee.
+
+- **UN GARDE-FOU QUI SE DECLENCHE SUR DU LEGITIME EST PIRE QUE PAS DE
+  GARDE-FOU.** Une mesure de « surface d'ecran bouchee » a ete ecrite pour
+  attraper la banniere, puis jetee : elle designait d'abord une COLONNE du
+  portique a 29 %. Une colonne est un couvert, c'est le sujet de la map, et on
+  la contourne d'un pas — une banniere de vingt-deux studs de large, non. Le
+  critere ne savait pas distinguer les deux, donc il aurait menti a chaque
+  construction. Meme famille que l'avertissement de `BodyService` : quand on
+  n'arrive pas a enoncer la regle sans nommer le cas, il ne faut pas
+  l'automatiser.
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier

@@ -551,24 +551,38 @@ for _, side in { -1, 1 } do
 	end
 	part("Faitage" .. team, decor, Vector3.new(27, 0.7, 1.1), CFrame.new(x, 21.6, z), LIME_DARK).CanCollide =
 		false
-	part(
-		"Fronton" .. team,
-		decor,
-		Vector3.new(22, 2.2, 1),
-		CFrame.new(x - side * 1, 14, z - side * 12),
-		tint,
-		Enum.Material.Fabric
-	).CanCollide =
-		false
-	part(
-		"Fronton2" .. team,
-		decor,
-		Vector3.new(1, 2.2, 22),
-		CFrame.new(x - side * 12, 14, z - side * 1),
-		tint,
-		Enum.Material.Fabric
-	).CanCollide =
-		false
+	-- LES DEUX BANNIERES SONT SUR LE BORD DU TOIT, ET PAS EN TRAVERS DE
+	-- L'OUVERTURE. Elles pendaient a quatorze studs, c'est-a-dire deux studs
+	-- et demi AU-DESSUS de l'oeil, a douze studs de distance et vingt-deux de
+	-- large : on apparaissait derriere une visiere bleue qui barrait la moitie
+	-- haute de l'ecran. Mesure au balayage du champ de vision : dix-huit pour
+	-- cent de l'image a elles deux, au pire point de depart.
+	--
+	-- Un rayon horizontal, lui, disait « vue degagee » — il passait DESSOUS.
+	-- Un rayon mesure une ligne, l'ecran montre un cone : pour savoir ce qui
+	-- bouche la vue il faut balayer tout le champ, pas tirer vers le centre.
+	--
+	-- Posees sur la rive du toit, c'est la SABLIERE qui les cache par en
+	-- dessous, et la geometrie le garantit : pour qu'un oeil du parvis voie un
+	-- point au-dela de la rive, le segment doit traverser la dalle du toit. Le
+	-- seuil se calcule — tout ce qui est au-dessus de 15,1 est masque — et
+	-- elles sont a 15,3 au plus bas. De l'exterieur, rien ne les cache : elles
+	-- disent le camp de loin, ce qui est leur seul travail.
+	for _, axis in { "X", "Z" } do
+		local long = if axis == "X" then 26.8 else 0.8
+		local deep = if axis == "X" then 0.8 else 26.8
+		local ox = if axis == "X" then 0 else -side * 13.4
+		local oz = if axis == "X" then -side * 13.4 else 0
+		part(
+			string.format("Fronton%s%s", team, axis),
+			decor,
+			Vector3.new(long, 2.6, deep),
+			CFrame.new(x + ox, 16.6, z + oz),
+			tint,
+			Enum.Material.Fabric
+		).CanCollide =
+			false
+	end
 
 	-- DEUX SORTIES, pas une : un camp a une seule issue se fait enfermer par
 	-- une personne. Le mur du fond les separe et couvre le depart.
