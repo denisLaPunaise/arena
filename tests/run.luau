@@ -33,6 +33,7 @@ local suites = {
 	{ name = "Effets temporaires", run = require("./specs/status") },
 	{ name = "Corps standard", run = require("./specs/body") },
 	{ name = "Accueil et codes de salon", run = require("./specs/menu") },
+	{ name = "Regles branchees", run = require("./specs/wiring") },
 }
 
 local t = harness.create()

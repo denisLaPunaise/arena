@@ -84,6 +84,20 @@ function Economy.matchesPerCrateWhileBoosted(config): number
 	return config.draws.newPlayerCrateEveryMatches
 end
 
+-- Les pieces reellement versees, acceleration comprise. Pendant ses premieres
+-- parties un joueur touche AU MOINS de quoi ouvrir une caisse toutes les
+-- `newPlayerCrateEveryMatches` parties ; une partie qui rapporte deja plus ne
+-- perd rien. Cette regle etait declaree dans Config et ecrite ici sans
+-- qu'aucun service ne l'appelle jusqu'au 4 novembre 2026 : `matchesPlayed` est
+-- celui d'AVANT la partie, donc la vingtieme partie est encore acceleree.
+function Economy.paidCoins(config, coins: number, matchesPlayed: number): number
+	if not Economy.isBoosted(config, matchesPlayed) then
+		return coins
+	end
+	local floor = math.ceil(config.economy.crateCost / Economy.matchesPerCrateWhileBoosted(config))
+	return math.max(coins, floor)
+end
+
 -- Combien de caisses une reserve de pieces ouvre, et ce qui reste apres.
 function Economy.cratesAffordable(config, coins: number): (number, number)
 	local cost = config.economy.crateCost

@@ -160,11 +160,22 @@ local LOBBY_KEY = (Enum.KeyCode :: any)[Config.seating.lobbyKey]
 -- L'ACCUEIL. La seule touche du jeu qui serve hors partie : elle rouvre
 -- l'ecran d'ou on lance une partie classee, cree un salon ou rejoint un code.
 local MENU_KEY = (Enum.KeyCode :: any)[Config.menu.reopenKey]
+-- La touche des pouvoirs etait un `Enum.KeyCode.E` en dur pendant que
+-- `Config.abilities.inputKey` disait la meme chose sans etre lu : changer la
+-- touche dans Config ne changeait rien. Trouve au controle du 4 novembre 2026.
+local ABILITY_KEY = (Enum.KeyCode :: any)[Config.abilities.inputKey]
+local PROGRESS_KEY = (Enum.KeyCode :: any)[Config.economy.panelKey]
 
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
+-- Chaque touche du bandeau se lit dans Config : un bandeau ecrit a la main
+-- annoncerait encore « E » le jour ou la touche change.
 local HINT = string.format(
-	"Clic frapper  ·  E pouvoir  ·  1-4 objets  ·  T arbre  ·  L équipement  ·  P pièces"
+	"Clic frapper  ·  %s pouvoir  ·  1-4 objets  ·  %s arbre  ·  %s équipement  ·  %s pièces"
 		.. "  ·  %s bac à sable  ·  %s menu",
+	Config.abilities.inputKey,
+	Config.skillTree.panelKey,
+	Config.loadout.editKey,
+	Config.economy.panelKey,
 	Config.sandbox.toggleKey,
 	Config.menu.reopenKey
 )
@@ -366,7 +377,7 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		return
 	end
 
-	if input.KeyCode == Enum.KeyCode.E then
+	if input.KeyCode == ABILITY_KEY then
 		abilityRemote:FireServer()
 		return
 	end
@@ -381,7 +392,7 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		LoadoutPanel.use(4)
 	elseif input.KeyCode == EDIT_KEY then
 		LoadoutPanel.toggle()
-	elseif input.KeyCode == Enum.KeyCode.P then
+	elseif input.KeyCode == PROGRESS_KEY then
 		ProgressPanel.toggle()
 	elseif input.KeyCode == LOBBY_KEY then
 		LobbyPanel.toggle()

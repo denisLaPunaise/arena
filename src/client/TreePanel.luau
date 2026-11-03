@@ -40,6 +40,7 @@ local UserInputService = game:GetService("UserInputService")
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
 local treeRemote = Remotes:WaitForChild("Tree") :: RemoteEvent
+local Config = require(Arena:WaitForChild("Config"))
 
 local Screens = require(script.Parent:WaitForChild("Screens"))
 
@@ -649,11 +650,12 @@ function TreePanel.start()
 		render()
 	end)
 
+	local panelKey = (Enum.KeyCode :: any)[Config.skillTree.panelKey]
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 		if processed then
 			return
 		end
-		if input.KeyCode ~= Enum.KeyCode.T then
+		if input.KeyCode ~= panelKey then
 			return
 		end
 

@@ -409,7 +409,10 @@ function ProgressService.awardMatch(
 			roundsLost = theirs,
 		})
 
-		local coins = if pays then reward.coins else 0
+		-- L'acceleration des nouveaux se lit sur le compte AVANT la partie.
+		local coins = if pays
+			then Economy.paidCoins(Config, reward.coins, profile.matchesPlayed)
+			else 0
 		profile.coins += coins
 
 		-- Le compte de parties n'avance pas non plus dans une partie qui ne

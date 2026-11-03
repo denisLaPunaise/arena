@@ -34,6 +34,38 @@ local function last(n: number): number
 end
 
 return function(t: harness.Harness)
+	t.section("L'acceleration des nouveaux joueurs")
+
+	do
+		local cost = Config.economy.crateCost
+		local every = Config.draws.newPlayerCrateEveryMatches
+		local boostMatches = Config.draws.newPlayerBoostMatches
+		local worstLoss = Economy.coinsFor(Config, { won = false, roundsWon = 0, roundsLost = 2 })
+		-- La regle annoncee : une caisse toutes les `every` parties, meme en perdant.
+		local paid = Economy.paidCoins(Config, worstLoss, 0)
+		t.equal(
+			"un debutant qui perd tout ouvre une caisse en " .. every .. " parties",
+			paid * every >= cost,
+			true
+		)
+		t.equal(
+			"la derniere partie acceleree l'est encore",
+			Economy.paidCoins(Config, worstLoss, boostMatches - 1),
+			paid
+		)
+		t.equal(
+			"la suivante ne l'est plus",
+			Economy.paidCoins(Config, worstLoss, boostMatches),
+			worstLoss
+		)
+		local bigWin = cost
+		t.equal(
+			"une partie qui rapporte deja plus ne perd rien",
+			Economy.paidCoins(Config, bigWin, 0),
+			bigWin
+		)
+	end
+
 	t.section("Les pieces")
 
 	local crush = Economy.rewardFor(Config, { won = true, roundsWon = 2, roundsLost = 0 })

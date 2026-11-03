@@ -297,6 +297,10 @@ Config.skillTree = {
 	-- point, le 6e en coute deux. Total pour aller au bout : six points.
 	tierCosts = { 0, 1, 1, 1, 1, 2 },
 
+	-- La touche qui ouvre l'arbre. Etait un `Enum.KeyCode.T` en dur dans
+	-- `TreePanel`, hors du test des collisions de touches.
+	panelKey = "T",
+
 	-- Un point avant la premiere manche (on choisit sa premiere competence en
 	-- connaissant deja le matchup), puis un point a la fin de chaque manche.
 	-- Le point donne apres la derniere manche ne sert a rien, donc une partie
@@ -10841,6 +10845,10 @@ Config.economy = {
 
 	crateCost = 1000,
 
+	-- La touche du panneau des pieces et des caisses. Etait un
+	-- `Enum.KeyCode.P` en dur dans le client, hors du test des collisions.
+	panelKey = "P",
+
 	winBase = 220,
 	winPerRoundNotConceded = 30,
 
@@ -12034,6 +12042,63 @@ Config.abilities = {
 		-- MARQUE. Le marque est prevenu, et sa marque se voit de loin.
 		markColor = { 190, 90, 220 },
 		revealColor = { 255, 170, 70 },
+	},
+
+	-- LES CHIFFRES DES PALIERS 6, sortis d'`AbilityService` le 4 novembre 2026
+	-- ou ils etaient ecrits en dur — dix-neuf valeurs que personne ne pouvait
+	-- regler sans lire le service. Les valeurs sont celles du code, inchangees :
+	-- ce deplacement n'est PAS un reequilibrage.
+	tier6 = {
+		-- Mine (Artificier) : le proprietaire saute plus haut qu'il n'est pousse
+		-- de cote, parce que la mine est un tremplin et pas une arme contre soi.
+		mineSelfUpRatio = 1.4,
+		mineSelfDashStuds = 10,
+		-- Traversee (Spectre) : le souffle de sortie couvre une piece, pas une
+		-- map. Degats d'un coup ordinaire : la surprise fait le travail.
+		phaseExitBurstRadiusStuds = 14,
+		-- Mur (Forgeron) : pose a six studs devant soi, assez pour ne pas
+		-- s'enfermer dedans.
+		wallForwardStuds = 6,
+		-- Mur brulant : la moitie d'un coup par seconde, sur une zone un peu
+		-- plus large que le mur pour qu'on brule en le longeant.
+		wallBurnDamageRatio = 0.5,
+		wallBurnRadiusRatio = 0.6,
+		-- Clone (Leurre) : cinq studs, assez pour qu'on hesite entre les
+		-- deux silhouettes, pas assez pour qu'elles se lisent comme deux joueurs.
+		cloneOffsetStuds = 5,
+		cloneBurstRadiusStuds = 12,
+		-- Onde de choc (Sismique) : le palier qui fait mal au sol en fait la moitie
+		-- d'un coup, parce qu'il touche tout le monde a la fois.
+		slamDamageRatio = 0.5,
+		-- Communion (Lien) : la moitie seulement. Un partage integral ferait de
+		-- chaque soin un soin double, et deux Liens qui se soignent l'un
+		-- l'autre deviendraient impossibles a tuer.
+		bondShareRatio = 0.5,
+		-- Symbiose (Parasite) : un blesse sous la moitie de sa vie se voit, une
+		-- seconde et demie, renouvelee tant qu'il le reste.
+		woundedRevealHealthRatio = 0.5,
+		woundedRevealSeconds = 1.5,
+		-- Pas de loup (Cameleon) : marcher sous les trois quarts de sa vitesse ne revele
+		-- plus. A pleine vitesse, la faiblesse de la classe reste entiere.
+		stalkWalkSpeedRatio = 0.75,
+		-- Riposte (Duelliste) : +8 % par coup encaisse, plafonne a +40 %, soit cinq coups.
+		riposteBonusPerStack = 0.08,
+		riposteBonusMax = 0.4,
+		-- Coup revelateur (Traqueur) : dix secondes, la duree d'une poursuite.
+		hitRevealSeconds = 10,
+		-- Brasier colle (Pyromane) : une flaque de trois studs, trois secondes,
+		-- a la moitie du feu ordinaire.
+		clingingFireSeconds = 3,
+		clingingFireRadiusStuds = 3,
+		clingingFireDamageRatio = 0.5,
+		-- Marque vampirique (Parasite) : quarante pour cent des degats portes
+		-- au marque reviennent en vie.
+		markLifestealRatio = 0.4,
+		-- Relevement a distance (Infirmier) : quatre fois la portee normale.
+		remoteReviveRangeRatio = 4,
+		-- Champ regenerant : quatre PV par seconde dans un rayon de 24 studs.
+		fieldRegenRadiusStuds = 24,
+		fieldRegenPerSecond = 4,
 	},
 }
 

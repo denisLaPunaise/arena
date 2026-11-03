@@ -251,6 +251,9 @@ return function(t: harness.Harness)
 	claim(Config.sandbox.toggleKey, "le bac à sable")
 	claim(Config.seating.lobbyKey, "le salon")
 	claim(Config.menu.reopenKey, "le menu d'accueil")
+	claim(Config.abilities.inputKey, "le pouvoir de classe")
+	claim(Config.skillTree.panelKey, "l'arbre")
+	claim(Config.economy.panelKey, "le panneau des pièces")
 
 	t.equal(if #collisions > 0 then collisions[1] else "aucune collision", #collisions, 0)
 

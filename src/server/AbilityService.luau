@@ -767,8 +767,12 @@ local function detonate(mine: Mine, now: number)
 			local flat = Vector3.new(away.X, 0, away.Z)
 			local direction = if flat.Magnitude > 0 then flat.Unit else Vector3.zero
 			root.AssemblyLinearVelocity = (direction * tuning.mineKnockbackStuds)
-				+ Vector3.new(0, tuning.mineKnockbackUpStuds * 1.4, 0)
-			EffectsService.dash(root.Position, direction * 10)
+				+ Vector3.new(
+					0,
+					tuning.mineKnockbackUpStuds * Config.abilities.tier6.mineSelfUpRatio,
+					0
+				)
+			EffectsService.dash(root.Position, direction * Config.abilities.tier6.mineSelfDashStuds)
 		end
 	end
 
@@ -843,7 +847,13 @@ local function endPhase(player: Player)
 		if has(player, "phaseExitBurst") then
 			local root = rootOf(player)
 			if root ~= nil then
-				for _, victim in enemiesNear(entry.team, root.Position, 14) do
+				for _, victim in
+					enemiesNear(
+						entry.team,
+						root.Position,
+						Config.abilities.tier6.phaseExitBurstRadiusStuds
+					)
+				do
 					local passed = dealTo(victim, Combat.rawDamage(entry.stats))
 					local point = pointOf(victim.player)
 					if passed > 0 and point ~= nil then
@@ -957,7 +967,7 @@ local function raiseWall(entry: Entry, position: Vector3, facing: Vector3): bool
 	end
 	flat = flat.Unit
 
-	local centre = position + (flat * 6)
+	local centre = position + (flat * Config.abilities.tier6.wallForwardStuds)
 	local part = Instance.new("Part")
 	part.Name = "ArenaWall"
 	part.Size = Vector3.new(width, height, Config.abilities.tuning.wallThicknessStuds)
@@ -982,8 +992,9 @@ local function raiseWall(entry: Entry, position: Vector3, facing: Vector3): bool
 			owner = entry.player,
 			part = part,
 			until_ = os.clock() + seconds,
-			damagePerSecond = Combat.rawDamage(entry.stats) * 0.5,
-			radius = math.max(width, height) * 0.6,
+			damagePerSecond = Combat.rawDamage(entry.stats)
+				* Config.abilities.tier6.wallBurnDamageRatio,
+			radius = math.max(width, height) * Config.abilities.tier6.wallBurnRadiusRatio,
 			clings = false,
 			healsOwner = false,
 		})
@@ -1105,8 +1116,12 @@ local function spawnClone(entry: Entry, now: number): boolean
 
 	for index = 1, count do
 		local offset = if count == 1
-			then root.CFrame.LookVector * 5
-			else (root.CFrame.RightVector * (if index == 1 then 5 else -5))
+			then root.CFrame.LookVector * Config.abilities.tier6.cloneOffsetStuds
+			else (
+				root.CFrame.RightVector
+				* (if index == 1 then 1 else -1)
+				* Config.abilities.tier6.cloneOffsetStuds
+			)
 
 		local part = Instance.new("Part")
 		part.Name = "ArenaClone"
@@ -1180,7 +1195,9 @@ local function removeClone(index: number, clone: Clone)
 		local ownerEntry = roster[clone.owner]
 		if ownerEntry ~= nil then
 			local position = clone.part.Position
-			for _, victim in enemiesNear(clone.team, position, 12) do
+			for _, victim in
+				enemiesNear(clone.team, position, Config.abilities.tier6.cloneBurstRadiusStuds)
+			do
 				local passed = dealTo(victim, Combat.rawDamage(ownerEntry.stats))
 				local point = pointOf(victim.player)
 				if passed > 0 and point ~= nil then
@@ -1265,7 +1282,10 @@ local function slam(entry: Entry, now: number): boolean
 		slowed[victim.player] = { until_ = now + seconds, baseSpeed = base }
 
 		if damages then
-			local passed = dealTo(victim, Combat.rawDamage(entry.stats) * 0.5)
+			local passed = dealTo(
+				victim,
+				Combat.rawDamage(entry.stats) * Config.abilities.tier6.slamDamageRatio
+			)
 			local point = pointOf(victim.player)
 			if passed > 0 and point ~= nil then
 				EffectsService.hit(point, passed, victim.player)
@@ -1347,7 +1367,7 @@ function AbilityService.onHealed(player: Player, amount: number)
 	-- deviendraient impossibles a tuer.
 	for linkPlayer, target in bondTarget do
 		if target == player and has(linkPlayer, "bondSharesHealing") then
-			healPlayer(linkPlayer, amount * 0.5)
+			healPlayer(linkPlayer, amount * Config.abilities.tier6.bondShareRatio)
 			break
 		end
 	end
@@ -1431,8 +1451,11 @@ local function updateWoundedSight(entry: Entry)
 		if humanoid == nil or humanoid.MaxHealth <= 0 then
 			continue
 		end
-		if (humanoid.Health / humanoid.MaxHealth) <= 0.5 then
-			revealTo(entry.player, player, 1.5)
+		if
+			(humanoid.Health / humanoid.MaxHealth)
+			<= Config.abilities.tier6.woundedRevealHealthRatio
+		then
+			revealTo(entry.player, player, Config.abilities.tier6.woundedRevealSeconds)
 		end
 	end
 end
@@ -1458,7 +1481,8 @@ local function updateCloak(entry: Entry, now: number)
 	-- vitesse de marche plutot qu'au seuil de la classe.
 	local threshold = entry.stats.cloakSpeedThreshold or 0
 	if has(entry.player, "stalkWalks") then
-		threshold = math.max(threshold, entry.stats.walkSpeed * 0.75)
+		threshold =
+			math.max(threshold, entry.stats.walkSpeed * Config.abilities.tier6.stalkWalkSpeedRatio)
 	end
 
 	local since = stillSince[entry.player]
@@ -1536,7 +1560,10 @@ function AbilityService.outgoingMultiplier(attacker: Entry): number
 	local stacks = riposteStacks[attacker.player]
 	if stacks ~= nil and stacks > 0 and has(attacker.player, "riposteSpeeds") then
 		riposteStacks[attacker.player] = 0
-		multiplier *= 1 + math.min(stacks * 0.08, 0.4)
+		multiplier *= 1 + math.min(
+			stacks * Config.abilities.tier6.riposteBonusPerStack,
+			Config.abilities.tier6.riposteBonusMax
+		)
 	end
 
 	return multiplier
@@ -1567,7 +1594,7 @@ function AbilityService.onHit(attacker: Entry, target: Entry, passed: number)
 	end
 
 	if has(attacker.player, "hitReveals") then
-		revealToTeam(attacker, target.player, 10)
+		revealToTeam(attacker, target.player, Config.abilities.tier6.hitRevealSeconds)
 	end
 
 	if has(attacker.player, "hitIgnites") then
@@ -1578,7 +1605,11 @@ function AbilityService.onHit(attacker: Entry, target: Entry, passed: number)
 				part = (function(): BasePart
 					local part = Instance.new("Part")
 					part.Name = "ArenaFireCling"
-					part.Size = Vector3.new(6, 0.5, 6)
+					part.Size = Vector3.new(
+						Config.abilities.tier6.clingingFireRadiusStuds * 2,
+						0.5,
+						Config.abilities.tier6.clingingFireRadiusStuds * 2
+					)
 					part.CFrame = CFrame.new(root.Position - Vector3.new(0, 2.6, 0))
 					part.Color = Color3.fromRGB(240, 120, 50)
 					part.Material = Enum.Material.Neon
@@ -1588,12 +1619,13 @@ function AbilityService.onHit(attacker: Entry, target: Entry, passed: number)
 					part.CanQuery = false
 					part.CanTouch = false
 					part.Parent = parentFolder()
-					Debris:AddItem(part, 3)
+					Debris:AddItem(part, Config.abilities.tier6.clingingFireSeconds)
 					return part
 				end)(),
-				until_ = os.clock() + 3,
-				damagePerSecond = (attacker.stats.fireDamagePerSecond or 0) * 0.5,
-				radius = 3,
+				until_ = os.clock() + Config.abilities.tier6.clingingFireSeconds,
+				damagePerSecond = (attacker.stats.fireDamagePerSecond or 0)
+					* Config.abilities.tier6.clingingFireDamageRatio,
+				radius = Config.abilities.tier6.clingingFireRadiusStuds,
 				clings = false,
 				healsOwner = false,
 			})
@@ -1612,7 +1644,7 @@ function AbilityService.onHit(attacker: Entry, target: Entry, passed: number)
 
 	local mark = markedBy[target.player]
 	if mark ~= nil and mark.by == attacker.player and has(attacker.player, "markLifesteal") then
-		healPlayer(attacker.player, passed * 0.4)
+		healPlayer(attacker.player, passed * Config.abilities.tier6.markLifestealRatio)
 	end
 end
 
@@ -1690,7 +1722,7 @@ local function reviveHooks()
 		rangeFor = function(player: Player): number
 			local base = Config.downed.reviveRangeStuds
 			if has(player, "remoteRevive") then
-				return base * 4
+				return base * Config.abilities.tier6.remoteReviveRangeRatio
 			end
 			return base
 		end,
@@ -1861,8 +1893,10 @@ function AbilityService.step(deltaSeconds: number)
 		if root == nil then
 			continue
 		end
-		for _, ally in alliesNear(entry, root.Position, 24) do
-			healPlayer(ally.player, 4 * deltaSeconds)
+		for _, ally in
+			alliesNear(entry, root.Position, Config.abilities.tier6.fieldRegenRadiusStuds)
+		do
+			healPlayer(ally.player, Config.abilities.tier6.fieldRegenPerSecond * deltaSeconds)
 		end
 	end
 
