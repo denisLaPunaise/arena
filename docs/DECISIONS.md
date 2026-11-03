@@ -2164,3 +2164,51 @@ Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si
 c'est amusant, tester à plusieurs, publier, créer les produits payants, valider
 la conformité de l'écran de tirage, et la direction artistique. Le détail est
 dans `CLAUDE.md`, section « Qui fait quoi ».
+
+---
+
+## Le soleil tourné perpendiculairement à l'axe des camps — 3 novembre 2026
+
+**La décision.** Au Sanctuaire, `ClockTime` passe de 6,9 à 7,2 et
+`GeographicLatitude` de 4 à -20, ce qui garde un soleil rasant (13 degrés au
+lieu de 12,7) mais le fait arriver perpendiculairement à la ligne qui joint les
+deux camps.
+
+**Pourquoi sans toi.** Parce que ce n'est pas un choix d'ambiance, c'est une
+mesure d'équité, et elle était chiffrée : avant correction, **camp A zéro
+départ sur cinq à l'ombre, camp B quatre sur cinq**. Celui qui apparaît dans
+l'ombre est plus difficile à voir, celui qui regarde le soleil est ébloui.
+L'éclairage distribuait donc un avantage, et le projet a déjà pour règle que
+les deux camps aient le même chemin — c'est tout le sens de la symétrie de
+rotation de la Carrière. Après correction : deux et deux.
+
+**Ce que ça ne change pas.** L'heure reste l'aube, le soleil reste rasant, donc
+les ombres portées restent — c'était le gain du 2 novembre et il n'est pas
+touché. Seul l'azimut bouge.
+
+**Ce qui est discutable.** Un soleil rasant perpendiculaire éblouit maintenant
+les deux camps à égalité plutôt que personne. On pourrait vouloir à la place un
+soleil plus haut, qui n'éblouit personne — mais au-dessus de 22 degrés les
+ombres rentrent sous les objets et la map redevient plate. J'ai préféré
+l'égalité au confort. Ça se défait en changeant deux chiffres.
+
+**Le garde-fou.** Les quatre recettes mesurent désormais cet écart à chaque
+construction et avertissent s'il dépasse deux départs. Un déplacement de bloc
+qui rompt l'équilibre se verra tout de suite.
+
+---
+
+## Le sable généré du Colisée retiré — 3 novembre 2026
+
+**La décision.** La variante `ArenaSableColisee2` est retirée de la recette ;
+le sol de l'arène revient au `Sand` d'origine de Roblox.
+
+**Pourquoi.** Elle est trop contrastée **à toutes les échelles**, ce qui est
+rare et rédhibitoire : à cinq studs par tuile, le sol était couvert de
+gribouillis noirs ; à quarante-cinq, de tranchées sombres. Une ride de sable
+est un motif de plusieurs mètres, donc il n'y a pas de taille de tuile qui la
+sauve — entre les deux, on n'aurait eu que des gribouillis moyens.
+
+**Ce que ça dit en général.** Toutes les matières générées ne valent pas celle
+d'origine. Le sol du Cargo et la glace de la Carrière sont de vrais gains ; ce
+sable était une perte. Le réflexe « on génère tout » est le mauvais.

@@ -65,9 +65,15 @@ local HAZARD = Color3.fromRGB(216, 176, 60)
 local COLOR_A = Color3.fromRGB(70, 130, 230)
 local COLOR_B = Color3.fromRGB(230, 80, 70)
 
-for _, name in { "ArenaMap", "ColiseeMap", "CargoMap", "SanctuaireMap" } do
-	local old = Workspace:FindFirstChild(name)
-	if old then
+-- ON DETRUIT TOUTE MAP CONFORME, PAS UNE LISTE DE NOMS. La liste en dur
+-- ignorait la Carriere, ecrite apres les trois autres recettes : le Colisee
+-- s'est donc construit AUTOUR d'elle le 3 novembre 2026, deux maps dans
+-- Workspace, et `MapService` prend la PREMIERE -- donc l'une des deux ne
+-- sert jamais. Meme panne que `HANDLED` dans `AbilityService` : une liste
+-- qu'il faut penser a tenir a jour finit par mentir. La signature du contrat
+-- (`SpawnsA` et `SpawnsB`) ne se perime pas, elle.
+for _, old in Workspace:GetChildren() do
+	if old:FindFirstChild("SpawnsA") and old:FindFirstChild("SpawnsB") then
 		old:Destroy()
 	end
 end
@@ -128,10 +134,13 @@ local function materials(list)
 		v.NormalMap = "rbxassetid://" .. m.normal
 		v.MetalnessMap = "rbxassetid://" .. m.metal
 		v.RoughnessMap = "rbxassetid://" .. m.rough
-		-- Dix studs par tuile : c'est ce que rend le generateur, et a l'echelle
-		-- d'une map de 160 studs ca donne un motif qu'on lit sans qu'il se
-		-- repete a l'oeil. Un chiffre a regler en REGARDANT, pas en calculant.
-		v.StudsPerTile = 10
+		-- LA TAILLE DE TUILE VAUT LA TAILLE REELLE DU MOTIF, et c'est pour ca
+		-- qu'elle est par matiere et pas globale. Une ride de sable fait
+		-- plusieurs metres ; un grain de pierre, quelques centimetres. Le meme
+		-- chiffre pour les deux donne forcement tort a l'une des deux : a cinq
+		-- studs le sable du Colisee etait un gribouillis noir, a quarante-cinq
+		-- c'etaient des tranchees. Vu a l'ecran le 3 novembre 2026.
+		v.StudsPerTile = m.studs
 		v.Parent = folder
 		byBase[m.base] = m.name
 	end
@@ -149,6 +158,7 @@ local VARIANT_FOR = materials({
 		normal = 95145669175586,
 		metal = 100157835727846,
 		rough = 91253623316719,
+		studs = 5,
 	},
 	{
 		name = "ArenaRouilleCargo",
@@ -157,6 +167,7 @@ local VARIANT_FOR = materials({
 		normal = 81410057958618,
 		metal = 90879211939722,
 		rough = 117535133447299,
+		studs = 5,
 	},
 })
 
@@ -1105,6 +1116,56 @@ if centreMark then
 	elseif covered > 12 then
 		alarms += 1
 		warn("[Arena]   Le cercle final est trop encombre : on ne peut plus s'y disputer.")
+	end
+end
+
+-- L'OMBRE TOMBE-T-ELLE PAREIL SUR LES DEUX CAMPS ? Un soleil rasant est
+-- indispensable -- au zenith il ne porte aucune ombre -- mais rasant dans
+-- l'axe des camps il en eclaire un et laisse l'autre dans le noir. Mesure au
+-- Sanctuaire le 3 novembre 2026 : zero depart sur cinq a l'ombre d'un cote,
+-- QUATRE sur cinq de l'autre. Ca ne se voit pas en regardant une capture,
+-- parce qu'on n'en regarde jamais deux, une par camp, au meme instant.
+do
+	local sun = Lighting:GetSunDirection()
+	local shade = RaycastParams.new()
+	shade.FilterType = Enum.RaycastFilterType.Include
+	shade.FilterDescendantsInstances = { map }
+	shade.RespectCanCollide = true
+
+	local counts = {}
+	for _, side in { "SpawnsA", "SpawnsB" } do
+		local shaded = 0
+		for _, s in map:FindFirstChild(side):GetChildren() do
+			if Workspace:Raycast(s.Position + Vector3.new(0, EYE, 0), sun * 400, shade) then
+				shaded += 1
+			end
+		end
+		table.insert(counts, shaded)
+	end
+
+	local gap = math.abs(counts[1] - counts[2])
+	if gap >= 2 then
+		alarms += 1
+		warn(
+			string.format(
+				"[Arena]   L'ombre est inegale : %d departs sur %d a l'ombre d'un cote, %d de "
+					.. "l'autre. Tourner le soleil perpendiculairement a l'axe des camps "
+					.. "(balayer ClockTime et GeographicLatitude en gardant 10 a 22 degres "
+					.. "d'elevation).",
+				counts[1],
+				#map.SpawnsA:GetChildren(),
+				counts[2]
+			)
+		)
+	else
+		print(
+			string.format(
+				"  Ombre aux departs : %d et %d sur %d. Les deux camps sont loges pareil.",
+				counts[1],
+				counts[2],
+				#map.SpawnsA:GetChildren()
+			)
+		)
 	end
 end
 

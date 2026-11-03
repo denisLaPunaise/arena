@@ -1725,3 +1725,76 @@ Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
   `docs/DECISIONS.md`. Si elle ne te plaît pas, elle se défait en une ligne.
 - **le pilotage du clone du Leurre** — le clone est posé, pas piloté. Le
   pourquoi est dans `docs/DECISIONS.md`, et le point à regarder est le 57.
+
+---
+
+## 34. Les matières générées sur les quatre maps — 3 novembre 2026
+
+Les quatre recettes posent maintenant leurs matières elles-mêmes, et chacune a
+été **regardée à l'écran, à deux distances**. Ce qui suit est le verdict
+honnête, réussites et échecs.
+
+### Ce qui marche
+
+- **La Carrière.** La roche des parois lit comme de vraies strates de carrière,
+  et la glace comme de la glace fendue — c'est la meilleure des quatre. Au fond
+  de la fosse, le regard vers la margelle vend la promesse de la map (« on
+  descend vite, on remonte lentement »).
+- **Le Colisée.** Après avoir changé la pierre (voir plus bas), l'amphithéâtre
+  tient de près comme de loin, et la pierre grise se sépare bien du sable chaud.
+- **Le sol du Cargo.** La tôle larmée est la meilleure surface unique des
+  quatre maps.
+
+### Ce qu'il reste à regarder en jouant
+
+1. **Les bannières de camp bouchent la vue de celui qui apparaît.** Mesuré au
+   Sanctuaire : `FrontonA` fait **22 studs de large, à 11,6 studs du départ, à
+   hauteur de tête** — plus large que le champ de vision. Le premier chose
+   qu'on voit en apparaissant est un aplat bleu. Même chose côté B en rouge, et
+   la Carrière comme le Colisée ont des marqueurs aussi saturés. **Ça se décide
+   en jouant** : est-ce qu'on veut un repère fort, ou une vue dégagée ?
+2. **Le Cargo est à moitié nu.** 56,6 % de sa surface visible ne porte aucune
+   matière générée — les conteneurs, qui sont les plus grandes surfaces, sont
+   en `Metal` et `Plastic`, deux matières de base qui n'ont pas de variante. Le
+   sol est superbe et les conteneurs sont des aplats jaunes et bleus. Il
+   faudrait une matière de plus, ou deux.
+3. **Le sable du Colisée est resté celui de Roblox.** La version générée faisait
+   des gribouillis noirs à petite tuile et des tranchées à grande : trop
+   contrastée à toutes les échelles. Retirée plutôt que rattrapée.
+4. **La pluie du Sanctuaire ne rend rien.** Ses quatre parts sont à
+   transparence 1,00, donc totalement invisibles.
+5. **Deux maps ont une ligne de tir trop longue entre les camps**, et ce sont
+   leurs propres recettes qui le disent : le Sanctuaire, 2 lignes dégagées sur
+   25, **la plus longue de 147 studs** ; le Colisée, 3 sur 25, la plus longue
+   de **121 studs**. Il manque un obstacle sur l'axe des deux camps. C'est le
+   défaut de jeu le plus net des quatre maps, et il ne se corrige qu'en
+   ajoutant du couvert — donc en décidant où.
+6. **Le cercle final du Colisée est nu** : 4 directions couvertes sur 16, juste
+   au seuil de l'avertissement. Le Sanctuaire est à 12, la Carrière à 7.
+
+### Ce qui a été corrigé sans toi
+
+- **L'ombre tombait sur un camp et pas sur l'autre.** Au Sanctuaire, camp A
+  zéro départ sur cinq à l'ombre, camp B **quatre sur cinq**. Le soleil rasant
+  arrivait dans l'axe des deux camps : l'un apparaissait dans le noir, l'autre
+  face au soleil. Le soleil a été tourné perpendiculairement à cet axe —
+  toujours rasant (13 degrés, donc les ombres restent) — et c'est tombé à deux
+  et deux. **Les quatre recettes mesurent maintenant cet écart elles-mêmes** et
+  avertissent.
+- **Deux maps pouvaient cohabiter.** Les trois premières recettes détruisaient
+  une liste de noms où la Carrière, écrite après elles, ne figurait pas : le
+  Colisée s'est construit autour d'elle. Elles détruisent maintenant tout ce
+  qui respecte le contrat, ce qui ne peut plus se périmer.
+- **La pierre du Colisée était de la faïence.** Choisie sur un panneau d'essai
+  plat, elle passait pour de la pierre de loin et devenait un carrelage bleu et
+  or à neuf studs — sur 1427 parts. Remplacée.
+
+### Une anomalie à part, et elle n'est pas visuelle
+
+La console affiche à chaque démarrage, trois fois :
+`ContentId: rbxassetid://203785492 failed due to: Asset type does not match
+requested type` — pendant qu'`Audio.verify` annonce « 16 évènements, toutes les
+pistes chargées ». **Les deux ne peuvent pas être vrais en même temps.** C'est
+exactement la famille de l'avertissement qui ment : soit un son ne se charge
+pas et le garde-fou ne le voit pas, soit l'identifiant traîne ailleurs. À
+regarder avant de conclure que le son est au complet.

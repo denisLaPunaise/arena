@@ -1116,6 +1116,95 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   « attempt to call a nil value » a la construction. Rien dans le fichier ne le
   signale a la lecture, et seule l'execution le dit.
 
+- **UNE MATIERE SE JUGE SUR LA MAP, AUX DEUX DISTANCES, ET LES DEUX RATAGES
+  SONT OPPOSES.** La pierre du Colisee a ete choisie sur un panneau d'essai
+  plat : elle y lisait comme un petit appareil de pierre. Sur la map, a cent
+  trente studs, elle passait encore pour du gres — et a neuf studs, la
+  distance a laquelle un joueur longe une arche, c'etait de la **faience bleu
+  et or**, du Portugal, sur 1427 parts. Le remplacant choisi de pres faisait
+  l'erreur exactement inverse : superbe a neuf studs, **leopard** a cent
+  trente, parce qu'un reseau de fissures contraste repete trente-deux fois sur
+  une facade devient un motif de taches.
+
+  Donc : **un seul cadrage qui porte du proche ET du lointain**, et on juge les
+  deux dans la meme image. Deux captures separees laissent passer le defaut de
+  l'autre bout, et c'est arrive deux fois dans la meme heure. Ce qui tient aux
+  deux distances est une matiere **a grain fin et a faible contraste** : rien
+  qui fasse une marque forte.
+
+- **`generate_material` DESSINE LE SUJET QU'ON NOMME, pas une surface.**
+  « Roman travertine ashlar blocks » a rendu quatre photos d'ARCADES, Pont du
+  Gard compris : posees sur les claveaux d'une arche, ca donnait des arches
+  dans les arches. Le prompt doit nommer **une surface et rien d'autre**, et
+  interdire explicitement l'architecture. Avec « bare limestone surface, no
+  arches, no columns, no architecture », deux variantes sur quatre etaient
+  enfin des surfaces — **et les deux autres redessinaient des ruines avec des
+  fenetres**. La roche et la glace de la Carriere avaient marche du premier
+  coup pour cette raison exacte : « rock » et « ice » sont des surfaces.
+
+- **`generate_material` LANCE EN MODE JEU NE PRODUIT RIEN, EN SILENCE.** L'appel
+  rend bien `{"Name": ...}`, et aucune variante n'apparait nulle part. Vu deux
+  fois le 3 novembre 2026. Il ecrit dans le DataModel d'EDITION : il faut donc
+  etre en mode edition, et les variantes creees avant une partie se retrouvent
+  dans la copie de jeu, mais jamais l'inverse.
+
+- **`StudsPerTile` VAUT LA TAILLE REELLE DU MOTIF, donc il est PAR MATIERE.**
+  Un seul chiffre pour tout donne forcement tort a l'une des matieres : a cinq
+  studs par tuile le sable du Colisee etait un gribouillis noir, a
+  quarante-cinq c'etaient des tranchees — une ride de sable fait plusieurs
+  metres, un grain de pierre quelques centimetres. Et dans l'autre sens, a dix
+  studs (ce que rend le generateur) les parois de trente studs de la Carriere
+  etaient superbes pendant que les blocs de glace de cinq studs n'en
+  montraient qu'une demi-tuile, un frottis pale au lieu de glace fendue.
+
+  Corollaire : **une matiere trop contrastee ne se rattrape a aucune echelle.**
+  Le sable genere a ete retire et le `Sand` de Roblox remis. Toutes les
+  matieres generees ne valent pas celle d'origine.
+
+- **UN RAYON TROUVE DE LA GEOMETRIE, PAS CE QU'ON VOIT.** Une grande forme
+  bleue barrait les captures du Sanctuaire ; le rayon tire dessus a repondu
+  `Decor.Pluie3`, et j'ai failli aller corriger la pluie. Pluie3 est a
+  **transparence 1,00** : totalement invisible, et pourtant touchee par le
+  rayon, qui s'arretait donc avant le vrai coupable. En cherchant ce qu'on
+  VOIT, il faut avancer de hit en hit jusqu'a la premiere part dont la
+  transparence est faible. Le coupable etait `FrontonA`, la banniere du camp.
+
+  Au passage : **les quatre parts de pluie sont a transparence 1,00**, donc
+  l'effet de pluie ne rend rien du tout.
+
+- **UNE LISTE DE NOMS DE MAPS SE PERIME, ET DEUX MAPS COHABITENT ALORS EN
+  SILENCE.** Les trois premieres recettes detruisaient
+  `{ ArenaMap, ColiseeMap, CargoMap, SanctuaireMap }` — la Carriere, ecrite
+  apres, n'y figurait pas. Le Colisee s'est donc construit AUTOUR d'elle, 1526
+  parts par-dessus 350, et `MapService` prend la PREMIERE conforme : l'une des
+  deux ne sert jamais. Meme panne que `HANDLED` dans `AbilityService`. La
+  parade est de detruire **ce qui repond au contrat** (`SpawnsA` et `SpawnsB`)
+  au lieu de ce qui porte un nom connu : le contrat, lui, ne se perime pas.
+
+- **UN SOLEIL RASANT DANS L'AXE DES CAMPS DISTRIBUE UN AVANTAGE.** Il faut un
+  soleil rasant — au zenith il ne porte aucune ombre et la map devient plate —
+  mais rasant DANS L'AXE, il eclaire un camp et laisse l'autre dans le noir.
+  Mesure au Sanctuaire le 3 novembre 2026 : camp A **zero** depart sur cinq a
+  l'ombre, camp B **quatre** sur cinq. Celui qui apparait dans l'ombre est plus
+  dur a voir, celui qui regarde le soleil est ebloui. Ca ne se voit pas sur une
+  capture, parce qu'on n'en regarde jamais deux, une par camp, au meme instant.
+
+  Les deux chiffres se TROUVENT PAR BALAYAGE, ils ne se choisissent pas : on
+  cherche le couple `ClockTime` / `GeographicLatitude` qui garde l'elevation
+  entre 10 et 22 degres **et** rend l'azimut perpendiculaire a l'axe des camps.
+  Au Sanctuaire : 7,2 et -20, soit 13,0 degres et un alignement de 0,001 —
+  l'ombre est tombee a deux departs sur cinq de chaque cote. Les quatre
+  recettes mesurent maintenant cet ecart elles-memes et avertissent.
+
+- **UNE MATIERE NE COUVRE QUE LES PARTS DE SA MATIERE DE BASE, et la table n'en
+  mappe que deux ou trois.** Au Cargo, mesure en SURFACE et pas en nombre de
+  parts — un conteneur compte autant que cent rivets, et c'est lui qu'on voit —
+  **56,6 % de la surface visible ne porte aucune matiere generee** : le `Metal`
+  (33,5 %) et le `Plastic` (19,9 %) des conteneurs, c'est-a-dire les plus
+  grandes surfaces de la map. Le sol en tole est une reussite et les conteneurs
+  restent des aplats de couleur. Avant de dire qu'une map « a ses matieres »,
+  compter la surface couverte, pas les parts.
+
 - **`Source` s'arrete a 200 000 caracteres depuis le pont MCP.**
   `Config.luau` en fait 313 000, donc l'astuce du `ModuleScript` jetable ne
   peut pas le charger. Pour verifier de la logique pure dans la machine
