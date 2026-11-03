@@ -1069,6 +1069,53 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   qui est la meme regle que la colonne du bac a sable, appliquee deux etages
   plus haut.
 
+- **UNE MATIERE GENEREE SE RECONSTRUIT, SINON ELLE N'EXISTE QUE DANS LA
+  PLACE.** `generate_material` depose ses variantes dans `MaterialService`, qui
+  n'est ni dans Git ni dans Rojo : une matiere generee a donc exactement le
+  probleme d'une map construite a la main. Ce qui sauve le coup est que chaque
+  variante porte QUATRE assets PUBLIES — couleur, relief, metal, rugosite — et
+  qu'une recette peut la reposer a l'identique. **Les identifiants releves dans
+  Studio SONT la sauvegarde**, et ils vivent dans les recettes de `tools/`.
+
+  Trois choses apprises en le faisant. Le generateur range ses variantes dans
+  `MaterialService.AssistantMaterials` et PAS a la racine — c'etait deja ecrit
+  ici depuis le 27 octobre, et ne pas l'avoir relu a laisse DEUX variantes du
+  meme nom dans la place, donc un tirage au sort a l'affichage, le piege des
+  doublons de Rojo. Une fois les identifiants inscrits dans les recettes, ce
+  dossier se detruit. Ensuite, `MaterialService` est un reglage de PLACE comme
+  `Lighting` : chaque recette vide le dossier commun avant de poser les
+  siennes, sinon les matieres des quatre maps s'y empilent. Enfin la variante
+  se pose a UN SEUL endroit, dans le helper `part()` par une table
+  `matiere de base -> variante` : l'inscrire sur trois cents sites d'appel
+  serait la meme faute qu'un chiffre recopie.
+
+  **Et un generateur rend quatre PROPOSITIONS, pas quatre reussites.** Sur les
+  vingt-quatre variantes posees cote a cote pour etre choisies, trois des
+  quatre pierres du Colisee lisaient comme du BOIS et deux des quatre glaces
+  comme des flaques turquoise. Les regarder ensemble coute une capture et
+  evite de peindre une map entiere avec la mauvaise.
+
+- **LIRE UN `CFrame` DE CAMERA JUSTE APRES L'AVOIR POSE NE PROUVE RIEN.** En
+  mode edition Studio garde la POSITION qu'on lui donne et IMPOSE son
+  orientation, mais il ne la reecrit qu'a l'image suivante : une relecture
+  immediate rend donc la valeur qu'on vient d'ecrire, et on conclut que la
+  camera obeit. C'est l'erreur commise le 3 novembre 2026 — ecart mesure
+  « 0,000 » sur deux cadrages, et les captures suivantes prises depuis un angle
+  que je n'avais pas choisi. Avec un `task.wait(0.3)` avant la mesure, le
+  `LookVector` demande a (0, 0, -1) se relit a (0,02 / -0,95 / -0,31).
+
+  La parade qui marche sans passer en mode jeu : **ne pas deplacer la camera,
+  poser l'objet DANS SON CHAMP.** On lit son `CFrame` reel et on construit dans
+  son propre repere (`eye * CFrame.new(x, y, -distance)`), puis on confirme par
+  `WorldToViewportPoint`. C'est comme ca que les vingt-quatre matieres ont pu
+  etre comparees.
+
+- **UN `local function` DECLARE PLUS BAS N'EST PAS UNE VARIABLE CAPTUREE.**
+  Le helper `wedge` du Cargo avait ete pose apres `container`, qui l'appelle :
+  en Luau ce n'est pas une boucle d'upvalue, c'est un GLOBAL absent, donc
+  « attempt to call a nil value » a la construction. Rien dans le fichier ne le
+  signale a la lecture, et seule l'execution le dit.
+
 - **`Source` s'arrete a 200 000 caracteres depuis le pont MCP.**
   `Config.luau` en fait 313 000, donc l'astuce du `ModuleScript` jetable ne
   peut pas le charger. Pour verifier de la logique pure dans la machine

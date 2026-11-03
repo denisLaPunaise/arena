@@ -42,6 +42,7 @@
 
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local MaterialService = game:GetService("MaterialService")
 
 local HALL_X = 150
 local HALL_Z = 120
@@ -89,6 +90,76 @@ local decor = Instance.new("Folder")
 decor.Name = "Decor"
 decor.Parent = map
 
+--------------------------------------------------------------------------------
+-- LES MATIERES GENEREES
+--------------------------------------------------------------------------------
+
+-- UNE MATIERE GENEREE SE RECONSTRUIT, SINON ELLE N'EXISTE QUE DANS LA PLACE.
+-- `generate_material` depose ses variantes dans `MaterialService`, qui n'est ni
+-- dans Git ni dans Rojo : une matiere generee aurait donc exactement le
+-- probleme d'une map construite a la main, et une fausse manoeuvre l'effacerait
+-- sans trace. Ce qui sauve le coup est que chaque variante porte QUATRE assets
+-- PUBLIES -- couleur, relief, metal, rugosite -- donc la recette peut la
+-- reposer a l'identique. Les identifiants ci-dessous SONT la sauvegarde.
+--
+-- Elles ont ete choisies EN REGARDANT les vingt-quatre variantes posees cote a
+-- cote : trois des quatre pierres du Colisee lisaient comme du bois, et deux
+-- des quatre glaces comme des flaques turquoise. Un generateur rend quatre
+-- propositions, pas quatre reussites.
+--
+-- `MaterialService` est un reglage de PLACE, comme `Lighting` : la recette vide
+-- donc le dossier commun avant de poser les siennes, sinon les matieres des
+-- quatre maps s'y empilent.
+local function materials(list)
+	local folder = MaterialService:FindFirstChild("ArenaMaterials")
+	if folder then
+		folder:Destroy()
+	end
+	folder = Instance.new("Folder")
+	folder.Name = "ArenaMaterials"
+	folder.Parent = MaterialService
+
+	local byBase = {}
+	for _, m in list do
+		local v = Instance.new("MaterialVariant")
+		v.Name = m.name
+		v.BaseMaterial = m.base
+		v.ColorMap = "rbxassetid://" .. m.color
+		v.NormalMap = "rbxassetid://" .. m.normal
+		v.MetalnessMap = "rbxassetid://" .. m.metal
+		v.RoughnessMap = "rbxassetid://" .. m.rough
+		-- Dix studs par tuile : c'est ce que rend le generateur, et a l'echelle
+		-- d'une map de 160 studs ca donne un motif qu'on lit sans qu'il se
+		-- repete a l'oeil. Un chiffre a regler en REGARDANT, pas en calculant.
+		v.StudsPerTile = 10
+		v.Parent = folder
+		byBase[m.base] = m.name
+	end
+	return byBase
+end
+
+-- La matiere de base d'une part suffit a lui donner sa variante : la table est
+-- consultee a UN SEUL endroit, dans `part()` et `wedge()`. Inscrire la variante
+-- sur trois cents sites d'appel serait la meme faute qu'un chiffre recopie.
+local VARIANT_FOR = materials({
+	{
+		name = "ArenaTolecargo1",
+		base = Enum.Material.DiamondPlate,
+		color = 106997325473767,
+		normal = 95145669175586,
+		metal = 100157835727846,
+		rough = 91253623316719,
+	},
+	{
+		name = "ArenaRouilleCargo",
+		base = Enum.Material.CorrodedMetal,
+		color = 87863635296433,
+		normal = 81410057958618,
+		metal = 90879211939722,
+		rough = 117535133447299,
+	},
+})
+
 local function part(name, parent, size, cf, color, material)
 	local p = Instance.new("Part")
 	p.Name = name
@@ -97,6 +168,7 @@ local function part(name, parent, size, cf, color, material)
 	p.Anchored = true
 	p.Color = color or STEEL
 	p.Material = material or Enum.Material.Metal
+	p.MaterialVariant = VARIANT_FOR[p.Material] or ""
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = parent
@@ -131,6 +203,27 @@ end
 -- meme part se lit comme de la tole pliee au lieu d'un cube peint. C'est
 -- exactement la lecon des armes : la silhouette d'abord, les details ensuite,
 -- mais sans les details la silhouette ne raconte rien.
+-- LE BISEAU, QUI MANQUAIT ICI SEULEMENT. Les trois autres recettes en ont
+-- un ; le Cargo n'en avait aucun, donc chacune de ses aretes etait vive a
+-- quatre-vingt-dix degres. La pente d'un `WedgePart` descend le long de son
+-- axe Z : la face inclinee regarde +Y et +Z, l'arete haute est du cote -Z.
+-- Donc un biseau se pose en TOURNANT la piece, pas en changeant sa taille.
+local function wedge(name, parent, size, cf, color, material)
+	local w = Instance.new("WedgePart")
+	w.Name = name
+	w.Size = size
+	w.CFrame = cf
+	w.Anchored = true
+	w.CanCollide = false
+	w.Color = color
+	w.Material = material or Enum.Material.Metal
+	w.MaterialVariant = VARIANT_FOR[w.Material] or ""
+	w.TopSurface = Enum.SurfaceType.Smooth
+	w.BottomSurface = Enum.SurfaceType.Smooth
+	w.Parent = parent
+	return w
+end
+
 local function container(name, parent, pos, yaw, len, color, hasDoors)
 	local h, w = 10, 9
 	-- `CorrodedMetal` PORTE SA PROPRE ROUILLE et la peint par-dessus la
@@ -146,6 +239,24 @@ local function container(name, parent, pos, yaw, len, color, hasDoors)
 		color,
 		mat
 	)
+	-- LES DEUX ARETES HAUTES SONT BISEAUTEES. Un conteneur vu d'en bas est
+	-- une boite posee ; le meme avec son dessus casse se lit comme de la tole
+	-- pliee. C'est le biseau le plus rentable de la map parce qu'il y a une
+	-- vingtaine de conteneurs et qu'on les voit tous de dessous.
+	for _, edge in { -1, 1 } do
+		wedge(
+			string.format("%sChanfrein%d", name, edge),
+			parent,
+			Vector3.new(len, 1.1, 1.1),
+			CFrame.new(pos)
+				* CFrame.Angles(0, yaw, 0)
+				* CFrame.new(0, h / 2 + 0.55, edge * (w / 2 - 0.55))
+				* CFrame.Angles(0, if edge > 0 then 0 else math.pi, 0),
+			color,
+			mat
+		)
+	end
+
 	local ribs = math.max(3, math.floor(len / 5))
 	for i = 1, ribs do
 		local t = (i - 0.5) / ribs - 0.5
@@ -197,6 +308,33 @@ part(
 	DECK,
 	Enum.Material.DiamondPlate
 )
+
+-- LE CONGE AU PIED DES QUATRE PAROIS. Un mur qui rencontre un sol a angle
+-- droit se lit comme un decor de boite ; un conge se lit comme une coque
+-- soudee. Quatre parts pour les quatre cotes de la soute, et c'est le detail
+-- qu'on a sous les yeux en permanence puisqu'on marche le long des parois.
+for _, sx in { -1, 1 } do
+	wedge(
+		string.format("CongeCloison%d", sx),
+		decor,
+		Vector3.new(HALL_Z + 6, 2.6, 2.6),
+		CFrame.new(sx * (HALL_X / 2 - 1.3), 1.3, 0)
+			* CFrame.Angles(0, math.rad(if sx > 0 then -90 else 90), 0),
+		DECK_DARK,
+		Enum.Material.DiamondPlate
+	)
+end
+for _, sz in { -1, 1 } do
+	wedge(
+		string.format("CongeFlanc%d", sz),
+		decor,
+		Vector3.new(HALL_X + 6, 2.6, 2.6),
+		CFrame.new(0, 1.3, sz * (HALL_Z / 2 - 1.3))
+			* CFrame.Angles(0, if sz > 0 then 0 else math.pi, 0),
+		DECK_DARK,
+		Enum.Material.DiamondPlate
+	)
+end
 
 -- Les joints du pont : quatre lignes claires qui donnent une echelle au sol.
 -- Un sol uni de dix-huit mille studs carres ne dit rien de la distance.
@@ -326,6 +464,23 @@ for _, sz in { -1, 1 } do
 		STEEL_LIGHT
 	).CanCollide =
 		false
+	-- LES GOUSSETS : les triangles entre la poutre et le dessous du plancher.
+	-- C'est le cas d'ecole du biseau, celui qu'une boite ne peut pas faire, et
+	-- c'est ce qui fait qu'une coursive est PORTEE au lieu d'etre posee.
+	for i = -3, 3 do
+		for _, edge in { -1, 1 } do
+			wedge(
+				string.format("Gousset%d_%d_%d", sz, i, edge),
+				decor,
+				Vector3.new(1, 2.4, 3.4),
+				CFrame.new(i * 22, DECK_HEIGHT - 1.2, z + edge * 2.7)
+					* CFrame.Angles(0, if edge > 0 then 0 else math.pi, 0),
+				DECK_DARK,
+				Enum.Material.Metal
+			)
+		end
+	end
+
 	-- Le dessous : une poutre et des poteaux, sinon la coursive flotte.
 	part(
 		string.format("Poutre%d", sz),
@@ -828,7 +983,9 @@ do
 	if module then
 		ok, conf = pcall(require, module)
 	end
-	local found = if ok and type(conf) == "table" and type(conf.round) == "table"
+	local found = if ok
+			and type(conf) == "table"
+			and type(conf.round) == "table"
 		then tonumber(conf.round.zoneFinalRadiusStuds)
 		else nil
 	if found then

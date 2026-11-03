@@ -59,6 +59,7 @@
 
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local MaterialService = game:GetService("MaterialService")
 
 -- ===== Les cotes de la fosse ============================================
 -- Tout le reste se deduit de ces six chiffres. Un gradin deplace, et les
@@ -123,6 +124,76 @@ local decor = Instance.new("Folder")
 decor.Name = "Decor"
 decor.Parent = map
 
+--------------------------------------------------------------------------------
+-- LES MATIERES GENEREES
+--------------------------------------------------------------------------------
+
+-- UNE MATIERE GENEREE SE RECONSTRUIT, SINON ELLE N'EXISTE QUE DANS LA PLACE.
+-- `generate_material` depose ses variantes dans `MaterialService`, qui n'est ni
+-- dans Git ni dans Rojo : une matiere generee aurait donc exactement le
+-- probleme d'une map construite a la main, et une fausse manoeuvre l'effacerait
+-- sans trace. Ce qui sauve le coup est que chaque variante porte QUATRE assets
+-- PUBLIES -- couleur, relief, metal, rugosite -- donc la recette peut la
+-- reposer a l'identique. Les identifiants ci-dessous SONT la sauvegarde.
+--
+-- Elles ont ete choisies EN REGARDANT les vingt-quatre variantes posees cote a
+-- cote : trois des quatre pierres du Colisee lisaient comme du bois, et deux
+-- des quatre glaces comme des flaques turquoise. Un generateur rend quatre
+-- propositions, pas quatre reussites.
+--
+-- `MaterialService` est un reglage de PLACE, comme `Lighting` : la recette vide
+-- donc le dossier commun avant de poser les siennes, sinon les matieres des
+-- quatre maps s'y empilent.
+local function materials(list)
+	local folder = MaterialService:FindFirstChild("ArenaMaterials")
+	if folder then
+		folder:Destroy()
+	end
+	folder = Instance.new("Folder")
+	folder.Name = "ArenaMaterials"
+	folder.Parent = MaterialService
+
+	local byBase = {}
+	for _, m in list do
+		local v = Instance.new("MaterialVariant")
+		v.Name = m.name
+		v.BaseMaterial = m.base
+		v.ColorMap = "rbxassetid://" .. m.color
+		v.NormalMap = "rbxassetid://" .. m.normal
+		v.MetalnessMap = "rbxassetid://" .. m.metal
+		v.RoughnessMap = "rbxassetid://" .. m.rough
+		-- Dix studs par tuile : c'est ce que rend le generateur, et a l'echelle
+		-- d'une map de 160 studs ca donne un motif qu'on lit sans qu'il se
+		-- repete a l'oeil. Un chiffre a regler en REGARDANT, pas en calculant.
+		v.StudsPerTile = 10
+		v.Parent = folder
+		byBase[m.base] = m.name
+	end
+	return byBase
+end
+
+-- La matiere de base d'une part suffit a lui donner sa variante : la table est
+-- consultee a UN SEUL endroit, dans `part()` et `wedge()`. Inscrire la variante
+-- sur trois cents sites d'appel serait la meme faute qu'un chiffre recopie.
+local VARIANT_FOR = materials({
+	{
+		name = "ArenaRocheCarriere",
+		base = Enum.Material.Rock,
+		color = 95746676163579,
+		normal = 103787119951844,
+		metal = 130708538553035,
+		rough = 106439427926886,
+	},
+	{
+		name = "ArenaGlaceCarriere",
+		base = Enum.Material.Ice,
+		color = 101170956746589,
+		normal = 113440843059127,
+		metal = 133635269849910,
+		rough = 134737347878715,
+	},
+})
+
 local function part(name, parent, size, cf, color, material)
 	local p = Instance.new("Part")
 	p.Name = name
@@ -131,6 +202,7 @@ local function part(name, parent, size, cf, color, material)
 	p.Anchored = true
 	p.Color = color or ROCK
 	p.Material = material or Enum.Material.Slate
+	p.MaterialVariant = VARIANT_FOR[p.Material] or ""
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = parent
@@ -145,6 +217,7 @@ local function wedge(name, parent, size, cf, color, material)
 	p.Anchored = true
 	p.Color = color or ROCK
 	p.Material = material or Enum.Material.Slate
+	p.MaterialVariant = VARIANT_FOR[p.Material] or ""
 	p.Parent = parent
 	return p
 end
@@ -557,8 +630,7 @@ for _, dir in { 1, -1 } do
 		string.format("Pan%d", dir),
 		decor,
 		Vector3.new(26, 4, 12),
-		CFrame.new(0, HOUSE_TOP + 2, dir * 6)
-			* CFrame.Angles(0, if dir > 0 then 0 else math.pi, 0),
+		CFrame.new(0, HOUSE_TOP + 2, dir * 6) * CFrame.Angles(0, if dir > 0 then 0 else math.pi, 0),
 		STEEL_DARK,
 		Enum.Material.Metal
 	).CanCollide =
@@ -815,8 +887,7 @@ for _, side in { -1, 1 } do
 			string.format("RoueWagonnet%d_%d", side, wz),
 			decor,
 			Vector3.new(0.8, 2.4, 2.4),
-			CFrame.new(side * 30 + 3.2, 1.2, side * 48 + wz * 3)
-				* CFrame.Angles(0, 0, math.rad(90)),
+			CFrame.new(side * 30 + 3.2, 1.2, side * 48 + wz * 3) * CFrame.Angles(0, 0, math.rad(90)),
 			RUST,
 			Enum.Material.CorrodedMetal
 		)
@@ -1028,13 +1099,7 @@ for _, team in { "A", "B" } do
 			Enum.Material.Metal
 		)
 		mast.CanCollide = false
-		lamp(
-			decor,
-			Vector3.new(x, RIM_Y + 9.4, sz * (SPAWN_SPREAD * 2 + 5)),
-			tint,
-			26,
-			2.2
-		)
+		lamp(decor, Vector3.new(x, RIM_Y + 9.4, sz * (SPAWN_SPREAD * 2 + 5)), tint, 26, 2.2)
 	end
 
 	local folder = Instance.new("Folder")
@@ -1118,7 +1183,16 @@ for _, old in Workspace.Terrain:GetChildren() do
 	end
 end
 
-for _, class in { "Atmosphere", "Sky", "BloomEffect", "ColorCorrectionEffect", "SunRaysEffect", "DepthOfFieldEffect" } do
+for _, class in
+	{
+		"Atmosphere",
+		"Sky",
+		"BloomEffect",
+		"ColorCorrectionEffect",
+		"SunRaysEffect",
+		"DepthOfFieldEffect",
+	}
+do
 	for _, old in Lighting:GetChildren() do
 		if old:IsA(class) then
 			old:Destroy()
@@ -1254,7 +1328,9 @@ do
 	if module then
 		ok, conf = pcall(require, module)
 	end
-	local found = if ok and type(conf) == "table" and type(conf.round) == "table"
+	local found = if ok
+			and type(conf) == "table"
+			and type(conf.round) == "table"
 		then tonumber(conf.round.zoneFinalRadiusStuds)
 		else nil
 	if found then
@@ -1396,7 +1472,7 @@ end
 -- 4. ON DESCEND VITE, ON REMONTE LENTEMENT : la promesse de la map, mesuree.
 -- Du bas de la rampe du lac jusqu'au haut de celle de la margelle, par le
 -- gradin — c'est le chemin qu'un joueur doit vraiment parcourir.
-local climb = math.abs(RAMP_Z - (-RAMP_Z)) + RAMP_RUN * 2
+local climb = math.abs(RAMP_Z - -RAMP_Z) + RAMP_RUN * 2
 print(
 	string.format(
 		"  Remonter du lac a la margelle : %.0f studs de chemin a decouvert, "
