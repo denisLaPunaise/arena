@@ -173,6 +173,29 @@ Deux pannes trouvées en regardant l'écran le 3 novembre, et aucune par les
    *autour* d'elle, deux maps dans `Workspace`, et `MapService` prend la
    première : l'une des deux ne sert jamais. Remplacé par un test du contrat
    (`SpawnsA` et `SpawnsB`), qui ne peut pas se périmer.
+3. **Trois teintes ne font pas trois pierres.** Les trois familles de pierre du
+   Colisée étaient toutes en `Sandstone` ; comme une variante s'attache à une
+   matière de **base**, elles portaient forcément la même texture. Chacune a
+   maintenant la sienne.
+4. **Un camo n'est pas une texture, c'est une texture et une teinte.** Le
+   Sanctuaire lisait comme un treillis militaire. Générer d'autres pierres
+   sombres a donné quatre fois le même résultat : ce qui tue le camo est la
+   **structure** — des joints, des assises — pas une autre tache.
+
+### Si tu reprends ce chantier
+
+Ce qui reste de visuel, dans l'ordre où ça rapporte :
+
+- **`generate_mesh` n'a jamais servi.** Zéro `MeshPart` dans le projet. C'est
+  le seul outil du pont qui n'a pas été essayé sur les maps.
+- **La bannière de camp du Sanctuaire** occupe la moitié haute de l'écran
+  depuis le point de départ (`FrontonA`, 22 studs de large à 11,4 studs de
+  l'oeil). Mesuré, pas corrigé.
+- **Trois défauts de jeu mesurés au rayon** et laissés tels quels, parce qu'ils
+  déplacent l'équilibre d'une map et que ça se tranche avec Josh : lignes de tir
+  dégagées entre les départs au Sanctuaire (147 studs) et au Colisée (121), et
+  couverture du cercle final du Colisée à 4 directions sur 16.
+- **56,6 % de la surface du Cargo** ne porte aucune matière générée.
 
 ---
 
