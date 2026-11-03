@@ -1803,3 +1803,43 @@ pistes chargées ». **Les deux ne peuvent pas être vrais en même temps.** C'e
 exactement la famille de l'avertissement qui ment : soit un son ne se charge
 pas et le garde-fou ne le voit pas, soit l'identifiant traîne ailleurs. À
 regarder avant de conclure que le son est au complet.
+
+## 35. Trois pierres au Colisée, et la fin du camo au Sanctuaire
+
+Deux défauts signalés par Josh en regardant les maps, corrigés tous les deux en
+jugeant les candidats **à l'écran, côte à côte, à la teinte réelle de la map**.
+Les 1578 vérifications n'en disaient rien et n'en diraient rien : aucune ne sait
+à quoi ressemble une pierre.
+
+**Le Colisée déclarait trois familles de pierre qui n'en faisaient qu'une.** Les
+trois — claire, chaude, sombre — étaient toutes posées en `Sandstone`, et comme
+une variante de matière s'attache à une matière de base, elles portaient
+forcément la même texture. Trois teintes d'un même grain : l'oeil lit une seule
+pierre inégalement sale, ce qui est exactement ce que Josh a dit. Chaque famille
+a maintenant sa propre matière de base, donc sa propre texture :
+
+| Famille | Ce qu'elle couvre | Ce qu'elle lit |
+| --- | --- | --- |
+| claire (401 parts) | les piles, l'attique, les margelles | appareil régulier, pierre de taille |
+| chaude (296 parts) | le podium, les socles, les degrés | blocage irrégulier |
+| sombre (730 parts) | la masse, les claveaux, les parois | moellon craquelé, grandes dalles |
+
+**Le camo du Sanctuaire n'était pas qu'une affaire de texture.** Générer
+d'autres pierres sombres a donné quatre fois le même treillis : des taches
+mélangées sur du vert-gris donnent un camo, quelle que soit la pierre. Ce qui
+l'a tué est une pierre qui a de la **structure** — des joints, des assises —
+parce que l'oeil lit alors un mur taillé et plus un motif. C'est la même texture
+qu'au Colisée, assumée : ce qui sépare les deux maps est la teinte, l'éclairage,
+et la taille des blocs (sept studs ici contre cinq là-bas, donc des blocs de
+temple plutôt que des assises d'amphithéâtre).
+
+**Ce qu'il faut regarder en jouant.** Les deux corrections sont visuelles et
+vérifiées à l'écran, mais seul Josh peut dire si c'est beau — et surtout si les
+trois pierres du Colisée se distinguent encore **en mouvement**, à la vitesse
+d'un duel, et pas seulement sur une capture immobile.
+
+**Un défaut trouvé en passant, et pas corrigé.** Depuis un point de départ du
+Sanctuaire, la bannière du camp (`FrontonA`, 22 studs de large, à 11,4 studs de
+l'oeil) occupe la moitié haute de l'écran : on apparaît derrière une visière
+bleue. C'était déjà noté à la section 34 comme une gêne ; vu depuis l'oeil du
+joueur, c'est plus que ça. Il faut la reculer, la rétrécir ou la monter.

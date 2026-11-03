@@ -1212,6 +1212,57 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   ne lit que `config.formats`, par exemple. C'est aussi un rappel que les
   modules purs ne doivent lire que ce dont ils ont besoin.
 
+- **TROIS TEINTES NE FONT PAS TROIS PIERRES.** Le Colisée déclarait trois
+  familles de pierre — claire, chaude, sombre — et Josh a dit qu'elles se
+  ressemblaient trop. Elles étaient toutes posées en `Sandstone`. Or une
+  `MaterialVariant` s'attache à une **matière de base**, donc les trois
+  portaient forcément la même texture et ne différaient que par la couleur.
+  Trois teintes d'un même grain, ça se lit comme une seule pierre sale.
+
+  La parade est d'avoir autant de matières de base que de pierres voulues, et
+  la table teinte → matière vit à **un seul endroit**, comme `VARIANT_FOR`.
+  Mais elle s'indexe par les **composantes** : relire `p.Color` rend un
+  `Color3` neuf, donc une table indexée par la constante ne retrouverait
+  jamais rien — et sans la moindre erreur, la part sortirait avec la matière
+  par défaut. Même famille que les deux `AbsolutePosition` lus dans deux
+  repères.
+
+- **UN CAMO N'EST PAS UNE TEXTURE, C'EST UNE TEXTURE ET UNE TEINTE.** Le
+  Sanctuaire lisait comme un treillis militaire sur toute sa surface. La
+  réponse évidente — générer d'autres pierres sombres — a donné quatre fois le
+  même résultat : **des taches mélangées sur du vert-gris donnent un camo,
+  quelle que soit la pierre.** Ce qui tue le camo est la STRUCTURE. Un appareil
+  régulier donne à l'oeil des joints et des assises, donc un mur taillé, et
+  plus un motif. Vérifié à l'écran, cinq dalles côte à côte à la teinte réelle
+  de la map. En jugeant une matière, la juger **à la couleur où elle ira** :
+  sur du blanc, on juge autre chose.
+
+- **UNE MATIÈRE SE CHOISIT PAR RANGÉE, PAS PAR GRILLE.** Une grille 3×3 de
+  candidats ne tient pas dans le champ, et ses rangées du bas tombent dans
+  l'ombre de ce qui est devant : on rejette alors une variante pour l'ombre
+  dans laquelle on l'a posée. Cinq dalles sur une ligne, à lumière égale, le
+  **témoin en premier** — ce qu'on remplace doit être sous les yeux, sinon on
+  ne compare rien.
+
+- **UNE BOUCLE `RenderStepped` PRISE DEPUIS `execute_luau` SURVIT A L'APPEL ET
+  SE BAT CONTRE LA SUIVANTE.** La caméra de prise de vue est restée figée une
+  demi-heure : une vieille boucle d'un appel précédent la réécrivait à chaque
+  image depuis un **doublon** de son porteur. Deux `ArenaPhotoCam` dans
+  `Workspace`, `FindFirstChild` en désignait un au hasard, le serveur écrivait
+  dans l'un et le client lisait l'autre — le piège des doublons de Rojo, un
+  étage plus bas, et toujours sans la moindre erreur.
+
+  Deux règles. La pose de caméra vit dans un **attribut** de `Workspace`, qui
+  ne peut pas exister en double. Et la boucle qui la tient est un vrai
+  `LocalScript` injecté dans le `PlayerGui`, pas une connexion prise depuis le
+  pont : le contexte d'`execute_luau` meurt avec l'appel, mais **ses connexions
+  non**, et elles ne se coupent que si on détruit ce qu'elles lisent.
+
+  Le signal qui aurait dû alerter plus tôt : **deux captures rigoureusement
+  identiques alors que la géométrie, elle, changeait.** Si l'image bouge quand
+  on pose une part mais jamais quand on déplace la caméra, ce n'est pas le
+  rendu qui est gelé — c'est que quelqu'un d'autre tient la caméra.
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier

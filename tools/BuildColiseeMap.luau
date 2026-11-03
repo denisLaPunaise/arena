@@ -171,7 +171,59 @@ local VARIANT_FOR = materials({
 		rough = 104647482399141,
 		studs = 5,
 	},
+	{
+		name = "ArenaGrainClair",
+		base = Enum.Material.Marble,
+		color = 100882710664705,
+		normal = 126187340383914,
+		metal = 136621323143677,
+		rough = 125693841316693,
+		studs = 5,
+	},
+	{
+		name = "ArenaGrainChaud1",
+		base = Enum.Material.Limestone,
+		color = 96187449803134,
+		normal = 119076994413639,
+		metal = 130495501788546,
+		rough = 116341605459525,
+		studs = 5,
+	},
 })
+
+-- TROIS TEINTES NE FONT PAS TROIS PIERRES. Les trois familles de pierre du
+-- Colisee etaient toutes posees en `Sandstone` : comme une variante s'attache
+-- a une MATIERE DE BASE, elles portaient forcement la meme texture et ne
+-- differaient que par la couleur. Josh l'a vu tout de suite -- « les
+-- differents types de pierre se ressemblent trop » -- et c'etait exact.
+--
+-- La correction est de donner a chaque teinte sa propre matiere de base, donc
+-- sa propre texture, choisie en regardant les quatre variantes de chaque
+-- generation cote a cote :
+--   STONE      appareil regulier, clair   -- les piles, le haut, les margelles
+--   STONE_WARM blocage irregulier, chaud  -- le podium, les socles, les degres
+--   STONE_DARK moellon craquele, grand    -- la masse, les claveaux, les parois
+-- Un Romain aurait dit opus quadratum, opus incertum et pierre brute ; ce
+-- n'est pas un hasard, c'est ce que les trois textures lisent vraiment.
+--
+-- La table est consultee a UN SEUL endroit, comme `VARIANT_FOR` : une matiere
+-- recopiee sur trois cents sites d'appel serait la meme faute qu'un chiffre
+-- en dur.
+-- La table est indexee par les COMPOSANTES et pas par l'objet `Color3` :
+-- relire `p.Color` rend un userdata NEUF, donc une table indexee par la
+-- constante ne retrouverait jamais rien -- et sans la moindre erreur, la
+-- part sortirait simplement avec la matiere par defaut. Meme famille que les
+-- deux `AbsolutePosition` lus dans deux reperes : la mesure serait exacte et
+-- porterait sur autre chose.
+local function tint(c: Color3): string
+	return string.format("%.2f %.2f %.2f", c.R, c.G, c.B)
+end
+
+local BASE_FOR = {
+	[tint(STONE)] = Enum.Material.Marble,
+	[tint(STONE_WARM)] = Enum.Material.Limestone,
+	[tint(STONE_DARK)] = Enum.Material.Sandstone,
+}
 
 local function part(name, parent, size, cf, color, material)
 	local p = Instance.new("Part")
@@ -180,7 +232,7 @@ local function part(name, parent, size, cf, color, material)
 	p.CFrame = cf
 	p.Anchored = true
 	p.Color = color or STONE
-	p.Material = material or Enum.Material.Sandstone
+	p.Material = material or BASE_FOR[tint(p.Color)] or Enum.Material.Sandstone
 	p.MaterialVariant = VARIANT_FOR[p.Material] or ""
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
@@ -221,7 +273,7 @@ local function wedge(name, parent, size, cf, color, material)
 	p.CFrame = cf
 	p.Anchored = true
 	p.Color = color or STONE
-	p.Material = material or Enum.Material.Sandstone
+	p.Material = material or BASE_FOR[tint(p.Color)] or Enum.Material.Sandstone
 	p.MaterialVariant = VARIANT_FOR[p.Material] or ""
 	p.Parent = parent
 	return p

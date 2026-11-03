@@ -162,14 +162,29 @@ end
 -- consultee a UN SEUL endroit, dans `part()` et `wedge()`. Inscrire la variante
 -- sur trois cents sites d'appel serait la meme faute qu'un chiffre recopie.
 local VARIANT_FOR = materials({
+	-- LE CAMO MILITAIRE DU SANCTUAIRE, ET CE N'ETAIT PAS LA TEXTURE SEULE.
+	-- L'ancienne pierre etait un melange de taches ; posee sur le vert-gris du
+	-- temple, elle lisait comme un treillis sur toute la map, et Josh l'a vu
+	-- tout de suite. Les quatre pierres sombres generees en remplacement
+	-- faisaient toutes la meme chose : des taches sur du vert donnent un camo,
+	-- quelle que soit la pierre.
+	--
+	-- Ce qui tue le camo est la STRUCTURE. Un appareil regulier donne a l'oeil
+	-- des joints et des assises, donc un mur taille, et plus un motif. Verifie
+	-- a l'ecran, les cinq dalles cote a cote a la teinte reelle de la map.
+	--
+	-- C'est la meme texture qu'au Colisee, et c'est assume : ce qui separe les
+	-- deux maps est la teinte, l'eclairage et la TAILLE DES BLOCS -- sept
+	-- studs par tuile ici contre cinq la-bas, donc des blocs de temple plutot
+	-- que des assises d'amphitheatre.
 	{
-		name = "ArenaPierreSanctuaire",
-		base = Enum.Material.Slate,
-		color = 79366465018151,
-		normal = 126633952247864,
-		metal = 104171204484792,
-		rough = 110951199573658,
-		studs = 5,
+		name = "ArenaGrainClair",
+		base = Enum.Material.Marble,
+		color = 100882710664705,
+		normal = 126187340383914,
+		metal = 136621323143677,
+		rough = 125693841316693,
+		studs = 7,
 	},
 })
 
@@ -180,7 +195,7 @@ local function part(name, parent, size, cf, color, material)
 	p.CFrame = cf
 	p.Anchored = true
 	p.Color = color or MOSS
-	p.Material = material or Enum.Material.Slate
+	p.Material = material or Enum.Material.Marble
 	p.MaterialVariant = VARIANT_FOR[p.Material] or ""
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
@@ -201,7 +216,7 @@ local function wedge(name, parent, size, cf, color, material)
 	p.Anchored = true
 	p.CanCollide = false
 	p.Color = color or MOSS
-	p.Material = material or Enum.Material.Slate
+	p.Material = material or Enum.Material.Marble
 	p.MaterialVariant = VARIANT_FOR[p.Material] or ""
 	p.Parent = parent
 	return p
@@ -237,7 +252,7 @@ part(
 	Vector3.new(PLAZA, 3, PLAZA),
 	CFrame.new(0, -1.5, 0),
 	MOSS,
-	Enum.Material.Slate
+	Enum.Material.Marble
 )
 
 -- Les joints de la dalle : sans eux, cent cinquante studs de pierre unie ne
@@ -315,7 +330,7 @@ for _, s in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
 		Vector3.new(if sx ~= 0 then thin else wide, 1.6, if sz ~= 0 then thin else wide),
 		CFrame.new(sx * (MOAT_INNER + thin / 2), -0.8, sz * (MOAT_INNER + thin / 2)),
 		WATER_BED,
-		Enum.Material.Slate
+		Enum.Material.Marble
 	)
 	local w = part(
 		string.format("Eau%d_%d", sx, sz),
@@ -486,7 +501,7 @@ for _, c in { { 1, -1 }, { -1, 1 } } do
 		z + c[2] * 10,
 		8,
 		LIME,
-		Enum.Material.Slate
+		Enum.Material.Marble
 	)
 end
 
