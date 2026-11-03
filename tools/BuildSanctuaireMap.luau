@@ -409,6 +409,55 @@ for i, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
 	end
 end
 
+-- ===== Les quatre lanternes de pierre ===================================
+-- DEUX LIGNES DE TIR DE 147 STUDS passaient en diagonale d'un camp a l'autre,
+-- et la recette le disait a chaque construction. Elles frolaient l'autel par
+-- ses coins : le rayon passait exactement au-dessus des angles du deuxieme
+-- gradin, a 1,5 stud du sol. Couper la chaussee aurait ferme le passage
+-- oblige qui est tout le sujet de la map ; une lanterne sur chaque angle du
+-- gradin coupe les deux lignes sans toucher a un seul chemin, et un sanctuaire
+-- a des lanternes. Quatre et pas deux, pour que la map reste la meme vue de
+-- chaque camp. Corrige le 4 novembre 2026.
+--
+-- Cinq studs au-dessus du gradin : l'oeil d'un joueur au depart passe a 3,6
+-- studs au-dessus de cet angle, donc la lanterne doit monter plus haut que
+-- ca. La lumiere est un petit feu pale, pas de l'or : l'or est reserve au
+-- sommet, et un accent depense partout ne designe plus rien.
+do
+	local tierTop = 2 * (ALTAR_TOP / 3) + 0.2
+	local corner = (ALTAR_BASE - 6) / 2 - 1.5
+	for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+		local x, z = c[1] * corner, c[2] * corner
+		local id = string.format("%d_%d", c[1], c[2])
+		local turn = CFrame.Angles(0, math.rad(45), 0)
+		part("LanterneSocle" .. id, cover, Vector3.new(2.4, 0.7, 2.4), CFrame.new(x, tierTop + 0.35, z) * turn, LIME_DARK)
+		pillar("LanterneFut" .. id, cover, 0.55, 2.2, x, z, tierTop + 0.7, LIME)
+		part("LanterneTablette" .. id, cover, Vector3.new(2.2, 0.4, 2.2), CFrame.new(x, tierTop + 3.1, z) * turn, LIME_DARK)
+		-- La loge du feu : quatre montants plutot qu'un cube plein, pour qu'on
+		-- voie la lumiere au travers.
+		for _, m in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+			part(
+				"LanterneMontant" .. id .. m[1] .. m[2],
+				cover,
+				Vector3.new(0.35, 1.3, 0.35),
+				CFrame.new(x, tierTop + 3.95, z) * turn * CFrame.new(m[1] * 0.75, 0, m[2] * 0.75),
+				LIME
+			)
+		end
+		local flame = part("LanterneFeu" .. id, cover, Vector3.new(0.9, 0.9, 0.9), CFrame.new(x, tierTop + 3.95, z) * turn, Color3.fromRGB(255, 214, 150), Enum.Material.Neon)
+		flame.Transparency = 0.15
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 200, 140)
+		light.Range = 10
+		light.Brightness = 0.8
+		light.Parent = flame
+		-- Le toit : une dalle large et un chapeau etroit, la silhouette qui fait
+		-- lire « lanterne » et pas « poteau ».
+		part("LanterneToit" .. id, cover, Vector3.new(2.9, 0.45, 2.9), CFrame.new(x, tierTop + 4.85, z) * turn, LIME_DARK)
+		part("LanterneChapeau" .. id, cover, Vector3.new(1.3, 0.5, 1.3), CFrame.new(x, tierTop + 5.3, z) * turn, LIME_DARK)
+	end
+end
+
 -- Les quatre colonnes du sommet et leur linteau d'or : c'est la seule chose
 -- doree de la map, donc c'est elle qu'on vise des qu'on cherche le centre.
 for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do

@@ -399,6 +399,45 @@ for _, side in { -1, 1 } do
 	)
 end
 
+-- ===== Les deux portiques en ruine ======================================
+-- LA STELE SEULE NE SUFFISAIT PAS, et la recette le disait a chaque
+-- construction : trois lignes de tir degagees sur vingt-cinq, jusqu'a 121
+-- studs. Une stele fait sept studs de large, et les departs a z = +-7 la
+-- voyaient passer a cote. Des blocs bas n'y auraient rien fait : l'oeil sur
+-- la terrasse est a 12,5 studs, donc seul un obstacle plus haut coupe.
+--
+-- Deux troncons de colonne de part et d'autre de chaque stele, a quatorze
+-- studs, casses net : un portique de trois colonnes dont deux sont tombees,
+-- ce qui se lit tout de suite comme une ruine et pas comme un mur. Les
+-- interstices font moins d'un stud, donc ni un joueur ni un rayon n'y passent,
+-- et l'ensemble se contourne toujours des deux cotes. Corrige le 4 novembre
+-- 2026.
+for _, side in { -1, 1 } do
+	local x = side * 36
+	for _, dz in { -1, 1 } do
+		local z = dz * 7
+		pillar(string.format("Troncon%d_%d", side, dz), cover, 3.0, 14, x, z, 0, STONE)
+		part(
+			string.format("TronconSocle%d_%d", side, dz),
+			decor,
+			Vector3.new(8, 1.4, 8),
+			CFrame.new(x, 0.7, z),
+			STONE_DARK
+		)
+		-- La cassure : un bloc incline au sommet. Un cylindre coupe a plat se
+		-- lit comme un poteau neuf, pas comme une colonne tombee.
+		part(
+			string.format("TronconCassure%d_%d", side, dz),
+			decor,
+			Vector3.new(5.6, 1.6, 5.6),
+			CFrame.new(x, 14.2, z) * CFrame.Angles(dz * 0.22, 0.5, side * 0.15),
+			STONE
+		)
+	end
+	-- Pas d'architrave tombee : posee cote centre, elle tombait sur la margelle
+	-- de la fosse et debordait dedans. Vu a l'ecran, retiree.
+end
+
 -- ===== Les blocs epars ==================================================
 -- LE RYTHME DE LA COUVERTURE. Entre l'anneau de colonnes et la facade il y
 -- avait soixante studs de sable nu : on y traverse a decouvert, et une
@@ -440,6 +479,28 @@ for i = 1, 4 do
 	-- ruine, et il fait une couverture a hauteur de poitrine.
 	drum.CFrame = CFrame.new(x, -PIT_DEPTH + 2.6, z) * CFrame.Angles(0, a + math.pi / 2, 0)
 	drum.Size = Vector3.new(5.4, 5.2, 5.2)
+end
+
+-- ===== Les chapiteaux tombes au fond de la fosse =========================
+-- LE CERCLE FINAL N'AVAIT QUE QUATRE DIRECTIONS COUVERTES SUR SEIZE, le
+-- plancher exact de l'avertissement : les quatre tambours, et rien d'autre.
+-- On s'y faisait tirer de presque partout, et la fin de manche revenait a
+-- l'echange a decouvert que les tambours devaient casser. Quatre chapiteaux
+-- tombes, plus pres du centre et entre les tambours, portent la mesure a
+-- huit sans aveugler la fosse. A hauteur d'homme comme les tambours, et pas
+-- de poitrine : le jeu n'a pas d'accroupi, donc un couvert bas cache le corps
+-- et laisse la tete -- la sonde, qui tire a hauteur d'yeux, passait par-dessus
+-- la premiere version sans la voir.
+for i = 1, 4 do
+	local a = (i - 1) / 4 * math.pi * 2
+	local x, z = math.sin(a) * 11, math.cos(a) * 11
+	part(
+		string.format("ChapiteauTombe%d", i),
+		cover,
+		Vector3.new(4, 5.6, 4),
+		CFrame.new(x, -PIT_DEPTH + 2.8, z) * CFrame.Angles(0.08, a + 0.6, -0.06),
+		STONE
+	)
 end
 
 -- ===== Les deux balcons lateraux =========================================
