@@ -993,12 +993,25 @@ Config.skillTree = {
 	},
 
 	-- Les points en reserve, une fois l'arbre termine, vont aux ameliorations
-	-- communes a toutes les classes.
+	-- communes a toutes les classes. Un point chacune, cumulables.
 	-- A REGLER : les gains exacts de ces ameliorations.
+	--
+	-- Declare depuis la fiche et JAMAIS APPLIQUE jusqu'au 4 novembre 2026 : le
+	-- septieme point d'une partie longue (et le point de revanche) tombait dans
+	-- le vide une fois la branche finie. `stat` nomme la statistique poussee,
+	-- et un test verifie qu'elle existe chez chaque classe — meme garde-fou que
+	-- les branches creuses. Les gains passent par `Modifiers.applyDeltas`, donc
+	-- par les memes planchers que tout le reste.
 	sparePointUpgrades = {
-		{ id = "health", label = "PV", amount = 10 },
-		{ id = "speed", label = "Vitesse", amount = 1 },
-		{ id = "cooldown", label = "Recharge", amount = -0.5 },
+		{ id = "health", label = "PV", stat = "maxHealth", amount = 10, cost = 1 },
+		{ id = "speed", label = "Vitesse", stat = "walkSpeed", amount = 1, cost = 1 },
+		{
+			id = "cooldown",
+			label = "s de recharge",
+			stat = "abilityCooldownSeconds",
+			amount = -0.5,
+			cost = 1,
+		},
 	},
 }
 

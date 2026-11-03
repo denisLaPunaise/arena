@@ -190,6 +190,9 @@ local cardArea: Frame
 local cardLayout: UIListLayout
 local footer: Frame
 local advanceButton: TextButton
+-- Les ameliorations communes, a la place du bouton de montee une fois la
+-- branche finie. Meme rectangle : le pied du panneau ne change pas de taille.
+local spareRow: Frame
 local readyButton: TextButton
 local hint: TextLabel
 
@@ -311,6 +314,18 @@ local function build(parent: Instance)
 
 	advanceButton = button(footer, "", POINTS)
 	advanceButton.Size = UDim2.new(0.62, -5, 1, 0)
+
+	spareRow = Instance.new("Frame")
+	spareRow.Name = "Spare"
+	spareRow.BackgroundTransparency = 1
+	spareRow.Size = advanceButton.Size
+	spareRow.Visible = false
+	spareRow.Parent = footer
+	local spareLayout = Instance.new("UIListLayout")
+	spareLayout.FillDirection = Enum.FillDirection.Horizontal
+	spareLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	spareLayout.Padding = UDim.new(0, 6)
+	spareLayout.Parent = spareRow
 
 	readyButton = button(footer, "Prêt", READY)
 	readyButton.AnchorPoint = Vector2.new(1, 0)
@@ -610,6 +625,40 @@ local function render()
 
 	-- Pas de bouton de montee quand il n'y a rien a monter : branche pas encore
 	-- choisie, ou branche terminee.
+	-- Branche finie : les points qui restent vont aux ameliorations communes.
+	-- Les boutons se reconstruisent a chaque rendu, comme les cartes : leur
+	-- etat vient entierement du serveur.
+	for _, child in spareRow:GetChildren() do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+	local spare = current.spare or {}
+	spareRow.Visible = current.complete == true and #spare > 0
+	if spareRow.Visible then
+		-- La largeur se DEDUIT du nombre de boutons, jamais en dur.
+		local gap = 6
+		for order, upgrade in spare do
+			local label = string.format("%s  ·  %d pt", upgrade.text, upgrade.cost)
+			if upgrade.bought > 0 then
+				label ..= string.format("  ×%d", upgrade.bought)
+			end
+			local spareButton = button(spareRow, label, if upgrade.canBuy then POINTS else CARD)
+			spareButton.LayoutOrder = order
+			spareButton.Size = UDim2.new(1 / #spare, -gap * (#spare - 1) / #spare, 1, 0)
+			spareButton.TextColor3 = if upgrade.canBuy then INK else TEXT_DIM
+			spareButton.Active = upgrade.canBuy
+			spareButton.AutoButtonColor = upgrade.canBuy
+			spareButton.TextWrapped = true
+			local id = upgrade.id
+			spareButton.MouseButton1Click:Connect(function()
+				if upgrade.canBuy then
+					treeRemote:FireServer({ action = "spare", id = id })
+				end
+			end)
+		end
+	end
+
 	if current.branchId == nil or current.complete then
 		advanceButton.Visible = false
 	else

@@ -2212,3 +2212,24 @@ sauve — entre les deux, on n'aurait eu que des gribouillis moyens.
 **Ce que ça dit en général.** Toutes les matières générées ne valent pas celle
 d'origine. Le sol du Cargo et la glace de la Carrière sont de vrais gains ; ce
 sable était une perte. Le réflexe « on génère tout » est le mauvais.
+
+## Nuit du 4 novembre 2026 — décisions prises pendant le travail autonome
+
+Josh a confié la nuit à l'assistant avec pouvoir de décision. Chaque décision
+est notée ici, avec sa raison, pour pouvoir être défaite le lendemain.
+
+- **Les points en réserve sont branchés.** La fiche dit que les points restants,
+  une fois la branche finie, vont aux améliorations communes ; `Config` les
+  déclarait (`+10 PV`, `+1 vitesse`, `-0,5 s de recharge`) et rien ne les
+  appliquait. Une partie longue donne sept points pour un arbre à six, plus le
+  point de revanche : ces points tombaient dans le vide. Décision : **un point
+  par amélioration, cumulables, achetables seulement branche finie**, aux gains
+  déjà inscrits (toujours « À RÉGLER »). Les six classes sans pouvoir actif ne
+  se voient pas proposer la recharge, qui ne leur ferait rien.
+- **L'accélération des nouveaux joueurs est branchée telle que `Config` la
+  décrit** : pendant les vingt premières parties, au moins une caisse toutes les
+  deux parties (soit 500 pièces minimum par partie), même en perdant. Une
+  partie qui rapporte déjà plus ne perd rien.
+- **Le garde-fou contre l'inondation est un seau de 12 jetons, 8 par seconde**,
+  sur les sept remotes d'interface. Un humain qui martèle plafonne vers six
+  clics par seconde.

@@ -189,6 +189,14 @@ LobbyPanel.onAllowed(function(allowed: boolean)
 		else HINT
 end)
 hint.TextTransparency = 0.35
+-- Le bandeau des touches DEBORDAIT des deux cotes sur une fenetre etroite :
+-- vu a l'ecran le 4 novembre 2026, « ouvoir … B bac a sable · » coupe aux deux
+-- bouts. Il retrecit maintenant pour tenir, sans jamais grossir au-dela de sa
+-- taille d'origine.
+hint.TextScaled = true
+local hintCap = Instance.new("UITextSizeConstraint")
+hintCap.MaxTextSize = hint.TextSize
+hintCap.Parent = hint
 hint.Parent = gui
 
 --------------------------------------------------------------------------------

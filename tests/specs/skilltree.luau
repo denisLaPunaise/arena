@@ -16,6 +16,7 @@
 local Combat = require("../../src/shared/Combat")
 local Config = require("../../src/shared/Config")
 local Modifiers = require("../../src/shared/Modifiers")
+local MatchState = require("../../src/shared/MatchState")
 local SkillTree = require("../../src/shared/SkillTree")
 
 local harness = require("../harness")
@@ -377,4 +378,95 @@ return function(t: harness.Harness)
 			seenEffects[effect] = classId .. "/" .. branch.id
 		end
 	end
+
+	t.section("Les points en reserve")
+
+	do
+		local classId = "vampire"
+		local branch = SkillTree.branchesFor(Config, classId)[1]
+		local state = SkillTree.create(classId)
+		state.pointsEarned = SkillTree.fullBranchCost(Config) + 2
+		SkillTree.chooseBranch(Config, state, branch.id)
+
+		local first = Config.skillTree.sparePointUpgrades[1]
+		t.equal(
+			"rien a acheter tant que la branche n'est pas finie",
+			SkillTree.canBuySpare(Config, state, first.id),
+			false
+		)
+		while SkillTree.advance(Config, state) do
+		end
+		t.equal("la branche est finie", SkillTree.isComplete(Config, state), true)
+		t.equal("il reste deux points", SkillTree.availablePoints(state), 2)
+		t.equal("une amelioration s'achete", SkillTree.buySpare(Config, state, first.id), true)
+		t.equal("et coute ses points", SkillTree.availablePoints(state), 2 - first.cost)
+		t.equal(
+			"un identifiant inconnu ne s'achete pas",
+			SkillTree.buySpare(Config, state, "nimporte"),
+			false
+		)
+		SkillTree.buySpare(Config, state, first.id)
+		t.equal(
+			"sans point, plus rien ne s'achete",
+			SkillTree.buySpare(Config, state, first.id),
+			false
+		)
+
+		local deltas = SkillTree.spareDeltas(Config, state)
+		t.equal(
+			"deux achats donnent deux fois le gain",
+			deltas.offset[first.stat],
+			first.amount * 2
+		)
+
+		-- Le meme garde-fou que les branches creuses : une amelioration qui
+		-- pousse une statistique que la classe n'a pas ne ferait rien, et son
+		-- point serait perdu en silence.
+		for id in Config.classStats do
+			local offered = 0
+			for _, upgrade in Config.skillTree.sparePointUpgrades do
+				if SkillTree.spareApplies(Config, id, upgrade) then
+					offered += 1
+				else
+					local probe = SkillTree.create(id)
+					probe.tier = Config.skillTree.tiers
+					probe.pointsEarned = 99
+					t.equal(
+						string.format(
+							"%s n'est pas proposee a %s, qui n'a pas %s",
+							upgrade.id,
+							id,
+							upgrade.stat
+						),
+						SkillTree.canBuySpare(Config, probe, upgrade.id),
+						false
+					)
+				end
+			end
+			t.equal(id .. " a au moins deux ameliorations possibles", offered >= 2, true)
+		end
+
+		-- Et le chiffre arrive bien dans les statistiques, planchers compris.
+		local base = Config.classStats[classId]
+		local withTree = Modifiers.apply(Config, base, branch, state.tier)
+		local final = Modifiers.applyDeltas(withTree, deltas)
+		t.equal(
+			"les PV de reserve s'ajoutent apres la branche",
+			final[first.stat],
+			withTree[first.stat] + first.amount * 2
+		)
+	end
+
+	t.section("Une partie longue laisse bien des points en reserve")
+
+	-- Sans ce test, les ameliorations seraient un ecran que personne n'atteint.
+	t.equal(
+		"une partie au maximum de manches donne plus que l'arbre complet",
+		Config.skillTree.pointsBeforeFirstRound
+				+ Config.skillTree.pointsPerRoundEnd * (MatchState.maxRounds(
+					MatchState.create(MatchState.roundsToWin(Config))
+				) - 1)
+			> SkillTree.fullBranchCost(Config),
+		true
+	)
 end

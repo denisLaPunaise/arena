@@ -35,6 +35,8 @@ local Config = require(Arena:WaitForChild("Config"))
 local Modifiers = require(Arena:WaitForChild("Modifiers"))
 local SkillTree = require(Arena:WaitForChild("SkillTree"))
 
+local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
+
 local Remotes = Arena:WaitForChild("Remotes")
 local treeRemote = Remotes:WaitForChild("Tree") :: RemoteEvent
 
@@ -42,7 +44,6 @@ type Entry = { player: Player, team: string, classId: string, stats: any }
 
 local states: { [Player]: SkillTree.State } = {}
 local ready: { [Player]: boolean } = {}
-local lastRequestAt: { [Player]: number } = {}
 
 -- La phase de depense est ouverte ou fermee. Fermee, les trois intentions du
 -- client sont refusees, et l'interface s'affiche en lecture seule.
@@ -169,7 +170,10 @@ function SkillTreeService.effectiveStats(player: Player, baseStats: any): any
 	end
 
 	local branch = SkillTree.currentBranch(Config, state)
-	return Modifiers.apply(Config, baseStats, branch, state.tier)
+	local withTree = Modifiers.apply(Config, baseStats, branch, state.tier)
+	-- Les points en reserve APRES la branche : ils font partie de l'arbre, donc
+	-- de la deuxieme couche, et l'equipement s'applique toujours par-dessus.
+	return Modifiers.applyDeltas(withTree, SkillTree.spareDeltas(Config, state))
 end
 
 -- Recalcule les statistiques de chaque entree du roster, sur place. Appele
@@ -217,6 +221,11 @@ function SkillTreeService.anyoneCanSpend(): boolean
 			return true
 		end
 		if SkillTree.canAdvance(Config, state) then
+			return true
+		end
+		-- Une branche finie avec des points en reserve a encore un choix a
+		-- faire : la phase s'ouvre pour elle aussi.
+		if SkillTree.isComplete(Config, state) and SkillTree.availablePoints(state) > 0 then
 			return true
 		end
 	end
@@ -294,7 +303,10 @@ local function changesView(state: SkillTree.State): { any }
 	end
 
 	local base = Config.classStats[state.classId]
-	local effective = Modifiers.apply(Config, base, branch, state.tier)
+	local effective = Modifiers.applyDeltas(
+		Modifiers.apply(Config, base, branch, state.tier),
+		SkillTree.spareDeltas(Config, state)
+	)
 
 	local lines: { any } = {}
 	for _, change in Modifiers.differences(base, effective) do
@@ -304,6 +316,27 @@ local function changesView(state: SkillTree.State): { any }
 		})
 	end
 	return lines
+end
+
+local function spareView(state: SkillTree.State): { any }
+	local list: { any } = {}
+	for _, upgrade in Config.skillTree.sparePointUpgrades do
+		if not SkillTree.spareApplies(Config, state.classId, upgrade) then
+			continue
+		end
+		table.insert(list, {
+			id = upgrade.id,
+			label = upgrade.label,
+			-- « +10 PV », « -0,5 s de recharge » : le gain d'abord, lu d'un coup d'oeil.
+			text = (string.gsub(string.format("%+g", upgrade.amount), "%.", ","))
+				.. " "
+				.. upgrade.label,
+			cost = upgrade.cost,
+			bought = state.spare[upgrade.id] or 0,
+			canBuy = spendingOpen and SkillTree.canBuySpare(Config, state, upgrade.id),
+		})
+	end
+	return list
 end
 
 function SkillTreeService.viewFor(player: Player): any?
@@ -336,6 +369,7 @@ function SkillTreeService.viewFor(player: Player): any?
 		canAdvance = spendingOpen and SkillTree.canAdvance(Config, state),
 		complete = SkillTree.isComplete(Config, state),
 		remainingCost = SkillTree.remainingCost(Config, state),
+		spare = spareView(state),
 
 		branches = branches,
 		changes = changesView(state),
@@ -376,16 +410,6 @@ local function onTreeRequest(player: Player, payload: any)
 		return
 	end
 
-	-- Un garde-fou minimal contre l'inondation : dix requetes par seconde
-	-- suffisent largement a un humain qui clique, et rien de ce qui suit ne
-	-- coute cher de toute facon.
-	local now = os.clock()
-	local last = lastRequestAt[player]
-	if last ~= nil and (now - last) < 0.1 then
-		return
-	end
-	lastRequestAt[player] = now
-
 	local action = payload.action
 	if typeof(action) ~= "string" then
 		return
@@ -409,6 +433,11 @@ local function onTreeRequest(player: Player, payload: any)
 			return
 		end
 		changed = SkillTree.advance(Config, state)
+	elseif action == "spare" then
+		if not canSpend or typeof(payload.id) ~= "string" then
+			return
+		end
+		changed = SkillTree.buySpare(Config, state, payload.id)
 	elseif action == "ready" then
 		ready[player] = true
 	end
@@ -424,10 +453,12 @@ function SkillTreeService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
 		ready[player] = nil
-		lastRequestAt[player] = nil
 	end)
 
-	treeRemote.OnServerEvent:Connect(onTreeRequest)
+	-- Le garde-fou contre l'inondation est celui de tous les remotes d'interface.
+	-- Il remplace un intervalle minimal de 0,1 s qui jetait EN SILENCE le
+	-- second clic d'un double clic sur « Monter ».
+	treeRemote.OnServerEvent:Connect(RemoteGuard.wrap("Tree", onTreeRequest))
 end
 
 return SkillTreeService

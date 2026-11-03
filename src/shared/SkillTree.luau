@@ -39,6 +39,9 @@ export type State = {
 	-- Manches perdues d'affilee, remises a zero par la moindre victoire.
 	consecutiveLosses: number,
 	comebackUsed: boolean,
+	-- Les ameliorations communes achetees avec les points en reserve, par
+	-- identifiant. Vide tant que la branche n'est pas finie.
+	spare: { [string]: number },
 }
 
 function SkillTree.create(classId: string): State
@@ -50,6 +53,7 @@ function SkillTree.create(classId: string): State
 		pointsSpent = 0,
 		consecutiveLosses = 0,
 		comebackUsed = false,
+		spare = {},
 	}
 end
 
@@ -214,6 +218,68 @@ function SkillTree.fullBranchCost(config): number
 		total += cost
 	end
 	return total
+end
+
+--------------------------------------------------------------------------------
+-- LES POINTS EN RESERVE
+--------------------------------------------------------------------------------
+
+-- La branche finie, chaque point qui reste achete une amelioration commune.
+-- Sans ca, le septieme point d'une partie longue ne servait a rien, et le
+-- point de revanche non plus pour une equipe deja au bout de son arbre.
+
+function SkillTree.spareUpgrade(config, id: string): any?
+	for _, upgrade in config.skillTree.sparePointUpgrades do
+		if upgrade.id == id then
+			return upgrade
+		end
+	end
+	return nil
+end
+
+-- Vrai si cette amelioration a un sens pour cette classe. Six classes n'ont
+-- pas de pouvoir actif, donc pas de recharge : leur proposer « -0,5 s de
+-- recharge » ferait perdre un point en silence. Le test des points en reserve
+-- l'a attrape a sa premiere execution.
+function SkillTree.spareApplies(config, classId: string, upgrade: any): boolean
+	local stats = config.classStats[classId]
+	return stats ~= nil and typeof(stats[upgrade.stat]) == "number"
+end
+
+function SkillTree.canBuySpare(config, state: State, id: string): boolean
+	if not SkillTree.isComplete(config, state) then
+		return false
+	end
+	local upgrade = SkillTree.spareUpgrade(config, id)
+	if upgrade == nil or not SkillTree.spareApplies(config, state.classId, upgrade) then
+		return false
+	end
+	return SkillTree.availablePoints(state) >= upgrade.cost
+end
+
+function SkillTree.buySpare(config, state: State, id: string): boolean
+	if not SkillTree.canBuySpare(config, state, id) then
+		return false
+	end
+	local upgrade = SkillTree.spareUpgrade(config, id)
+	if upgrade == nil then
+		return false
+	end
+	state.pointsSpent += upgrade.cost
+	state.spare[id] = (state.spare[id] or 0) + 1
+	return true
+end
+
+-- Les ameliorations achetees, au format de `Modifiers.applyDeltas`.
+function SkillTree.spareDeltas(config, state: State): { offset: { [string]: number } }
+	local offset: { [string]: number } = {}
+	for _, upgrade in config.skillTree.sparePointUpgrades do
+		local count = state.spare[upgrade.id] or 0
+		if count > 0 then
+			offset[upgrade.stat] = (offset[upgrade.stat] or 0) + (upgrade.amount * count)
+		end
+	end
+	return { offset = offset }
 end
 
 --------------------------------------------------------------------------------
