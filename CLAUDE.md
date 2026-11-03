@@ -1017,6 +1017,58 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   les cent vingt feuillages identiques : la variete doit se voir sur la
   SILHOUETTE, pas seulement dans le code.
 
+- **UNE SONDE QUI NE RESPECTE PAS LES COLLISIONS COMPTE LE DECOR.** La mesure
+  de couverture du cercle final annoncait 14 directions sur 16, et le temoin a
+  nomme les coupables : les croisillons du chevalement de la Carriere, des
+  batons de 0,6 stud poses a `CanCollide = false` pour qu'on les traverse. Un
+  rayon les arrete, un joueur passe au travers. `probe.RespectCanCollide = true`
+  a fait tomber le chiffre de 14 a 4. La mesure etait precise et mesurait autre
+  chose — meme famille que les deux `AbsolutePosition` lus dans deux reperes.
+
+  **Et la portee d'une mesure est celle du JEU, pas un chiffre rond.** La meme
+  sonde portait a 25 studs quand `Config.round.zoneFinalRadiusStuds` vaut 16 :
+  les sept blocs de glace de la Carriere sont tous dehors, le plus proche a
+  28,6. Ils ne sont donc jamais la au moment ou la couverture compte, et le
+  cercle final n'avait en vrai que quatre poteaux de 3,2. La portee se demande
+  maintenant a `Config`, et le repli NOMME ce qui manque : la premiere version
+  disait « la place n'est pas synchronisee » sur une place a jour au caractere
+  pres, parce que la cle vit dans `Config.round` et pas a la racine.
+
+- **UN `UIStroke` SUR UN `TextButton` CERNE LE TEXTE, PAS LE CADRE.** Son
+  `ApplyStrokeMode` vaut `Contextual` par defaut, et sur un bouton le contexte
+  est la police : les trois libelles retenus de l'ecran de salon sont sortis
+  baveux et illisibles, sans la moindre erreur. C'est `Enum.ApplyStrokeMode.Border`
+  qu'il faut, et ca ne se voit qu'a l'ecran.
+
+- **UN ACCENT DEPENSE PARTOUT NE DESIGNE PLUS RIEN.** Deux fois le meme
+  arbitrage le 3 novembre 2026, une fois en 3D et une fois en interface. La
+  rambarde de la Carriere faisait 148 studs de jaune vif et traversait chaque
+  capture en une bande au milieu de l'image ; l'assombrir n'a rien donne,
+  parce que son probleme etait le CONTRASTE DE TEINTE contre une map
+  entierement bleu et blanc, pas sa luminosite. Elle est passee a l'acier
+  rouille, et le jaune n'a survecu que sur les bordures des quatre rampes —
+  les seules remontees de la map, donc le seul endroit ou il porte une
+  information. Pareil dans le salon : trois rangees remplissaient leur choix
+  en jaune plein a cote d'un bouton d'action jaune, donc l'oeil ne trouvait
+  plus l'action. Un choix retenu se marque par son contour, le plein reste a
+  ce qui agit.
+
+- **EN STUDIO, `Venue` REPOND TOUJOURS « SERVEUR PRIVE ».** `Venue.isPrivate()`
+  est vrai des que `RunService:IsStudio()`, ce qui est juste — rien ne doit
+  compter depuis un test. Mais ca veut dire que les cartes **Creer un salon**
+  et **Rejoindre** n'apparaissent JAMAIS en Studio : le menu a trois cartes est
+  invisible d'ici, et il le restera jusqu'a la publication. Pour le regarder,
+  on rend les deux cartes visibles a la main depuis le contexte client (de
+  l'affichage pur, que le prochain rafraichissement recache). Ne pas conclure
+  qu'elles manquent.
+
+  Consequence de mise en page trouvee comme ca : la carte restante gardait un
+  tiers de la largeur, les deux autres tiers vides, et le panneau la hauteur de
+  trois cartes. **La taille d'une carte et celle du panneau se DEDUISENT de ce
+  qu'ils portent** — enfants en fraction du parent, pied accroche au bas — ce
+  qui est la meme regle que la colonne du bac a sable, appliquee deux etages
+  plus haut.
+
 - **`Source` s'arrete a 200 000 caracteres depuis le pont MCP.**
   `Config.luau` en fait 313 000, donc l'astuce du `ModuleScript` jetable ne
   peut pas le charger. Pour verifier de la logique pure dans la machine

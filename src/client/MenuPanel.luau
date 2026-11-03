@@ -75,6 +75,10 @@ local ROW_GAP = 14
 local ROW_HEIGHT = ROW_LABEL + ROW_BUTTON + ROW_GAP
 
 local ACT_HEIGHT = 46
+-- Hauteur de la carte quand elle reste seule (serveur prive) : elle n'a plus
+-- qu'une ligne a dire, donc elle se deduit de ce qu'elle porte au lieu de
+-- garder la hauteur de trois cartes.
+local LONE_HEIGHT = 24 + 56 + 8 + 44 + 18 + ACT_HEIGHT + 22
 
 local BACKGROUND = Color3.fromRGB(12, 14, 20)
 local CARD = Color3.fromRGB(26, 30, 40)
@@ -87,6 +91,11 @@ local WARN = Color3.fromRGB(246, 130, 110)
 
 local gui: ScreenGui? = nil
 local scale: UIScale? = nil
+-- Hauteur du panneau quand il ne porte qu'une carte : la meme chose moins
+-- la vue a trois cartes, plus la carte seule.
+local LONE_PANEL_HEIGHT = PANEL_HEIGHT - VIEW_HEIGHT + LONE_HEIGHT
+local panelHeight = PANEL_HEIGHT
+
 local panelFrame: Frame? = nil
 local fit: () -> ()
 
@@ -98,6 +107,7 @@ local homeView: Frame? = nil
 local createView: Frame? = nil
 local joinView: Frame? = nil
 
+local playCard: Frame? = nil
 local createCard: Frame? = nil
 local joinCard: Frame? = nil
 local playTitle: TextLabel? = nil
@@ -220,13 +230,31 @@ local function fill(
 		made.Name = option.id
 		made.LayoutOrder = index
 		made.Size = UDim2.fromOffset(width, ROW_BUTTON)
-		made.BackgroundColor3 = if picked then ACCENT else CARD
+		-- UN ACCENT DEPENSE PARTOUT NE DESIGNE PLUS RIEN. Les trois rangees
+		-- remplissaient leur choix en jaune plein, et le bouton « creer le
+		-- salon » est jaune lui aussi : quatre pavés de la même couleur, donc
+		-- l'oeil ne trouvait plus l'action. Un choix retenu se marque par son
+		-- CONTOUR et son texte, le plein reste au seul bouton qui agit. Meme
+		-- arbitrage que la rambarde de la Carriere, ou le jaune n'a survecu
+		-- que sur les quatre rampes.
+		made.BackgroundColor3 = if picked then CARD_HOT else CARD
 		made.BorderSizePixel = 0
 		made.Font = Enum.Font.GothamBold
 		made.TextSize = 16
-		made.TextColor3 = if picked then DARK else TEXT
+		made.TextColor3 = if picked then ACCENT else MUTED
 		made.Text = option.text
 		rounded(made, 8)
+		if picked then
+			local edge = Instance.new("UIStroke")
+			-- UN UIStroke SUR UN TextButton CERNE LE TEXTE, PAS LE CADRE. Son
+			-- mode vaut `Contextual` par defaut, et sur un bouton le contexte
+			-- est la police : les trois libelles retenus sont sortis baveux et
+			-- illisibles. Ca ne leve rien et ca ne se voit qu'a l'ecran.
+			edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			edge.Color = ACCENT
+			edge.Thickness = 2
+			edge.Parent = made
+		end
 		made.Parent = parent
 		made.Activated:Connect(function()
 			pick(option.id)
@@ -258,20 +286,19 @@ local function card(
 	frame.Parent = parent
 	rounded(frame, 12)
 
-	local title =
-		label("Title", UDim2.fromOffset(CARD_WIDTH - 44, 56), UDim2.fromOffset(22, 24), 22)
+	local title = label("Title", UDim2.new(1, -44, 0, 56), UDim2.fromOffset(22, 24), 22)
 	title.Font = Enum.Font.GothamBold
 	title.Parent = frame
 
-	local body = label("Body", UDim2.fromOffset(CARD_WIDTH - 44, 132), UDim2.fromOffset(22, 84), 15)
+	local body = label("Body", UDim2.new(1, -44, 0, 132), UDim2.fromOffset(22, 84), 15)
 	body.TextColor3 = MUTED
 	body.Parent = frame
 
 	local act = button(
 		"Act",
 		"",
-		UDim2.fromOffset(CARD_WIDTH - 44, ACT_HEIGHT),
-		UDim2.fromOffset(22, VIEW_HEIGHT - ACT_HEIGHT - 22),
+		UDim2.new(1, -44, 0, ACT_HEIGHT),
+		UDim2.new(0, 22, 1, -ACT_HEIGHT - 22),
 		false
 	)
 	act.Parent = frame
@@ -342,7 +369,8 @@ local function buildHome(top: number, parent: Instance)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = holder
 
-	local _, oneTitle, oneBody, oneAct = card("Ranked", 1, holder)
+	local oneFrame, oneTitle, oneBody, oneAct = card("Ranked", 1, holder)
+	playCard = oneFrame
 	playTitle = oneTitle
 	playBody = oneBody
 	playButton = oneAct
@@ -582,16 +610,16 @@ local function build()
 	buildCreate(viewTop, frame)
 	buildJoin(viewTop, frame)
 
-	local footTop = viewTop + VIEW_HEIGHT + GAP
-
-	local said = label("Notice", UDim2.fromOffset(INNER, 22), UDim2.fromOffset(EDGE, footTop), 15)
+	-- Le pied s'accroche au BAS du panneau : pose a un chiffre absolu il ne
+	-- pouvait pas suivre un panneau qui change de hauteur.
+	local footUp = EDGE + FOOTER_HEIGHT
+	local said = label("Notice", UDim2.fromOffset(INNER, 22), UDim2.new(0, EDGE, 1, -footUp), 15)
 	said.TextXAlignment = Enum.TextXAlignment.Center
 	said.TextColor3 = WARN
 	said.Parent = frame
 	noticeLine = said
 
-	local keys =
-		label("Keys", UDim2.fromOffset(INNER, 22), UDim2.fromOffset(EDGE, footTop + 24), 14)
+	local keys = label("Keys", UDim2.fromOffset(INNER, 22), UDim2.new(0, EDGE, 1, -footUp + 24), 14)
 	keys.TextXAlignment = Enum.TextXAlignment.Center
 	keys.TextColor3 = MUTED
 	keys.Parent = frame
@@ -605,7 +633,7 @@ function fit()
 	if current == nil or screen == nil or frame == nil then
 		return
 	end
-	Screens.fit(screen, frame, current, PANEL_WIDTH, PANEL_HEIGHT)
+	Screens.fit(screen, frame, current, PANEL_WIDTH, panelHeight)
 end
 
 --------------------------------------------------------------------------------
@@ -717,6 +745,27 @@ local function redraw()
 	end
 	if three ~= nil then
 		three.Visible = not state.private
+	end
+
+	-- Et elle prend toute la largeur quand elle reste seule : ses enfants sont
+	-- dimensionnes en fraction d'elle, donc il n'y a qu'un chiffre a poser.
+	local alone = playCard
+	if alone ~= nil then
+		alone.Size = if state.private
+			then UDim2.fromOffset(INNER, LONE_HEIGHT)
+			else UDim2.fromOffset(CARD_WIDTH, VIEW_HEIGHT)
+	end
+
+	-- ET LE PANNEAU SUIT SA CARTE. Rendre la carte compacte sans toucher au
+	-- panneau n'a fait que remonter le vide d'un etage.
+	local wantedHeight = if state.private then LONE_PANEL_HEIGHT else PANEL_HEIGHT
+	if wantedHeight ~= panelHeight then
+		panelHeight = wantedHeight
+		local shell = panelFrame
+		if shell ~= nil then
+			shell.Size = UDim2.fromOffset(PANEL_WIDTH, panelHeight)
+		end
+		fit()
 	end
 
 	local said = noticeLine

@@ -789,6 +789,7 @@ nuages.Parent = Workspace.Terrain
 -- barre de commande peut y toucher, et encore. Un `pcall` muet autour serait
 -- le piege du chiffre cache dans un repli -- la map aurait l'air terne et
 -- personne ne saurait pourquoi. Donc on essaie, on RELIT, et on le DIT.
+local alarms = 0
 local tech = "inconnue"
 pcall(function()
 	Lighting.Technology = Enum.Technology.Future
@@ -796,7 +797,16 @@ end)
 pcall(function()
 	tech = Lighting.Technology.Name
 end)
-if tech ~= "Future" then
+if tech == "inconnue" then
+	-- Ecrit sans erreur, mais illisible : c'est le cas quand la recette passe
+	-- par le pont MCP, qui n'a pas le droit de RELIRE cette propriete. On ne
+	-- sait donc pas, et on le dit comme tel.
+	print(
+		"  Rendu : réglage envoyé, mais impossible à relire d'ici. À vérifier une "
+			.. "fois dans Explorer → Lighting → Properties → Technology = Future."
+	)
+elseif tech ~= "Future" then
+	alarms += 1
 	warn(
 		string.format(
 			"[Arena] Rendu en « %s » et pas « Future ». C'est le réglage qui change le "
@@ -806,6 +816,8 @@ if tech ~= "Future" then
 			tech
 		)
 	)
+else
+	print("  Rendu : Future. Bon.")
 end
 Lighting.GlobalShadows = true
 Lighting.ShadowSoftness = 0.35
@@ -852,12 +864,59 @@ dof.Parent = Lighting
 local probe = RaycastParams.new()
 probe.FilterType = Enum.RaycastFilterType.Include
 probe.FilterDescendantsInstances = { map }
+-- UNE SONDE QUI COMPTE LE DECOR COMPTE N'IMPORTE QUOI. Elle annoncait
+-- 14 directions couvertes sur 16, et le temoin a nomme les coupables : les
+-- croisillons du chevalement, des batons de 0,6 stud poses a
+-- `CanCollide = false` pour qu'on les traverse. Un rayon les arrete, un joueur
+-- passe au travers -- donc ce n'etait pas un couvert, et la mesure est tombee
+-- a 4 des qu'on a demande au rayon de respecter les collisions. La mesure
+-- etait precise et mesurait autre chose : meme famille que les deux
+-- `AbsolutePosition` lus dans deux reperes le 26 octobre.
+probe.RespectCanCollide = true
+
+-- ET LA PORTEE DE LA MESURE EST LE DERNIER CERCLE LUI-MEME, pas un chiffre
+-- rond. Un couvert a vingt-huit studs du centre ne sert a rien dans un cercle
+-- qui en fait seize de rayon : la version d'avant portait a vingt-cinq et
+-- comptait donc des blocs hors du cercle ou la couverture compte. Le chiffre
+-- se demande a `Config` plutot que d'etre recopie, parce qu'une copie se
+-- perime en silence le jour ou Josh resserre la zone.
+local FINAL_RADIUS = 16
+do
+	local arena = game:GetService("ReplicatedStorage"):FindFirstChild("Arena")
+	local module = arena and arena:FindFirstChild("Config")
+	local ok, conf = false, nil
+	if module then
+		ok, conf = pcall(require, module)
+	end
+	local found = if ok and type(conf) == "table" and type(conf.round) == "table"
+		then tonumber(conf.round.zoneFinalRadiusStuds)
+		else nil
+	if found then
+		FINAL_RADIUS = found
+	else
+		-- UN AVERTISSEMENT QUI MENT COUTE PLUS CHER QUE PAS D'AVERTISSEMENT. La
+		-- premiere version disait « la place n'est pas synchronisee » quoi
+		-- qu'il arrive -- et elle l'a dit sur une place a jour au caractere
+		-- pres, parce que la cle vit dans `Config.round` et pas a la racine.
+		-- On part alors chercher un probleme de synchro qui n'existe pas,
+		-- exactement comme l'« Infinite yield » du 27 octobre. Donc le message
+		-- nomme ce qui manque VRAIMENT.
+		print(
+			string.format(
+				"  (couverture mesuree sur %d studs : %s)",
+				FINAL_RADIUS,
+				if module == nil
+					then "ReplicatedStorage.Arena.Config est absent, la place n'est pas synchronisee"
+					else "Config est la mais round.zoneFinalRadiusStuds ne s'y lit pas, la cle a bouge"
+			)
+		)
+	end
+end
 
 -- Hauteur des yeux au-dessus du point d'apparition. Un point de depart est
 -- pose quatre studs au-dessus de son sol dans les quatre recettes, et la tete
 -- arrive a peu pres a cette hauteur-la.
 local EYE = 3.5
-local alarms = 0
 
 print("")
 print(string.format("[Arena] ===== %s se mesure =====", map.Name))
@@ -931,15 +990,16 @@ if centreMark then
 	local covered = 0
 	for step = 0, 15 do
 		local angle = step / 16 * math.pi * 2
-		local direction = Vector3.new(math.cos(angle), 0, math.sin(angle)) * 25
+		local direction = Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS
 		if Workspace:Raycast(origin, direction, probe) then
 			covered += 1
 		end
 	end
 	print(
 		string.format(
-			"  Cercle final : %d directions sur 16 trouvent un couvert a moins de 25 studs.",
-			covered
+			"  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs du dernier cercle.",
+			covered,
+			FINAL_RADIUS
 		)
 	)
 	if covered < 4 then

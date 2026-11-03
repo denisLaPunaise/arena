@@ -83,8 +83,8 @@ local RAMP_RUN = 22 -- longueur au sol d'une rampe
 local RAMP_WIDE = 9
 
 local ICE = Color3.fromRGB(196, 216, 230)
-local ICE_DEEP = Color3.fromRGB(118, 150, 176)
-local LAKE = Color3.fromRGB(168, 196, 214)
+local ICE_DEEP = Color3.fromRGB(58, 92, 116)
+local LAKE = Color3.fromRGB(124, 164, 190)
 local SNOW = Color3.fromRGB(236, 242, 248)
 local ROCK = Color3.fromRGB(62, 66, 74)
 local ROCK_DARK = Color3.fromRGB(40, 43, 50)
@@ -92,8 +92,9 @@ local ROCK_LIGHT = Color3.fromRGB(94, 100, 110)
 local STEEL = Color3.fromRGB(96, 104, 116)
 local STEEL_DARK = Color3.fromRGB(56, 62, 72)
 local TIMBER = Color3.fromRGB(104, 80, 58)
+local RUST = Color3.fromRGB(138, 86, 58)
 local SODIUM = Color3.fromRGB(255, 198, 128)
-local HAZARD = Color3.fromRGB(226, 182, 64)
+local HAZARD = Color3.fromRGB(214, 170, 58)
 local COLOR_A = Color3.fromRGB(70, 130, 230)
 local COLOR_B = Color3.fromRGB(230, 80, 70)
 
@@ -192,7 +193,7 @@ for index, line in { { -16, -6 }, { 8, 3 }, { -2, 14 } } do
 	local p = part(
 		string.format("Fissure%d", index),
 		decor,
-		Vector3.new(1.4, 0.3, lakeSpan - 20),
+		Vector3.new(2.6, 0.3, lakeSpan - 20),
 		CFrame.new(line[1], 0.02, line[2]) * CFrame.Angles(0, math.rad(line[1] * 0.4), 0),
 		ICE_DEEP,
 		Enum.Material.Ice
@@ -213,17 +214,20 @@ for _, side in { -1, 1 } do
 		ROCK,
 		Enum.Material.Slate
 	)
-	-- La neige du dessus, en lamelle posee : elle ne change rien au jeu et
-	-- c'est elle qui fait lire « carriere » et pas « bunker ».
-	local snow = part(
-		string.format("NeigeGradin%d", side),
-		decor,
-		Vector3.new(width - 3, 0.4, lakeSpan - 8),
-		CFrame.new(centre, LEDGE_Y + 0.2, 0),
-		SNOW,
-		Enum.Material.Snow
-	)
-	snow.CanCollide = false
+	-- PAS DE NAPPE DE NEIGE ICI, et c'est ce qui donne a la map ses trois
+	-- valeurs : margelle blanche, gradin sombre, lac pale. Une nappe sur les
+	-- trois niveaux les aplatissait en une seule dalle.
+	for index, z in { -50, -34, -8, 10, 34, 50 } do
+		local drift = part(
+			string.format("Congere%d_%d", side, index),
+			decor,
+			Vector3.new(width - 4 - (index % 3) * 3, 0.5, 9 + (index % 2) * 5),
+			CFrame.new(centre + ((index % 2) * 3 - 1.5) * side, LEDGE_Y + 0.25, z),
+			SNOW,
+			Enum.Material.Snow
+		)
+		drift.CanCollide = false
+	end
 end
 
 -- LA MARGELLE. Quatre masses, et les deux grands cotes portent la totalite de
@@ -446,7 +450,7 @@ for _, sx in { -1, 1 } do
 			Vector3.new(3.2, HOUSE_Y, 3.2),
 			CFrame.new(sx * LEG, HOUSE_Y / 2, sz * LEG),
 			STEEL_DARK,
-			Enum.Material.CorrodedMetal
+			Enum.Material.Metal
 		)
 	end
 end
@@ -464,7 +468,7 @@ for level = 1, 3 do
 				Vector3.new(LEG * 2.3, 0.6, 0.6),
 				CFrame.new(0, y, sz * LEG) * CFrame.Angles(0, 0, dir * 0.55),
 				STEEL,
-				Enum.Material.CorrodedMetal
+				Enum.Material.Metal
 			)
 			p.CanCollide = false
 		end
@@ -477,7 +481,7 @@ for level = 1, 3 do
 				Vector3.new(0.6, 0.6, LEG * 2.3),
 				CFrame.new(sx * LEG, y, 0) * CFrame.Angles(dir * 0.55, 0, 0),
 				STEEL,
-				Enum.Material.CorrodedMetal
+				Enum.Material.Metal
 			)
 			p.CanCollide = false
 		end
@@ -491,19 +495,60 @@ part(
 	Vector3.new(26, HOUSE_TOP - HOUSE_Y, 24),
 	CFrame.new(0, (HOUSE_Y + HOUSE_TOP) / 2, 0),
 	STEEL_DARK,
-	Enum.Material.CorrodedMetal
+	Enum.Material.Metal
 )
 for index, sz in { -1, 1 } do
+	-- UN CYLINDRE TIRE SA LONGUEUR DE Size.X, et un roulis de 90 degres le met
+	-- DEBOUT : on voyait deux disques poses a plat au sommet de la tour. Une
+	-- molette de chevalement se regarde de PROFIL, donc son axe reste sur X et
+	-- il n'y a aucune rotation a lui donner.
 	local wheel = part(
 		string.format("Molette%d", index),
 		decor,
-		Vector3.new(2, 11, 11),
-		CFrame.new(0, HOUSE_TOP + 4, sz * 6) * CFrame.Angles(0, 0, math.rad(90)),
+		Vector3.new(1.4, 11, 11),
+		CFrame.new(0, HOUSE_TOP + 5, sz * 7),
 		STEEL,
-		Enum.Material.CorrodedMetal
+		Enum.Material.Metal
 	)
 	wheel.Shape = Enum.PartType.Cylinder
 	wheel.CanCollide = false
+
+	-- Le moyeu et quatre rayons : un disque nu de onze studs se lit comme une
+	-- piece posee la, une roue se lit comme une roue.
+	local hub = part(
+		string.format("Moyeu%d", index),
+		decor,
+		Vector3.new(2.2, 3.6, 3.6),
+		CFrame.new(0, HOUSE_TOP + 5, sz * 7),
+		STEEL_DARK,
+		Enum.Material.Metal
+	)
+	hub.Shape = Enum.PartType.Cylinder
+	hub.CanCollide = false
+
+	for spoke = 0, 3 do
+		local arm = part(
+			string.format("Rayon%d_%d", index, spoke),
+			decor,
+			Vector3.new(1.6, 10, 0.8),
+			CFrame.new(0, HOUSE_TOP + 5, sz * 7) * CFrame.Angles(spoke * math.pi / 4, 0, 0),
+			STEEL_DARK,
+			Enum.Material.Metal
+		)
+		arm.CanCollide = false
+	end
+
+	-- Le cable qui descend de la molette vers la salle : c'est lui qui dit que
+	-- la roue sert a quelque chose.
+	local cable = part(
+		string.format("Cable%d", index),
+		decor,
+		Vector3.new(0.3, 10, 0.3),
+		CFrame.new(sz * 5.2, HOUSE_TOP - 1, sz * 7),
+		STEEL_DARK,
+		Enum.Material.Metal
+	)
+	cable.CanCollide = false
 end
 -- Le toit en deux pans : un cube au sommet d'une tour se lit comme une boite
 -- posee, deux pentes se lisent comme un batiment.
@@ -515,33 +560,69 @@ for _, dir in { 1, -1 } do
 		CFrame.new(0, HOUSE_TOP + 2, dir * 6)
 			* CFrame.Angles(0, if dir > 0 then 0 else math.pi, 0),
 		STEEL_DARK,
-		Enum.Material.CorrodedMetal
+		Enum.Material.Metal
 	).CanCollide =
 		false
 end
 
 -- LES DEUX COULOIRS A MINERAI, du chevalement vers chaque gradin. Ils
--- descendent en pente franche, et c'est la seule diagonale de la map : tout
--- le reste est horizontal ou vertical, donc ce sont eux qui donnent l'echelle
--- de la fosse a l'oeil.
+-- descendent en pente franche, et c'est la seule diagonale de la map : tout le
+-- reste est horizontal ou vertical, donc ce sont eux qui donnent l'echelle de
+-- la fosse a l'oeil.
+--
+-- UN COULOIR EST UN CONDUIT, PAS UNE PLANCHE. La premiere version etait une
+-- dalle de quarante studs sur six, et de face elle lisait comme une aile
+-- d'avion posee sur la tour. Un fond etroit plus deux joues, et ca redevient
+-- une goulotte.
 for _, side in { -1, 1 } do
-	local fromX = side * 13
-	local toX = side * (LEDGE_IN + 10)
-	local fromY = HOUSE_Y
-	local toY = LEDGE_Y + 3
+	local fromX = side * 12
+	local toX = side * (LEDGE_IN + 4)
+	local fromY = HOUSE_Y - 2
+	local toY = LEDGE_Y + 4
 	local run = toX - fromX
 	local drop = toY - fromY
 	local length = math.sqrt(run * run + drop * drop)
-	local p = part(
+	local cf = CFrame.new((fromX + toX) / 2, (fromY + toY) / 2, 0)
+		* CFrame.Angles(0, 0, math.atan2(drop, run))
+
+	local floor = part(
 		string.format("Couloir%d", side),
 		decor,
-		Vector3.new(length, 2.2, 6),
-		CFrame.new((fromX + toX) / 2, (fromY + toY) / 2, 0)
-			* CFrame.Angles(0, 0, math.atan2(drop, run)),
-		STEEL,
-		Enum.Material.CorrodedMetal
+		Vector3.new(length, 0.7, 3.4),
+		cf,
+		STEEL_DARK,
+		Enum.Material.Metal
 	)
-	p.CanCollide = false
+	floor.CanCollide = false
+	for _, edge in { -1, 1 } do
+		local cheek = part(
+			string.format("Joue%d_%d", side, edge),
+			decor,
+			Vector3.new(length, 2, 0.5),
+			cf * CFrame.new(0, 1, edge * 1.7),
+			STEEL,
+			Enum.Material.Metal
+		)
+		cheek.CanCollide = false
+	end
+	-- Trois etais sous la goulotte : sans eux elle flotte, et une goulotte qui
+	-- flotte se lit comme une erreur de pose.
+	for leg = 1, 3 do
+		local at = cf * CFrame.new((leg / 4 - 0.5) * length, 0, 0)
+		local ground = if math.abs(at.Position.X) > LEDGE_IN then LEDGE_Y else 0
+		local height = at.Position.Y - ground
+		if height > 2 then
+			local post = part(
+				string.format("Etai%d_%d", side, leg),
+				decor,
+				Vector3.new(0.6, height, 0.6),
+				CFrame.new(at.Position.X, ground + height / 2, 0),
+				STEEL_DARK,
+				Enum.Material.Metal
+			)
+			post.CanCollide = false
+		end
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -570,8 +651,8 @@ for _, side in { -1, 1 } do
 		decor,
 		Vector3.new(0.4, 0.3, RIM_OUT * 2),
 		CFrame.new(side * (WALK_WIDE / 2), RIM_Y + 1.2, 0),
-		HAZARD,
-		Enum.Material.Metal
+		RUST,
+		Enum.Material.CorrodedMetal
 	)
 	rail.CanCollide = false
 	for index = -6, 6 do
@@ -580,8 +661,8 @@ for _, side in { -1, 1 } do
 			decor,
 			Vector3.new(0.4, 1.2, 0.4),
 			CFrame.new(side * (WALK_WIDE / 2), RIM_Y + 0.6, index * 11),
-			HAZARD,
-			Enum.Material.Metal
+			RUST,
+			Enum.Material.CorrodedMetal
 		)
 		post.CanCollide = false
 	end
@@ -631,7 +712,7 @@ end
 local blocks = {
 	{ -26, -34, 7, 6 },
 	{ 24, -22, 6, 8 },
-	{ -14, 20, 8, 6 },
+	{ -22, 31, 8, 6 },
 	{ 22, 30, 7, 7 },
 	{ -28, 6, 6, 9 },
 	{ 10, -44, 8, 6 },
@@ -661,6 +742,62 @@ for index, b in blocks do
 	chip.CanCollide = false
 end
 
+-- LES BLOCS DE PIERRE TAILLEE DU CENTRE, et ce sont les plus importants de la
+-- map. `Config.zoneFinalRadiusStuds` vaut seize : les sept blocs de glace
+-- ci-dessus sont tous DEHORS -- vingt-huit studs pour le plus proche -- donc
+-- ils ne sont jamais la au moment ou la couverture compte. Il ne restait dans
+-- le dernier cercle que les quatre pieds du chevalement, 3,2 stud de cote, et
+-- un duel final a decouvert.
+--
+-- Ils sont sur les quatre directions CARDINALES parce que les pieds sont sur
+-- les diagonales : huit obstacles en etoile, aucun assez gros pour s'y terrer.
+-- Hauteur a hauteur de poitrine ou juste au-dessus, pour qu'on choisisse de se
+-- baisser ou de tirer par-dessus.
+local cutStones = {
+	{ 0, 12, 5.5, 3.4, 5.2, 14 },
+	{ 12, 0, 3.6, 5.6, 4.2, -62 },
+	{ 0, -12, 5.2, 3.2, 5.6, 37 },
+	{ -12, 0, 3.4, 5.4, 4.6, -18 },
+}
+for index, b in cutStones do
+	local block = part(
+		string.format("BlocTaille%d", index),
+		cover,
+		Vector3.new(b[3], b[5], b[4]),
+		CFrame.new(b[1], b[5] / 2, b[2]) * CFrame.Angles(0, math.rad(b[6]), 0),
+		if index % 2 == 0 then ROCK_LIGHT else ROCK_DARK,
+		Enum.Material.Slate
+	)
+	block.CanCollide = true
+
+	-- Une plaque de glace sur le dessus : c'est elle qui dit que le bloc est
+	-- la depuis l'hiver, et elle fait un liseret clair sur la roche noire.
+	local cap = part(
+		string.format("GivreBloc%d", index),
+		decor,
+		Vector3.new(b[3] * 0.92, 0.35, b[4] * 0.92),
+		CFrame.new(b[1], b[5] + 0.17, b[2]) * CFrame.Angles(0, math.rad(b[6]), 0),
+		SNOW,
+		Enum.Material.Snow
+	)
+	cap.CanCollide = false
+
+	-- Et un eclat au pied, du cote oppose au centre : un bloc pose net se lit
+	-- comme une caisse livree, un bloc ebreche se lit comme de la pierre
+	-- qu'on a cassee sur place.
+	local away = Vector3.new(b[1], 0, b[2]).Unit
+	local shard = part(
+		string.format("EclatPierre%d", index),
+		decor,
+		Vector3.new(2.2, 1.3, 1.7),
+		CFrame.new(Vector3.new(b[1], 0.65, b[2]) + away * (math.max(b[3], b[4]) * 0.75))
+			* CFrame.Angles(0, math.rad(b[6] * 2), math.rad(7)),
+		ROCK_DARK,
+		Enum.Material.Rock
+	)
+	shard.CanCollide = false
+end
+
 -- LES DEUX WAGONNETS DU FOND, a demi enfonces. Ils donnent au lac deux
 -- couverts qui ne sont pas de la glace, donc deux reperes de couleur dans une
 -- etendue blanche.
@@ -670,7 +807,7 @@ for _, side in { -1, 1 } do
 		cover,
 		Vector3.new(side * 30, 1.6, side * 48),
 		Vector3.new(6, 3.4, 9),
-		STEEL_DARK,
+		RUST,
 		Enum.Material.CorrodedMetal
 	)
 	for _, wz in { -1, 1 } do
@@ -680,7 +817,7 @@ for _, side in { -1, 1 } do
 			Vector3.new(0.8, 2.4, 2.4),
 			CFrame.new(side * 30 + 3.2, 1.2, side * 48 + wz * 3)
 				* CFrame.Angles(0, 0, math.rad(90)),
-			STEEL,
+			RUST,
 			Enum.Material.CorrodedMetal
 		)
 		wheel.Shape = Enum.PartType.Cylinder
@@ -757,7 +894,7 @@ for _, side in { -1, 1 } do
 			Vector3.new(x, RIM_Y + 2, z + (index % 2) * 4 - 2),
 			Vector3.new(9, 4, 5),
 			STEEL,
-			Enum.Material.CorrodedMetal
+			Enum.Material.Metal
 		)
 	end
 end
@@ -773,9 +910,90 @@ for _, side in { -1, 1 } do
 			Vector3.new(x, RIM_Y + 3, z),
 			Vector3.new(10, 6, 8),
 			STEEL_DARK,
-			Enum.Material.CorrodedMetal
+			Enum.Material.Metal
 		)
 	end
+end
+
+-- LES STALACTITES DE GLACE, sous l'arete de la margelle. Elles pendent dans
+-- le vide le long des quatre parois : c'est le detail qui dit « gel » sans
+-- rien couter, et il donne a la paroi une echelle qu'un aplat n'a pas.
+for _, side in { -1, 1 } do
+	for index = 1, 14 do
+		local along = (index - 7.5) * 8
+		local long = 3 + ((index * 7) % 5)
+		local spikeZ = part(
+			string.format("GlaconZ%d_%d", side, index),
+			decor,
+			Vector3.new(0.9, long, 0.9),
+			CFrame.new(along, RIM_Y - 1 - long / 2, side * (RIM_IN - 0.4)),
+			ICE,
+			Enum.Material.Ice
+		)
+		spikeZ.CanCollide = false
+		if math.abs(along) < RIM_IN - 10 then
+			local spikeX = part(
+				string.format("GlaconX%d_%d", side, index),
+				decor,
+				Vector3.new(0.9, long, 0.9),
+				CFrame.new(side * (LEDGE_IN - 0.4), LEDGE_Y - 1 - long / 2, along),
+				ICE,
+				Enum.Material.Ice
+			)
+			spikeX.CanCollide = false
+		end
+	end
+end
+
+-- LES ETAIS DE BOIS contre les parois courtes. Une carriere qu'on exploite
+-- etaye ce qui menace de tomber, et deux cadres de madriers suffisent a faire
+-- lire « on travaille ici » plutot que « boite grise ».
+for _, side in { -1, 1 } do
+	for _, x in { -34, 34 } do
+		local z = side * (RIM_IN - 1.2)
+		for _, dx in { -4, 4 } do
+			local post = part(
+				string.format("Madrier%d_%d_%d", side, x, dx),
+				decor,
+				Vector3.new(1.4, RIM_Y - 1, 1.4),
+				CFrame.new(x + dx, (RIM_Y - 1) / 2, z),
+				TIMBER,
+				Enum.Material.WoodPlanks
+			)
+			post.CanCollide = false
+		end
+		for level = 1, 3 do
+			local beam = part(
+				string.format("Traverse%d_%d_%d", side, x, level),
+				decor,
+				Vector3.new(11, 1.2, 1.4),
+				CFrame.new(x, level * 6, z),
+				TIMBER,
+				Enum.Material.WoodPlanks
+			)
+			beam.CanCollide = false
+		end
+	end
+end
+
+-- LES EBOULIS au pied des parois. Un mur qui rencontre un sol a angle droit
+-- se lit comme du decor de boite ; un tas de cailloux au pied se lit comme de
+-- la roche qui a ete cassee.
+for index = 1, 22 do
+	local angle = index * 2.399
+	local side = if index % 2 == 0 then 1 else -1
+	local x = side * (LEDGE_IN - 2 - (index % 4))
+	local z = ((index * 37) % 110) - 55
+	local size = 1.6 + (index % 4) * 0.9
+	local rubble = part(
+		string.format("Eboulis%d", index),
+		decor,
+		Vector3.new(size, size * 0.6, size * 0.8),
+		CFrame.new(x, size * 0.3, z) * CFrame.Angles(0, angle, 0),
+		if index % 3 == 0 then ROCK_LIGHT else ROCK_DARK,
+		Enum.Material.Rock
+	)
+	rubble.CanCollide = false
 end
 
 --------------------------------------------------------------------------------
@@ -922,14 +1140,14 @@ clouds.Parent = Workspace.Terrain
 -- 0,88 avaient mange les ombres qu'on venait d'acheter. La parade est de
 -- remonter la clarte ET l'ambiance exterieure : on veut un gris LUMINEUX, pas
 -- une nuit.
-Lighting.ClockTime = 8.4
+Lighting.ClockTime = 7.2
 Lighting.GeographicLatitude = 62
-Lighting.Brightness = 3.2
+Lighting.Brightness = 2.6
 Lighting.Ambient = Color3.fromRGB(66, 76, 92)
 Lighting.OutdoorAmbient = Color3.fromRGB(132, 146, 168)
 Lighting.ColorShift_Top = Color3.fromRGB(208, 224, 248)
 Lighting.ColorShift_Bottom = Color3.fromRGB(96, 112, 136)
-Lighting.ExposureCompensation = 0.1
+Lighting.ExposureCompensation = 0.28
 
 local atmosphere = Instance.new("Atmosphere")
 atmosphere.Density = 0.54
@@ -956,6 +1174,7 @@ grade.Brightness = 0.01
 grade.TintColor = Color3.fromRGB(228, 238, 255)
 grade.Parent = Lighting
 
+local alarms = 0
 local tech = "inconnue"
 pcall(function()
 	Lighting.Technology = Enum.Technology.Future
@@ -963,7 +1182,16 @@ end)
 pcall(function()
 	tech = Lighting.Technology.Name
 end)
-if tech ~= "Future" then
+if tech == "inconnue" then
+	-- Ecrit sans erreur, mais illisible : c'est le cas quand la recette passe
+	-- par le pont MCP, qui n'a pas le droit de RELIRE cette propriete. On ne
+	-- sait donc pas, et on le dit comme tel.
+	print(
+		"  Rendu : réglage envoyé, mais impossible à relire d'ici. À vérifier une "
+			.. "fois dans Explorer → Lighting → Properties → Technology = Future."
+	)
+elseif tech ~= "Future" then
+	alarms += 1
 	warn(
 		string.format(
 			"[Arena] Rendu en « %s » et pas « Future ». C'est le réglage qui change le "
@@ -973,6 +1201,8 @@ if tech ~= "Future" then
 			tech
 		)
 	)
+else
+	print("  Rendu : Future. Bon.")
 end
 Lighting.GlobalShadows = true
 Lighting.ShadowSoftness = 0.3
@@ -1000,6 +1230,54 @@ dof.Parent = Lighting
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Include
 params.FilterDescendantsInstances = { map }
+-- UNE SONDE QUI COMPTE LE DECOR COMPTE N'IMPORTE QUOI. Elle annoncait
+-- 14 directions couvertes sur 16, et le temoin a nomme les coupables : les
+-- croisillons du chevalement, des batons de 0,6 stud poses a
+-- `CanCollide = false` pour qu'on les traverse. Un rayon les arrete, un joueur
+-- passe au travers -- donc ce n'etait pas un couvert, et la mesure est tombee
+-- a 4 des qu'on a demande au rayon de respecter les collisions. La mesure
+-- etait precise et mesurait autre chose : meme famille que les deux
+-- `AbsolutePosition` lus dans deux reperes le 26 octobre.
+params.RespectCanCollide = true
+
+-- ET LA PORTEE DE LA MESURE EST LE DERNIER CERCLE LUI-MEME, pas un chiffre
+-- rond. Un couvert a vingt-huit studs du centre ne sert a rien dans un cercle
+-- qui en fait seize de rayon : la version d'avant portait a vingt-cinq et
+-- comptait donc des blocs hors du cercle ou la couverture compte. Le chiffre
+-- se demande a `Config` plutot que d'etre recopie, parce qu'une copie se
+-- perime en silence le jour ou Josh resserre la zone.
+local FINAL_RADIUS = 16
+do
+	local arena = game:GetService("ReplicatedStorage"):FindFirstChild("Arena")
+	local module = arena and arena:FindFirstChild("Config")
+	local ok, conf = false, nil
+	if module then
+		ok, conf = pcall(require, module)
+	end
+	local found = if ok and type(conf) == "table" and type(conf.round) == "table"
+		then tonumber(conf.round.zoneFinalRadiusStuds)
+		else nil
+	if found then
+		FINAL_RADIUS = found
+	else
+		-- UN AVERTISSEMENT QUI MENT COUTE PLUS CHER QUE PAS D'AVERTISSEMENT. La
+		-- premiere version disait « la place n'est pas synchronisee » quoi
+		-- qu'il arrive -- et elle l'a dit sur une place a jour au caractere
+		-- pres, parce que la cle vit dans `Config.round` et pas a la racine.
+		-- On part alors chercher un probleme de synchro qui n'existe pas,
+		-- exactement comme l'« Infinite yield » du 27 octobre. Donc le message
+		-- nomme ce qui manque VRAIMENT.
+		print(
+			string.format(
+				"  (couverture mesuree sur %d studs : %s)",
+				FINAL_RADIUS,
+				if module == nil
+					then "ReplicatedStorage.Arena.Config est absent, la place n'est pas synchronisee"
+					else "Config est la mais round.zoneFinalRadiusStuds ne s'y lit pas, la cle a bouge"
+			)
+		)
+	end
+end
 
 local EYE = 4.5 -- hauteur des yeux au-dessus du sol sur lequel on se tient
 
@@ -1033,6 +1311,7 @@ end
 if open == 0 then
 	print(string.format("  Departs : aucune des %d lignes n'est degagee. Bon.", pairs_))
 else
+	alarms += 1
 	warn(
 		string.format(
 			"[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs. "
@@ -1051,7 +1330,7 @@ end
 local covered = 0
 for step = 0, 15 do
 	local angle = step / 16 * math.pi * 2
-	local direction = Vector3.new(math.cos(angle), 0, math.sin(angle)) * 25
+	local direction = Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS
 	local hit = Workspace:Raycast(Vector3.new(0, EYE, 0), direction, params)
 	if hit then
 		covered += 1
@@ -1059,13 +1338,16 @@ for step = 0, 15 do
 end
 print(
 	string.format(
-		"  Cercle final : %d directions sur 16 trouvent un couvert a moins de 25 studs.",
-		covered
+		"  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs du dernier cercle.",
+		covered,
+		FINAL_RADIUS
 	)
 )
 if covered < 4 then
+	alarms += 1
 	warn("[Arena]   Le cercle final est trop nu : on s'y fait tirer de partout.")
-elseif covered > 11 then
+elseif covered > 12 then
+	alarms += 1
 	warn("[Arena]   Le cercle final est trop encombre : on ne peut plus s'y disputer.")
 end
 
@@ -1083,19 +1365,31 @@ for _, r in ramps do
 		)
 		return if hit then hit.Position.Y else -99
 	end
-	local climbs = groundAt(0.85) - groundAt(0.15)
-	if climbs < r.rise * 0.5 then
+	-- ON ECHANTILLONNE A 8 % ET 92 %, PAS AUX DEUX BOUTS : un rayon tire
+	-- exactement sur l'arete d'une rampe tombe a cote une fois sur deux. Il
+	-- faut donc ramener la montee mesuree a la longueur ENTIERE, sinon le
+	-- message annonce une rampe trop courte alors qu'elle va tres bien.
+	local span = 0.92 - 0.08
+	local measured = (groundAt(0.92) - groundAt(0.08)) / span
+	if measured < r.rise * 0.7 then
 		wrong += 1
 		warn(
 			string.format(
 				"[Arena]   %s ne monte pas : %.1f stud gagne la ou %.0f etaient attendus.",
 				r.name,
-				climbs,
+				measured,
 				r.rise
 			)
 		)
 	else
-		print(string.format("  %s monte de %.1f studs. Bon.", r.name, climbs))
+		print(
+			string.format(
+				"  %s monte de %.1f studs sur les %.0f voulus. Bon.",
+				r.name,
+				measured,
+				r.rise
+			)
+		)
 	end
 end
 
@@ -1112,10 +1406,13 @@ print(
 	)
 )
 
+alarms += wrong
 print(
 	string.format(
 		"[Arena] Carriere construite : %d parts.%s",
 		#map:GetDescendants(),
-		if open == 0 and wrong == 0 then " Rien a signaler." else " VOIR LES AVERTISSEMENTS."
+		if alarms == 0
+			then " Rien a signaler."
+			else string.format(" %d POINT(S) A REGARDER CI-DESSUS.", alarms)
 	)
 )

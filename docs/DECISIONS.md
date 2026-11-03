@@ -2131,6 +2131,33 @@ construire et à regarder avant d'être jugée — section 32 de `A-TESTER.md`.
 
 ---
 
+## Les blocs du cercle final, et le jaune — 3 novembre 2026
+
+Deux décisions prises seul en regardant la Carrière dans Studio.
+
+**J'ai ajouté quatre blocs de pierre taillée au centre.** La raison n'est pas
+esthétique : `Config.round.zoneFinalRadiusStuds` vaut 16, et les sept blocs de
+glace de la map sont tous à plus de 28 studs du centre. Le dernier cercle ne
+contenait donc que les quatre pieds du chevalement, 3,2 stud de côté. Les blocs
+vont sur les quatre directions cardinales parce que les pieds sont sur les
+diagonales, ce qui fait huit obstacles en étoile plutôt que quatre d'un côté.
+Hauteur à hauteur de poitrine ou juste au-dessus, pour qu'on choisisse de se
+baisser ou de tirer par-dessus. **C'est un changement de jeu, pas de décor** :
+si tu trouves le dernier cercle trop encombré, ce sont ces quatre-là qu'il faut
+retirer.
+
+**J'ai retiré le jaune de la rambarde de la passerelle.** Elle faisait 148 studs
+et traversait chaque capture en une bande vive au milieu de l'image. Je l'ai
+d'abord assombrie, sans effet : son problème était le contraste de teinte contre
+une map entièrement bleu et blanc, pas sa luminosité. Elle est passée à l'acier
+rouillé. **Le jaune survit sur les bordures des quatre rampes**, et c'est
+délibéré : ce sont les seules remontées de la map, donc le seul endroit où cette
+couleur dit quelque chose au joueur plutôt que de décorer.
+
+Le même arbitrage a été appliqué à l'écran du salon, où trois rangées de choix
+remplies en jaune plein voisinaient avec un bouton d'action jaune : un choix
+retenu se marque maintenant par son contour, et le plein reste à ce qui agit.
+
 ## Ce qui reste à Josh de toute façon
 
 Ces décisions-là ne sont pas les miennes et ne le seront jamais : savoir si

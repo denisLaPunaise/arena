@@ -1620,6 +1620,45 @@ cette nuit et que personne n'avait mesuré.
 
 ---
 
+## 33. Ce que Studio a dit le 3 novembre — **vu à l'écran, enfin**
+
+Studio était ouvert, donc tout ce qui était « jamais vu » des sections 31 et 32
+l'a été. Six défauts trouvés en regardant, zéro par les 1578 tests. Ce qui
+reste à **toi**, et que rien d'ici ne remplace :
+
+**La Carrière, maintenant qu'elle existe pour de vrai (350 parts).**
+
+- Le dernier cercle a enfin des couverts : quatre blocs de pierre taillée posés
+  sur les quatre directions cardinales, entre les pieds du chevalement qui sont
+  sur les diagonales. Avant il n'y avait QUE les quatre pieds, de 3,2 stud de
+  côté, dans un cercle de seize de rayon — un duel final à découvert. Mesuré :
+  7 directions sur 16 trouvent un couvert réel.
+- **La question pour toi : est-ce qu'on se bat bien dans ce dernier cercle ?**
+  Sept sur seize est le milieu de ma fourchette, pas une certitude. Trop peu, on
+  s'y fait tirer de partout ; trop, on s'y terre.
+- Le soleil est descendu de 27,4° à 14,0°, donc les ombres TRAVERSENT au lieu de
+  tomber sous chaque objet. C'est le réglage qui a le plus changé l'allure.
+- La rambarde de la passerelle est passée du jaune vif à l'acier rouillé. Le
+  jaune ne reste que sur les bordures des quatre rampes.
+
+**Le menu d'accueil.** Il s'affiche, il est lisible, et les trois vues
+fonctionnent : accueil, réglages du salon, entrée du code.
+
+- **Ce que Studio ne peut PAS montrer** : en Studio `Venue` répond toujours
+  « serveur privé », donc **Créer un salon** et **Rejoindre** n'y apparaissent
+  jamais. Je les ai rendues visibles à la main le temps des captures. Le menu à
+  trois cartes ne sera vraiment éprouvé qu'**après publication**.
+- `ReserveServer` ne marche toujours pas en Studio : le code de salon n'a
+  jamais voyagé. Il faut la publication et deux comptes.
+- Trois corrections d'affichage faites en regardant : la carte seule prenait un
+  tiers du panneau, le panneau gardait la hauteur de trois cartes, et le contour
+  des choix retenus cernait le texte au lieu du cadre (illisible).
+
+**La question d'équilibrage qui reste entière** : la Carrière n'a jamais été
+jouée, par personne. « On descend vite, on remonte lentement » est une intention
+mesurée au rayon — 104 studs de chemin à découvert pour remonter contre 24 de
+chute — pas une sensation vérifiée.
+
 ## Ce qui reste à faire de mon côté
 
 Pour que tu saches où on en est, et ce que ça ne sert à rien de me signaler :
