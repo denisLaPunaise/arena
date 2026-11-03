@@ -1774,8 +1774,13 @@ honnête, réussites et échecs.
 
 ### Ce qui a été corrigé sans toi
 
-- **L'ombre tombait sur un camp et pas sur l'autre.** Au Sanctuaire, camp A
-  zéro départ sur cinq à l'ombre, camp B **quatre sur cinq**. Le soleil rasant
+- **L'ombre tombait sur un camp et pas sur l'autre, sur DEUX maps.** Au
+  Sanctuaire, camp A zéro départ sur cinq à l'ombre, camp B **quatre sur
+  cinq** ; au Colisée, **cinq contre deux** — et celui-là, c'est le garde-fou
+  tout neuf qui l'a trouvé, à la construction suivante. Les deux sont à zéro
+  d'écart maintenant (2 et 2 au Sanctuaire, 5 et 5 au Colisée). Au Colisée la
+  contrainte d'abord : l'heure dorée est la direction artistique de la map et
+  `ClockTime` commande aussi le ciel, donc seule la latitude a bougé. Le soleil rasant
   arrivait dans l'axe des deux camps : l'un apparaissait dans le noir, l'autre
   face au soleil. Le soleil a été tourné perpendiculairement à cet axe —
   toujours rasant (13 degrés, donc les ombres restent) — et c'est tombé à deux

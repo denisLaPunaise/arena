@@ -784,8 +784,20 @@ map.Parent = Workspace
 -- il n'y en avait aucune : le soleil etait mesure a 37 degres au-dessus de
 -- l'horizon, donc chaque pilier posait son ombre a son pied. A 17h il rase,
 -- et les quarante-huit piliers de l'arcade rayent le sol de l'arene.
-Lighting.ClockTime = 17
-Lighting.GeographicLatitude = 20
+-- LE SOLEIL SE POSE PERPENDICULAIREMENT A L'AXE DES DEUX CAMPS. Avant
+-- correction, la mesure disait CINQ departs sur cinq a l'ombre d'un cote et
+-- DEUX de l'autre : celui qui apparait dans l'ombre est plus dur a voir, celui
+-- qui regarde le soleil est ebloui. L'eclairage distribuait un avantage.
+--
+-- La contrainte d'abord, l'optimisation ensuite : l'heure doree est la
+-- direction artistique de cette map, et `ClockTime` commande aussi le CIEL,
+-- donc on reste en fin d'apres-midi et on ne cherche que la latitude. Trouve
+-- par balayage sur la map construite -- un anneau ferme porte autant d'ombre
+-- par sa propre paroi que par son orientation, donc on MESURE au lieu de
+-- calculer un azimut dans le vide. Resultat : 11,6 degres d'elevation, et
+-- cinq departs a l'ombre de chaque cote.
+Lighting.ClockTime = 15
+Lighting.GeographicLatitude = -50
 Lighting.Brightness = 3.1
 Lighting.Ambient = Color3.fromRGB(78, 68, 58)
 Lighting.OutdoorAmbient = Color3.fromRGB(134, 120, 98)
