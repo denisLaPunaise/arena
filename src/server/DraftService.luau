@@ -28,6 +28,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Classes = require(Arena:WaitForChild("Classes"))
 local Config = require(Arena:WaitForChild("Config"))
+local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
 local Draft = require(Arena:WaitForChild("Draft"))
 local Seating = require(Arena:WaitForChild("Seating"))
 
@@ -343,21 +344,23 @@ function DraftService.run(
 end
 
 function DraftService.init()
-	draftRemote.OnServerEvent:Connect(function(player: Player, payload: any)
-		-- Hors fenetre, on ignore : c'est la facon la plus simple de ne pas
-		-- avoir a se demander ce qu'un vote veut dire pendant une manche.
-		if not listening or typeof(payload) ~= "table" then
-			return
-		end
+	draftRemote.OnServerEvent:Connect(
+		RemoteGuard.wrap("Draft", function(player: Player, payload: any)
+			-- Hors fenetre, on ignore : c'est la facon la plus simple de ne pas
+			-- avoir a se demander ce qu'un vote veut dire pendant une manche.
+			if not listening or typeof(payload) ~= "table" then
+				return
+			end
 
-		if typeof(payload.vote) == "string" then
-			banVotes[player] = payload.vote
-		elseif typeof(payload.pick) == "string" then
-			classPicked[player] = payload.pick
-		elseif payload.reroll == true then
-			rerollAsked[player] = true
-		end
-	end)
+			if typeof(payload.vote) == "string" then
+				banVotes[player] = payload.vote
+			elseif typeof(payload.pick) == "string" then
+				classPicked[player] = payload.pick
+			elseif payload.reroll == true then
+				rerollAsked[player] = true
+			end
+		end)
+	)
 
 	Players.PlayerRemoving:Connect(function(player: Player)
 		banVotes[player] = nil

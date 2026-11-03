@@ -49,6 +49,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Config = require(Arena:WaitForChild("Config"))
+local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
 local Classes = require(Arena:WaitForChild("Classes"))
 local MatchState = require(Arena:WaitForChild("MatchState"))
 local Seating = require(Arena:WaitForChild("Seating"))
@@ -1054,98 +1055,104 @@ function MatchService.start()
 	-- partie » : entre amis dans leur propre serveur, un systeme d'hote serait
 	-- de la complexite pour rien, et quelqu'un qui embete les autres est un
 	-- probleme d'amis, pas de code.
-	lobbyRemote.OnServerEvent:Connect(function(player: Player, payload: any)
-		if typeof(payload) ~= "table" then
-			return
-		end
+	lobbyRemote.OnServerEvent:Connect(
+		RemoteGuard.wrap("Lobby", function(player: Player, payload: any)
+			if typeof(payload) ~= "table" then
+				return
+			end
 
-		-- Ouvrir, fermer et demander l'etat repondent TOUJOURS, meme en partie
-		-- classee : la reponse dit alors `allowed = false`, et le panneau sait
-		-- qu'il ne doit pas s'ouvrir. Sans reponse, il ne saurait pas faire la
-		-- difference entre « interdit » et « le serveur n'a pas encore parle ».
-		if payload.query == true then
-			pushLobby(player)
-			return
-		end
-		if payload.open == true then
-			watchingLobby[player] = lobbyAllowed() or nil
-			pushLobby(player)
-			return
-		end
-		if payload.close == true then
-			watchingLobby[player] = nil
-			return
-		end
+			-- Ouvrir, fermer et demander l'etat repondent TOUJOURS, meme en partie
+			-- classee : la reponse dit alors `allowed = false`, et le panneau sait
+			-- qu'il ne doit pas s'ouvrir. Sans reponse, il ne saurait pas faire la
+			-- difference entre « interdit » et « le serveur n'a pas encore parle ».
+			if payload.query == true then
+				pushLobby(player)
+				return
+			end
+			if payload.open == true then
+				watchingLobby[player] = lobbyAllowed() or nil
+				pushLobby(player)
+				return
+			end
+			if payload.close == true then
+				watchingLobby[player] = nil
+				return
+			end
 
-		-- Tout ce qui MODIFIE un reglage s'arrete ici en partie classee.
-		if not lobbyAllowed() then
-			return
-		end
+			-- Tout ce qui MODIFIE un reglage s'arrete ici en partie classee.
+			if not lobbyAllowed() then
+				return
+			end
 
-		-- LE CAMP. Nil ramene a « auto ».
-		if payload.side ~= nil or payload.clearSide == true then
-			local asked = payload.side
-			if asked == nil or asked == Seating.AUTO then
-				wantedSide[player] = nil
-			elseif typeof(asked) == "string" then
-				for _, team in Seating.teamNames(Config) do
-					if asked == team then
-						wantedSide[player] = asked
-						break
+			-- LE CAMP. Nil ramene a « auto ».
+			if payload.side ~= nil or payload.clearSide == true then
+				local asked = payload.side
+				if asked == nil or asked == Seating.AUTO then
+					wantedSide[player] = nil
+				elseif typeof(asked) == "string" then
+					for _, team in Seating.teamNames(Config) do
+						if asked == team then
+							wantedSide[player] = asked
+							break
+						end
+					end
+				end
+				pushLobby(player)
+			end
+
+			-- LE FORMAT. « auto » est accepte, et c'est le seul nom qui ne soit pas
+			-- celui d'un format.
+			if typeof(payload.formatId) == "string" then
+				local asked = payload.formatId
+				if asked == Seating.AUTO or Seating.formatById(Config, asked) ~= nil then
+					if lobby.formatId ~= asked then
+						lobby.formatId = asked
+						announce(
+							string.format(
+								"%s a choisi le format : %s",
+								player.Name,
+								formatLabel(asked)
+							)
+						)
 					end
 				end
 			end
-			pushLobby(player)
-		end
 
-		-- LE FORMAT. « auto » est accepte, et c'est le seul nom qui ne soit pas
-		-- celui d'un format.
-		if typeof(payload.formatId) == "string" then
-			local asked = payload.formatId
-			if asked == Seating.AUTO or Seating.formatById(Config, asked) ~= nil then
-				if lobby.formatId ~= asked then
-					lobby.formatId = asked
-					announce(
-						string.format("%s a choisi le format : %s", player.Name, formatLabel(asked))
-					)
-				end
-			end
-		end
-
-		-- LA FACON DONT LES CLASSES ARRIVENT.
-		if typeof(payload.classMode) == "string" then
-			local asked = payload.classMode
-			if asked == Seating.DRAWN or asked == Seating.PICKED then
-				if lobby.classMode ~= asked then
-					lobby.classMode = asked
-					announce(
-						string.format(
-							"%s a choisi les classes : %s",
-							player.Name,
-							classModeLabel(asked)
+			-- LA FACON DONT LES CLASSES ARRIVENT.
+			if typeof(payload.classMode) == "string" then
+				local asked = payload.classMode
+				if asked == Seating.DRAWN or asked == Seating.PICKED then
+					if lobby.classMode ~= asked then
+						lobby.classMode = asked
+						announce(
+							string.format(
+								"%s a choisi les classes : %s",
+								player.Name,
+								classModeLabel(asked)
+							)
 						)
-					)
+					end
 				end
 			end
-		end
 
-		-- LA FACON DE COMPOSER LES CAMPS.
-		if typeof(payload.teamMode) == "string" then
-			local asked = payload.teamMode
-			if asked == Seating.CHOSEN or asked == Seating.RANDOM then
-				if lobby.teamMode ~= asked then
-					lobby.teamMode = asked
-					announce(
-						string.format(
-							"%s a choisi les équipes : %s",
-							player.Name,
-							teamModeLabel(asked)
+			-- LA FACON DE COMPOSER LES CAMPS.
+			if typeof(payload.teamMode) == "string" then
+				local asked = payload.teamMode
+				if asked == Seating.CHOSEN or asked == Seating.RANDOM then
+					if lobby.teamMode ~= asked then
+						lobby.teamMode = asked
+						announce(
+							string.format(
+								"%s a choisi les équipes : %s",
+								player.Name,
+								teamModeLabel(asked)
+							)
 						)
-					)
+					end
 				end
 			end
-		end
-	end)
+		end)
+	)
 
 	-- Un achat recalcule les statistiques tout de suite, meme si elles ne seront
 	-- posees sur le personnage qu'a la prochaine apparition : l'interface lit le

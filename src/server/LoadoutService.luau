@@ -38,6 +38,7 @@ local Workspace = game:GetService("Workspace")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Config = require(Arena:WaitForChild("Config"))
+local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
 local Combat = require(Arena:WaitForChild("Combat"))
 local Loadout = require(Arena:WaitForChild("Loadout"))
 local Modifiers = require(Arena:WaitForChild("Modifiers"))
@@ -672,7 +673,8 @@ local function throwGrenade(entry: Entry, use: any): boolean
 	-- Une vraie grenade : elle part en cloche et elle rebondit. Une explosion
 	-- posee a l'endroit vise serait plus facile a coder et beaucoup moins
 	-- interessante a jouer, parce qu'on ne pourrait pas la rater.
-	part.AssemblyLinearVelocity = (direction * use.throwStuds) + Vector3.new(0, 22, 0)
+	part.AssemblyLinearVelocity = (direction * use.throwStuds)
+		+ Vector3.new(0, Config.loadout.throwLiftStuds, 0)
 
 	table.insert(grenades, {
 		owner = entry.player,
@@ -985,7 +987,7 @@ local function throwAt(entry: Entry, use: any): boolean
 		end
 		local toward = victimRoot.Position - origin
 		local distance = toward.Magnitude
-		if toward.Unit:Dot(root.CFrame.LookVector) < 0.35 then
+		if toward.Unit:Dot(root.CFrame.LookVector) < Config.loadout.throwTargetConeDot then
 			continue
 		end
 		if distance < bestDistance then
@@ -1243,7 +1245,15 @@ local function updateGrenades(now: number)
 		-- l'Artificier. Les degats aux allies sont un sujet que la fiche
 		-- n'ouvre jamais, et l'ouvrir ici en cachette serait une decision de
 		-- conception.
-		blast(position, grenade.team, grenade.damage, grenade.radius, 30, 20, grenade.status)
+		blast(
+			position,
+			grenade.team,
+			grenade.damage,
+			grenade.radius,
+			Config.loadout.grenadeKnockbackStuds,
+			Config.loadout.grenadeKnockbackUpStuds,
+			grenade.status
+		)
 	end
 end
 
@@ -1529,7 +1539,7 @@ end
 function LoadoutService.init()
 	WeaponService.init()
 
-	loadoutRemote.OnServerEvent:Connect(onClientEvent)
+	loadoutRemote.OnServerEvent:Connect(RemoteGuard.wrap("Loadout", onClientEvent))
 
 	Players.PlayerRemoving:Connect(function(player)
 		chosen[player] = nil

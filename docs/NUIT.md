@@ -8,7 +8,7 @@ Ce fichier sert à deux choses : reprendre le travail si la session s'arrête, e
 
 ## Battement
 
-Dernière activité : 2026-11-04 00:35 (mettre à jour à chaque étape — une reprise
+Dernière activité : 2026-11-04 00:43 (mettre à jour à chaque étape — une reprise
 automatique ne démarre pas si ce battement a moins de 40 minutes)
 
 ## Mandat, dans l'ordre
@@ -32,3 +32,9 @@ automatique ne démarre pas si ce battement a moins de 40 minutes)
 ## Journal
 
 - 00:32 — branche créée, fichier de suivi posé.
+- Checkup code : tests/selene/stylua verts au départ (1578). Place = dépôt octet pour octet.
+- Trouvé et corrigé : **l'accélération des nouveaux joueurs n'était jamais appliquée** (Economy.isBoosted). Branchée + test.
+- Nouveau test `wiring` : toute fonction pure exportée doit être appelée par le jeu, ou excusée par écrit.
+- 19 chiffres des paliers 6 en dur → `Config.abilities.tier6` ; 4 chiffres de lancer/grenade → `Config.loadout` (valeurs inchangées).
+- Touches E, T, P en dur → lues dans Config, ajoutées au test des collisions. Vérifié en jeu : toutes les touches résolvent.
+- Garde-fou d'inondation sur les 6 remotes d'interface (`Throttle` + `RemoteGuard`), seau 12 jetons / 8 par s. Vérifié : démarrage propre.

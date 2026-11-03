@@ -34,6 +34,7 @@ local RunService = game:GetService("RunService")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Config = require(Arena:WaitForChild("Config"))
+local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
 local Draws = require(Arena:WaitForChild("Draws"))
 local Economy = require(Arena:WaitForChild("Economy"))
 local Loadout = require(Arena:WaitForChild("Loadout"))
@@ -528,7 +529,7 @@ function ProgressService.init()
 		end
 	end)
 
-	progressRemote.OnServerEvent:Connect(onClientEvent)
+	progressRemote.OnServerEvent:Connect(RemoteGuard.wrap("Progress", onClientEvent))
 end
 
 return ProgressService

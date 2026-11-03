@@ -47,6 +47,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Config = require(Arena:WaitForChild("Config"))
+local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
 local Lobbies = require(Arena:WaitForChild("Lobbies"))
 local Seating = require(Arena:WaitForChild("Seating"))
 
@@ -337,7 +338,7 @@ function MenuService.init()
 		MenuService.pushAll()
 	end)
 
-	menuRemote.OnServerEvent:Connect(function(player: Player, payload: any)
+	menuRemote.OnServerEvent:Connect(RemoteGuard.wrap("Menu", function(player: Player, payload: any)
 		if typeof(payload) ~= "table" then
 			return
 		end
@@ -373,7 +374,7 @@ function MenuService.init()
 		elseif payload.join ~= nil then
 			join(player, payload.join)
 		end
-	end)
+	end))
 
 	print(
 		string.format(

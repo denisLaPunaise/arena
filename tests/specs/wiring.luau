@@ -17,6 +17,9 @@
 
 local fs = require("@lune/fs")
 
+local Config = require("../../src/shared/Config")
+local Throttle = require("../../src/shared/Throttle")
+
 local harness = require("../harness")
 
 -- Nom complet -> raison. Une raison qui dit « pas encore » doit disparaitre le
@@ -108,4 +111,58 @@ return function(t: harness.Harness)
 	-- branchee, la raison ecrite ici est donc fausse.
 	table.sort(stale)
 	t.equal("aucune excuse perimee (" .. table.concat(stale, ", ") .. ")", #stale, 0)
+
+	t.section("Le garde-fou contre l'inondation")
+
+	do
+		local settings = Config.network.remoteThrottle
+		local buckets = {}
+		local passed = 0
+		for _ = 1, settings.burst do
+			if Throttle.allow(buckets, "p", 0, settings) then
+				passed += 1
+			end
+		end
+		t.equal("une rafale de la taille du seau passe entiere", passed, settings.burst)
+		t.equal(
+			"le message suivant, au meme instant, est refuse",
+			Throttle.allow(buckets, "p", 0, settings),
+			false
+		)
+		t.equal("un autre joueur n'en paie rien", Throttle.allow(buckets, "q", 0, settings), true)
+		t.equal(
+			"une seconde plus tard, ca repasse",
+			Throttle.allow(buckets, "p", 1, settings),
+			true
+		)
+
+		-- Un humain : un clic tous les 150 ms pendant une minute.
+		local human = {}
+		local refused = 0
+		for i = 0, 400 do
+			if not Throttle.allow(human, "h", i * 0.15, settings) then
+				refused += 1
+			end
+		end
+		t.equal("un humain qui clique toutes les 150 ms n'est jamais coupe", refused, 0)
+
+		-- Un script : cent messages par seconde pendant dix secondes.
+		local bot = {}
+		local through = 0
+		for i = 0, 999 do
+			if Throttle.allow(bot, "b", i * 0.01, settings) then
+				through += 1
+			end
+		end
+		t.equal(
+			"un script a cent par seconde est ramene au debit du seau",
+			through <= settings.burst + (10 * settings.perSecond) + 1,
+			true
+		)
+		t.equal(
+			"une horloge qui recule ne remplit ni ne vide rien",
+			Throttle.allow({ x = { tokens = 0, at = 5 } }, "x", 4, settings),
+			false
+		)
+	end
 end

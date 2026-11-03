@@ -47,6 +47,7 @@ local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Classes = require(Arena:WaitForChild("Classes"))
 local Combat = require(Arena:WaitForChild("Combat"))
 local Config = require(Arena:WaitForChild("Config"))
+local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
 
 local Remotes = Arena:WaitForChild("Remotes")
 local hudRemote = Remotes:WaitForChild("Hud") :: RemoteEvent
@@ -787,7 +788,7 @@ function SandboxService.run(resolvedMap: Instance, player: Player)
 end
 
 function SandboxService.init()
-	sandboxRemote.OnServerEvent:Connect(onClientEvent)
+	sandboxRemote.OnServerEvent:Connect(RemoteGuard.wrap("Sandbox", onClientEvent))
 
 	-- Un garde-fou dans l'esprit des autres : une classe de depart ou de
 	-- mannequin qui n'existe pas donnerait un joueur sans PV ni attaque, ou un

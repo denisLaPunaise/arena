@@ -1069,6 +1069,18 @@ Config.loadout = {
 	maxUsableSlots = 4,
 	useKeys = { "One", "Two", "Three", "Four" },
 
+	-- LES LANCERS ET LES EXPLOSIONS D'OBJETS. Ces trois chiffres etaient en dur
+	-- dans `LoadoutService` jusqu'au 4 novembre 2026 ; valeurs inchangees.
+	-- 22 studs/s vers le haut donnent la cloche d'un lancer a bout de bras ;
+	-- la poussee d'une grenade est un peu moins forte que celle d'une mine,
+	-- parce qu'elle se lance de loin et qu'on ne la voit pas venir.
+	throwLiftStuds = 22,
+	grenadeKnockbackStuds = 30,
+	grenadeKnockbackUpStuds = 20,
+	-- Un lancer vise ne choisit que les cibles devant soi : 0,35 de produit
+	-- scalaire, soit environ 70 degres de part et d'autre du regard.
+	throwTargetConeDot = 0.35,
+
 	-- Une demi-seconde entre deux utilisations, toutes charges confondues. Sans
 	-- ca, deux grenades partent dans la meme seconde et la zone devient un
 	-- feu d'artifice.
@@ -12100,6 +12112,19 @@ Config.abilities = {
 		fieldRegenRadiusStuds = 24,
 		fieldRegenPerSecond = 4,
 	},
+}
+
+--------------------------------------------------------------------------------
+-- LE RESEAU
+--------------------------------------------------------------------------------
+
+Config.network = {
+	-- Le debit qu'un client peut tenir sur un remote d'interface (salon, menu,
+	-- caisses, bac a sable, tirage, equipement). Un seau de douze jetons qui se
+	-- remplit de huit par seconde : un humain qui clique comme un forcene
+	-- plafonne vers six, et une rafale de douze couvre un panneau qui envoie
+	-- plusieurs messages d'un meme geste. Au-dela, c'est un script.
+	remoteThrottle = { burst = 12, perSecond = 8 },
 }
 
 Config.mapContract = {
