@@ -8,7 +8,7 @@ Ce fichier sert à deux choses : reprendre le travail si la session s'arrête, e
 
 ## Battement
 
-Dernière activité : 2026-11-04 01:44 (mettre à jour à chaque étape — une reprise
+Dernière activité : 2026-11-04 01:47 (mettre à jour à chaque étape — une reprise
 automatique ne démarre pas si ce battement a moins de 40 minutes)
 
 ## Mandat, dans l'ordre
@@ -48,3 +48,4 @@ automatique ne démarre pas si ce battement a moins de 40 minutes)
 - Limite rencontrée : `generate_mesh` lancé 13 fois en parallèle → 7 refus « Too Many Requests ». Relancés un par un, tous passés.
 - **BUG MAJEUR trouvé : les attaques traversaient les murs.** Le ciblage prenait l'ennemi le plus proche dans la portée, sans ligne de vue. Corrigé : le plus proche ennemi EN VUE. Mannequins du bac à sable soumis à la même règle — vérifié en jeu : 3 coups derrière un mur = 0 dégât, 3 coups sans mur = 29 dégâts.
 - **Map 5 — Le Bazar** (`tools/BuildBazarMap.luau`) : marché de nuit, trois allées parallèles, ruelles de traverse décalées. Mesures : 0/25 lignes, cercle 8/16, enfilade max 54 studs, diagonale max 89 (dit tel quel). Trois défauts trouvés par la mesure (ruelles alignées → 115 studs ; ligne médiane des allées du bord → 114 ; lampadaires amincis → 2 lignes rouvertes) et deux à l'écran (tout orange ; fûts laiton).
+- **Map 6 — La Serre** (`tools/BuildSerreMap.luau`) : jardin d'hiver sous verre, labyrinthe rayonnant ; on voit le centre de partout (10/10 départs, mesuré), on ne passe pas. Repose sur la nouvelle règle de ligne de vue. Mesures : 0/25 lignes, cercle 4/16 (le plancher), ombre 0/0, soleil 18,5° trouvé par balayage.
