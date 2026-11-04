@@ -8,7 +8,7 @@ Ce fichier sert à deux choses : reprendre le travail si la session s'arrête, e
 
 ## Battement
 
-Dernière activité : 2026-11-04 05:19 (mettre à jour à chaque étape — une reprise
+Dernière activité : 2026-11-04 05:23 (mettre à jour à chaque étape — une reprise
 automatique ne démarre pas si ce battement a moins de 40 minutes)
 
 ## Mandat, dans l'ordre
@@ -92,14 +92,15 @@ intact. 1 818 vérifications (1 578 au départ), Selene et StyLua propres.
   tout et on ne passe pas), le Bois brumeux (brouillard, embuscade).
 - **La rotation des sept maps** : une par partie, jamais deux fois de suite,
   avec son éclairage.
+- **Les conteneurs du Cargo** ont une tôle nervurée (matière générée, choisie
+  parmi quatre sur la map) : surface couverte 43 % → 63 %. Reste à juger : les
+  conteneurs **rouillés rouges**, d'avant cette nuit, font léopard de loin.
 
 ### Ce que je n'ai pas fait, et pourquoi
 
 - **De nouveaux objets** : les 62 sont équiprobables et leurs cotes s'affichent
   pour respecter Roblox. Un objet de plus change les cotes, la collection et le
   budget, et la fiche dit d'abord d'équilibrer à 62.
-- **Les matières du Cargo** (56,6 % de sa surface sans matière générée) :
-  du visuel, gardé pour après les vrais tests.
 - **Jouer à plusieurs** : impossible seul. Tout ce qui vise quelqu'un n'a
   touché que des mannequins.
 

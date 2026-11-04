@@ -1937,6 +1937,13 @@ joueurs présents sont déplacés au centre de la nouvelle map).
 - **Sanctuaire** : deux lignes de 147 studs → zéro (quatre lanternes de pierre
   sur les angles du gradin).
 
+### 6 bis. Le Cargo
+
+Les conteneurs de métal peint portent une tôle nervurée générée (choisie parmi
+quatre, sur la map, depuis le départ du camp A). 63 % de la surface visible a
+maintenant une matière générée, contre 43 %. **À juger :** les conteneurs
+rouillés rouges, qui font léopard à distance — défaut d'avant cette nuit.
+
 ### 7. Le reste, invisible en jouant
 
 Garde-fou contre l'inondation sur les sept remotes d'interface ; dix-neuf

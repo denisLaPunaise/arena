@@ -142,7 +142,12 @@ local function materials(list)
 		-- c'etaient des tranchees. Vu a l'ecran le 3 novembre 2026.
 		v.StudsPerTile = m.studs
 		v.Parent = folder
-		byBase[m.base] = m.name
+		-- `global = false` : la variante existe, mais `part()` ne la pose pas
+		-- toute seule sur sa matiere de base. C'est le cas de la tole des
+		-- conteneurs, qui ferait des nervures aux poutres et aux rails.
+		if m.global ~= false then
+			byBase[m.base] = m.name
+		end
 	end
 	return byBase
 end
@@ -168,6 +173,24 @@ local VARIANT_FOR = materials({
 		metal = 90879211939722,
 		rough = 117535133447299,
 		studs = 5,
+	},
+	-- LA TOLE DES CONTENEURS. 56,6 % de la surface visible du Cargo ne portait
+	-- aucune matiere generee, et c'etait surtout ses conteneurs : des aplats de
+	-- couleur. Choisie le 4 novembre 2026 parmi quatre variantes, regardees
+	-- sur la map depuis le depart du camp A : nervures verticales nettes, qui
+	-- disent « conteneur » a vingt studs. Les trois autres : nervures
+	-- horizontales (des volets), un ondule trop brillant qui rayait toute
+	-- l'image, et des joints de panneaux qui lisaient comme des portes. Teinte
+	-- grise NEUTRE exprès : la couleur de chaque conteneur la multiplie.
+	{
+		name = "ArenaConteneurCargo",
+		base = Enum.Material.Metal,
+		color = 87461932417151,
+		normal = 138140081794292,
+		metal = 101245477278000,
+		rough = 135659760517668,
+		studs = 10,
+		global = false,
 	},
 })
 
@@ -250,6 +273,10 @@ local function container(name, parent, pos, yaw, len, color, hasDoors)
 		color,
 		mat
 	)
+	-- La tole nervuree, seulement sur le corps des conteneurs de metal peint.
+	if mat == Enum.Material.Metal then
+		body.MaterialVariant = "ArenaConteneurCargo"
+	end
 	-- LES DEUX ARETES HAUTES SONT BISEAUTEES. Un conteneur vu d'en bas est
 	-- une boite posee ; le meme avec son dessus casse se lit comme de la tole
 	-- pliee. C'est le biseau le plus rentable de la map parce qu'il y a une
