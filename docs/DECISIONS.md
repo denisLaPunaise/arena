@@ -2259,3 +2259,10 @@ est notée ici, avec sa raison, pour pouvoir être défaite le lendemain.
   explosions et lancers ne sont **pas** touchés : ils restent des effets de
   zone. À regarder en priorité en jouant à plusieurs : c'est le changement
   de la nuit qui modifie le plus le jeu.
+- **Les maps tournent : au hasard, jamais deux fois de suite la même.** Sept
+  recettes et une seule map jouée : `MapService` prenait la première de
+  `Workspace`. Une rotation fixe s'apprend et avantage qui la connaît ; un
+  hasard sans mémoire ressert trois fois la même. La map change **entre deux
+  parties**, jamais pendant. Les maps attendent dans `ServerStorage.ArenaMaps`,
+  rangées par `tools/StashMap.luau` avec leur éclairage et leurs matières.
+  `Config.maps.rotate = false` rend l'ancien comportement.

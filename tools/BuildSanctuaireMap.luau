@@ -178,7 +178,11 @@ local VARIANT_FOR = materials({
 	-- studs par tuile ici contre cinq la-bas, donc des blocs de temple plutot
 	-- que des assises d'amphitheatre.
 	{
-		name = "ArenaGrainClair",
+		-- Un nom a elle : le Colisee pose la meme texture sous le meme nom avec
+		-- une autre taille de tuile, et deux variantes du meme nom sur la meme
+		-- matiere de base se tirent au sort a l'affichage des que les maps
+		-- cohabitent dans ServerStorage pour la rotation.
+		name = "ArenaGrainClairSanctuaire",
 		base = Enum.Material.Marble,
 		color = 100882710664705,
 		normal = 126187340383914,

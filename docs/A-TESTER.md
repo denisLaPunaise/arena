@@ -1904,11 +1904,17 @@ avec le point de revanche. **À regarder :** si ça vaut la peine, ou si c'est u
 Les vingt premières parties paient au moins 500 pièces (une caisse toutes les
 deux parties), même en perdant. C'était dans `Config` et jamais appliqué.
 
-### 5. Trois nouvelles maps — **une seule map existe à la fois dans la place**
+### 5. Trois nouvelles maps, et les sept tournent
 
-Elles se construisent en collant leur recette (`tools/BuildBazarMap.luau`,
-`BuildSerreMap.luau`, `BuildBoisMap.luau`), qui détruit la map précédente. La
-place est restée sur **le Sanctuaire**.
+**La rotation** : à chaque nouvelle partie, une map au hasard parmi les sept,
+jamais la même deux fois de suite, avec son éclairage. Les maps attendent dans
+`ServerStorage.ArenaMaps` ; **en mode édition, `Workspace` n'a plus de map, et
+c'est voulu** — le serveur en sort une au démarrage. **Il faut enregistrer la
+place** (Ctrl+S ou publier) : le rangement n'existe que dans la place ouverte.
+S'il se perdait, les recettes le refont : chaque recette, puis
+`tools/StashMap.luau`. **À regarder à deux :** que la map change bien d'une
+partie à l'autre, et que le passage ne laisse personne tomber dans le vide (les
+joueurs présents sont déplacés au centre de la nouvelle map).
 
 - **Le Bazar** — marché de nuit, trois allées parallèles. Question : quelle
   allée prendre, et quand traverser. À regarder : si la nuit est assez claire

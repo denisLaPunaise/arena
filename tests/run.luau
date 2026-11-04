@@ -34,6 +34,7 @@ local suites = {
 	{ name = "Corps standard", run = require("./specs/body") },
 	{ name = "Accueil et codes de salon", run = require("./specs/menu") },
 	{ name = "Couvre-chefs de classe", run = require("./specs/classlooks") },
+	{ name = "Rotation des maps", run = require("./specs/maps") },
 	{ name = "Regles branchees", run = require("./specs/wiring") },
 }
 

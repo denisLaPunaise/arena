@@ -193,9 +193,10 @@ vérifier en jouant est la section 36 d'`A-TESTER.md`. En bref :
 - **Chaque classe a un couvre-chef** : quatorze maillages `generate_mesh`,
   identifiants dans `src/shared/ClassLooks.luau`, posés par
   `WeaponService.attachHeadgear` (joueurs, mannequins, corps d'examen).
-- **Trois maps de plus** : `BuildBazarMap`, `BuildSerreMap`, `BuildBoisMap`.
-  Sept recettes, et **toujours une seule map à la fois** : la rotation des maps
-  n'existe pas, c'est le prochain chantier évident.
+- **Trois maps de plus** : `BuildBazarMap`, `BuildSerreMap`, `BuildBoisMap`,
+  et **les sept tournent** : rangées dans `ServerStorage.ArenaMaps` par
+  `tools/StashMap.luau`, sorties par `MapService.rotate` à chaque partie. En
+  mode édition, `Workspace` n'a donc plus de map — c'est voulu.
 - Les deux défauts de tir du Colisée et du Sanctuaire sont corrigés, la
   bannière aussi. Il reste **56,6 % de la surface du Cargo** sans matière
   générée.

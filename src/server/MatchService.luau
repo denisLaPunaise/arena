@@ -995,6 +995,18 @@ local function loop()
 			print(string.format("[Arena] %s : %d joueur(s) sur le banc.", plan.formatId, #watching))
 		end
 
+		-- LA MAP CHANGE ENTRE DEUX PARTIES, jamais pendant. Sept recettes pour
+		-- une seule map jouee, jusqu'au 4 novembre 2026 : `MapService` prenait
+		-- la premiere de Workspace. Sans maps rangees, rien ne change.
+		local nextMap = MapService.rotate(Config, map, rng)
+		if nextMap ~= nil then
+			map = nextMap
+			local nextCover = nextMap:FindFirstChild(Config.mapContract.coverFolder)
+			if nextCover ~= nil then
+				AbilityService.markCover(nextCover)
+			end
+		end
+
 		runMatch(seated, teams, plan.formatId)
 
 		watching = {}

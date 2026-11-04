@@ -12152,6 +12152,61 @@ Config.network = {
 	remoteThrottle = { burst = 12, perSecond = 8 },
 }
 
+--------------------------------------------------------------------------------
+-- LA ROTATION DES MAPS
+--------------------------------------------------------------------------------
+
+-- Sept maps et une seule jouee : `MapService` prenait la premiere map conforme
+-- de Workspace, et chaque recette detruit les autres. Les maps se rangent
+-- maintenant dans `ServerStorage` par `tools/StashMap.luau`, avec leur
+-- eclairage, et la partie suivante en sort une. Sans dossier de rangement,
+-- rien ne change : la map de Workspace est jouee, comme avant.
+Config.maps = {
+	rotate = true,
+	-- Le dossier de ServerStorage ou attendent les maps rangees.
+	storageFolder = "ArenaMaps",
+	-- Le dossier, DANS chaque map, qui porte son eclairage : les reglages de
+	-- `Lighting` en attributs, et des copies des effets et des nuages.
+	lightingFolder = "ArenaLighting",
+	-- Les reglages de `Lighting` qu'une recette pose et qu'il faut donc
+	-- remettre avec la map. Une seule liste, lue a la fois par le rangement et
+	-- par la rotation : deux listes qui doivent s'accorder divergent toujours.
+	lightingProperties = {
+		"ClockTime",
+		"GeographicLatitude",
+		"Brightness",
+		"Ambient",
+		"OutdoorAmbient",
+		"ColorShift_Top",
+		"ColorShift_Bottom",
+		"ExposureCompensation",
+		"FogStart",
+		"FogEnd",
+		"FogColor",
+		"GlobalShadows",
+		"ShadowSoftness",
+		"EnvironmentDiffuseScale",
+		"EnvironmentSpecularScale",
+	},
+	-- Les effets qu'une recette pose dans `Lighting` (et `Clouds`, qui vit sous
+	-- le Terrain). Ceux-la sont retires avant de poser ceux de la map choisie.
+	lightingEffects = {
+		"Atmosphere",
+		"Sky",
+		"BloomEffect",
+		"ColorCorrectionEffect",
+		"SunRaysEffect",
+		"DepthOfFieldEffect",
+		"BlurEffect",
+		"Clouds",
+	},
+	-- Ou les variantes de matiere generees des maps rangees attendent. Chaque
+	-- recette DETRUIT le dossier `ArenaMaterials` en construisant : sans ce
+	-- second dossier, ranger une map puis en construire une autre effacerait
+	-- les matieres de la premiere.
+	materialsKeepFolder = "ArenaMaterialsKeep",
+}
+
 Config.mapContract = {
 	spawnsFolderTeamA = "SpawnsA",
 	spawnsFolderTeamB = "SpawnsB",

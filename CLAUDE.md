@@ -1352,6 +1352,20 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   rouvertes. La recette l'a dit à la construction suivante, et c'est
   exactement pour ça qu'elle se mesure toute seule.
 
+- **UN `Clouds` HORS DU TERRAIN FAIT PROTESTER ROBLOX, MÊME ÉTEINT.** Une map
+  rangée emporte son éclairage dans un dossier ; dès qu'elle sort dans
+  `Workspace`, des nuages copiés là déclenchent « More than one Cloud instance
+  in workspace, first enabled one is used », et Roblox prend le premier venu.
+  Les éteindre ne suffit pas. Les nuages se rangent donc en **attributs**
+  (`Cover`, `Density`, `Color`) et se recréent sous le Terrain.
+
+- **UNE RECETTE COLLÉE PEUT DOUBLER UNE MAP RANGÉE.** Si la Serre est rangée
+  et qu'on recolle sa recette, il y a deux `SerreMap` : une dans `Workspace`,
+  une dans le rangement. La rotation range alors la plus récente à la place de
+  l'autre ; sans ça, deux maps du même nom se tireraient au sort, le piège des
+  doublons de Rojo une fois de plus. **Le bon geste reste recette puis
+  `StashMap`.**
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier
@@ -1462,9 +1476,14 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    du Colisée et du Sanctuaire coupées, et trois maps de plus — le Bazar, la
    Serre, le Bois brumeux. Journal : `docs/NUIT.md` ; à vérifier en jouant :
    section 36 d'`A-TESTER.md`
-20. Ce qui reste : **une rotation des maps** (une seule map existe à la fois,
-   et `MapService` prend la première ; sept recettes pour une seule map jouée),
-   les jambes si Josh en veut malgré le coût, la tête qui
+20. **La rotation des maps** — faite le 4 novembre 2026 au matin : les sept
+   maps attendent dans `ServerStorage.ArenaMaps` avec leur éclairage, et la
+   partie suivante en sort une, jamais la même deux fois de suite. Pour ajouter
+   une map : coller sa recette, puis `tools/StashMap.luau`. **En mode édition,
+   `Workspace` ne contient plus aucune map, et c'est voulu** : le serveur en
+   sort une au démarrage. Vérifié dans la machine virtuelle du jeu, jamais
+   joué à deux
+21. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), **l'allure des armes**, les skins, et l'achat
    de pièces en Robux
