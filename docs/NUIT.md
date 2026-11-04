@@ -55,6 +55,8 @@ automatique ne démarre pas si ce battement a moins de 40 minutes)
 
 ---
 
+- 05:25 — travail terminé. Reprise automatique désactivée, serveur de fichiers local arrêté, `HttpEnabled` remis à faux.
+
 ## Rapport du matin
 
 Douze commits sur la branche `nuit-2026-11-04`, rien de poussé, `main`
