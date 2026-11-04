@@ -11017,6 +11017,18 @@ Config.combat = {
 	-- ca, la faiblesse du Vampire n'existe pas.
 	disableDefaultRegen = true,
 
+	-- LA LIGNE DE VUE. Jusqu'au 4 novembre 2026, une attaque prenait l'ennemi
+	-- le plus proche dans la portee, SANS regarder s'il y avait un mur entre
+	-- les deux : un fusil a soixante studs tirait a travers le decor, et tout
+	-- le travail de couverture des quatre maps ne protegeait de rien. La
+	-- cible est maintenant le plus proche ennemi EN VUE. L'interrupteur existe
+	-- pour comparer, comme la zone et l'agonie.
+	requireLineOfSight = true,
+	-- La hauteur, au-dessus de la racine du personnage, d'ou part et ou arrive
+	-- le rayon : la poitrine haute. Un couvert a hauteur de taille laisse donc
+	-- tirer par-dessus, un mur non.
+	lineOfSightHeightStuds = 1.5,
+
 	-- Delai sans degat donne ni recu avant de compter comme hors combat.
 	outOfCombatSeconds = 5,
 

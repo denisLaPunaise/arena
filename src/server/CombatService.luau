@@ -202,6 +202,36 @@ end
 -- Un adversaire debout passe toujours avant un adversaire a terre : sans cette
 -- priorite, on se retrouve a achever quelqu'un pendant que son coequipier vous
 -- frappe dans le dos, ce qui n'est jamais le coup qu'on voulait porter.
+-- Vrai si rien de SOLIDE ne separe les deux personnages. Les personnages sont
+-- exclus (un allie ne fait pas bouclier), et tout ce qui n'a pas de collision
+-- est traverse : un rideau, une corde, un effet. C'est la meme regle que les
+-- sondes des recettes de maps, qui mesurent les lignes de tir.
+local sightParams = RaycastParams.new()
+sightParams.FilterType = Enum.RaycastFilterType.Exclude
+sightParams.RespectCanCollide = true
+
+local function inSight(fromRoot: BasePart, toRoot: BasePart, alsoIgnore: { Instance }?): boolean
+	if not Config.combat.requireLineOfSight then
+		return true
+	end
+	local characters: { Instance } = table.clone(alsoIgnore or {})
+	for _, player in Players:GetPlayers() do
+		if player.Character ~= nil then
+			table.insert(characters, player.Character)
+		end
+	end
+	sightParams.FilterDescendantsInstances = characters
+	local lift = Vector3.new(0, Config.combat.lineOfSightHeightStuds, 0)
+	local from = fromRoot.Position + lift
+	return Workspace:Raycast(from, (toRoot.Position + lift) - from, sightParams) == nil
+end
+
+-- Publique pour les mannequins du bac a sable : ils obeissent a la meme
+-- regle que les joueurs, et c'est le seul moyen de la VERIFIER seul. Le
+-- mannequin a de la collision, donc il se passe en `alsoIgnore` — sinon le
+-- rayon s'arreterait sur son propre torse.
+CombatService.inSight = inSight
+
 local function findTarget(entry: Entry): Entry?
 	local attackerRoot = rootOf(entry.player)
 	if attackerRoot == nil then
@@ -234,12 +264,18 @@ local function findTarget(entry: Entry): Entry?
 		end
 
 		local status = DownedService.statusOf(other.player)
+		-- La ligne de vue en dernier, et seulement pour un candidat qui
+		-- battrait le meilleur : un rayon coute plus cher qu'une soustraction.
 		if status == "standing" and distance < bestStandingDistance then
-			bestStanding = other
-			bestStandingDistance = distance
+			if inSight(attackerRoot, root) then
+				bestStanding = other
+				bestStandingDistance = distance
+			end
 		elseif status == "downed" and distance < bestDownedDistance then
-			bestDowned = other
-			bestDownedDistance = distance
+			if inSight(attackerRoot, root) then
+				bestDowned = other
+				bestDownedDistance = distance
+			end
 		end
 	end
 

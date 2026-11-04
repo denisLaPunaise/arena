@@ -294,6 +294,12 @@ local function resolvePractice(attacker: CombatService.Entry, range: number): Ba
 		return nil
 	end
 
+	-- Les mannequins ne se font pas bouclier entre eux, comme les joueurs.
+	local bodies: { Instance } = {}
+	for _, dummy in dummies do
+		table.insert(bodies, dummy.model)
+	end
+
 	local best: BasePart? = nil
 	local bestDistance = math.huge
 	for _, dummy in dummies do
@@ -301,7 +307,11 @@ local function resolvePractice(attacker: CombatService.Entry, range: number): Ba
 			continue
 		end
 		local distance = (dummy.root.Position - from.Position).Magnitude
-		if distance <= range and distance < bestDistance then
+		if
+			distance <= range
+			and distance < bestDistance
+			and CombatService.inSight(from, dummy.root, bodies)
+		then
 			best = dummy.root
 			bestDistance = distance
 		end

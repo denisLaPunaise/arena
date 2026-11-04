@@ -2247,3 +2247,15 @@ est notée ici, avec sa raison, pour pouvoir être défaite le lendemain.
   dans Studio, et un couvre-chef ne se règle qu'en le regardant.
 - **Le couvre-chef s'affiche aussi sur les mannequins du bac à sable** : c'est
   le seul endroit où l'on peut voir les quatorze sans quatorze joueurs.
+- **Une attaque demande désormais une ligne de vue.** Le ciblage prenait
+  l'ennemi le plus proche dans la portée sans regarder s'il y avait un mur
+  entre les deux : un fusil à soixante studs tirait à travers le décor, et
+  toute la couverture des maps ne protégeait de rien. La documentation
+  supposait l'inverse (le Parasite « voit à travers les murs » comme un
+  pouvoir). Décision : la cible est **le plus proche ennemi en vue**, testé
+  par un rayon de poitrine à poitrine qui ignore les personnages et tout ce
+  qui n'a pas de collision. Un couvert à hauteur de taille laisse tirer
+  par-dessus. Interrupteur : `Config.combat.requireLineOfSight`. Les zones,
+  explosions et lancers ne sont **pas** touchés : ils restent des effets de
+  zone. À regarder en priorité en jouant à plusieurs : c'est le changement
+  de la nuit qui modifie le plus le jeu.
