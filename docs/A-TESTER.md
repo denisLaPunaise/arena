@@ -1949,3 +1949,50 @@ rouillés rouges, qui font léopard à distance — défaut d'avant cette nuit.
 Garde-fou contre l'inondation sur les sept remotes d'interface ; dix-neuf
 chiffres de paliers 6 et quatre de lancers sortis vers `Config` ; touches E, T
 et P lues dans `Config` ; bandeau des touches qui ne déborde plus.
+
+## 37. La manette — demandée par Josh le 4 novembre, il ne joue qu'avec
+
+Les boutons sont dans `Config.gamepad`, un test refuse qu'une action en vole
+une autre ou qu'un nom ne soit pas un bouton de Roblox.
+
+| Bouton | Action |
+| --- | --- |
+| Stick gauche / droit | se déplacer / tourner la caméra (Roblox) |
+| A | sauter, et valider dans un panneau (Roblox) |
+| RT | frapper |
+| LT | pouvoir de classe |
+| Croix haut, droite, bas, gauche | objets 1, 2, 3, 4 |
+| Y | arbre |
+| X | équipement |
+| RB | pièces et tirages |
+| LB | menu d'accueil |
+| L3 | bac à sable s'il tourne, sinon le salon |
+| B | fermer le panneau du dessus |
+| R3 | zoom de la caméra (Roblox) |
+
+**Vérifié dans Studio, avec les boutons simulés** : chaque bouton ouvre son
+panneau, B le ferme et rend le stick au personnage, RT / LT / la croix envoient
+bien le coup, le pouvoir et les objets au serveur, et **rien ne part quand un
+panneau est ouvert**. Le bandeau, la ligne du pouvoir et le pied du menu
+affichent les boutons de la manette dès qu'on la touche, et les touches du
+clavier dès qu'on y revient.
+
+**Ce qui ne s'est PAS vérifié, et qu'il faut regarder en premier** : l'outil
+de Studio envoie les boutons comme s'ils venaient du clavier, donc **la
+navigation de Roblox dans les panneaux** (la croix et le stick qui déplacent
+la sélection, A qui valide) n'a jamais tourné. C'est Roblox qui la fait, pas
+le jeu, mais elle n'a pas été vue. Dans l'ordre :
+
+1. Ouvrir l'équipement (X), descendre avec la croix jusqu'en bas d'une colonne :
+   **le plateau doit défiler tout seul**. Il ne défilait pas du tout avant
+   aujourd'hui, et les cartes du bas sortaient du panneau.
+2. Valider une carte avec A : **la sélection doit rester sur la carte**, pas
+   sauter sur « Assemblage par défaut ». Le panneau se reconstruit à chaque
+   réponse du serveur, et Roblox déplace alors la sélection tout seul ; le jeu
+   la remet en place.
+3. L'arbre pendant la phase de dépense (Y) : la sélection ne doit pas remonter
+   en haut à chaque seconde du compte à rebours.
+4. Le choix de classe : il s'ouvre seul, la sélection doit y être sans rien
+   presser, et B ne doit **pas** le fermer.
+5. Le confort des gâchettes pour frapper. Si RT gêne, c'est une ligne de
+   `Config.gamepad`.

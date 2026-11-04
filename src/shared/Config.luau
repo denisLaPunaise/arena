@@ -136,6 +136,69 @@ Config.menu = {
 }
 
 --------------------------------------------------------------------------------
+-- LA MANETTE
+--------------------------------------------------------------------------------
+
+-- Demande par Josh le 4 novembre 2026 : il ne joue qu'a la manette. Chaque
+-- action du clavier a son bouton, et un test refuse que deux actions prennent
+-- le meme. Les noms sont ceux de `Enum.KeyCode` ; un nom faux donne un bouton
+-- mort SANS ERREUR, d'ou la liste des noms connus dans le test.
+--
+-- LES BOUTONS QUE ROBLOX GARDE, et qui ne figurent donc nulle part ici :
+--   A        sauter (et valider dans un panneau)
+--   R3       le zoom de la camera a la manette
+--   Select   entrer et sortir de la navigation dans l'interface
+--   Start    le menu de Roblox
+-- Le stick gauche deplace, le stick droit tourne la camera : rien a faire.
+Config.gamepad = {
+	-- Les gachettes pour les deux gestes de combat : on les presse sans
+	-- lacher les sticks, donc sans cesser de bouger ni de viser.
+	attack = "ButtonR2",
+	ability = "ButtonL2",
+
+	-- La croix pour les quatre objets, dans l'ordre des aiguilles d'une
+	-- montre a partir du haut : objet 1 en haut, 2 a droite, 3 en bas, 4 a
+	-- gauche. Dans un panneau, la croix navigue : aucun objet ne part alors.
+	useButtons = { "DPadUp", "DPadRight", "DPadDown", "DPadLeft" },
+
+	-- Les deux ecrans qu'on ouvre en partie, sur les deux boutons du pouce.
+	tree = "ButtonY",
+	loadout = "ButtonX",
+
+	-- Les ecrans hors combat, sur les boutons de tranche.
+	progress = "ButtonR1",
+	menu = "ButtonL1",
+
+	-- LE SALON ET LE BAC A SABLE PARTAGENT L3, parce qu'ils ne coexistent
+	-- jamais vraiment : le bac a sable n'existe que seul, le salon que dans une
+	-- partie privee a plusieurs. Plus un seul bouton libre sinon (R3 est a la
+	-- camera). Quand le bac a sable tourne, L3 l'ouvre ; sinon, le salon.
+	sandboxOrLobby = "ButtonL3",
+
+	-- Ferme le panneau du dessus. A la manette, B est aussi le « retour » de
+	-- Roblox dans une interface : les deux disent la meme chose.
+	close = "ButtonB",
+
+	-- Ce qu'on AFFICHE pour chaque bouton, dans le bandeau et les panneaux.
+	-- Noms de la manette Xbox, que Roblox emploie aussi sur PlayStation.
+	labels = {
+		ButtonR2 = "RT",
+		ButtonL2 = "LT",
+		ButtonR1 = "RB",
+		ButtonL1 = "LB",
+		ButtonY = "Y",
+		ButtonX = "X",
+		ButtonB = "B",
+		ButtonA = "A",
+		ButtonL3 = "L3",
+		DPadUp = "Croix haut",
+		DPadRight = "Croix droite",
+		DPadDown = "Croix bas",
+		DPadLeft = "Croix gauche",
+	},
+}
+
+--------------------------------------------------------------------------------
 -- LA PARTIE ET LA MANCHE
 --------------------------------------------------------------------------------
 

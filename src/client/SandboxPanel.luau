@@ -485,6 +485,12 @@ function SandboxPanel.isOpen(): boolean
 	return opened
 end
 
+-- Vrai quand le serveur a dit que le bac a sable tourne pour nous. Sert a la
+-- manette, ou le bac a sable partage son bouton avec le salon.
+function SandboxPanel.available(): boolean
+	return latest ~= nil
+end
+
 function SandboxPanel.toggle()
 	-- Rien n'est arrive du serveur : le bac a sable n'est pas ouvert pour nous,
 	-- et il vaut mieux le dire que de montrer un ecran vide.

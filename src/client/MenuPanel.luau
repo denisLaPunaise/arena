@@ -37,8 +37,10 @@ local Remotes = Arena:WaitForChild("Remotes")
 local menuRemote = Remotes:WaitForChild("Menu") :: RemoteEvent
 local progressRemote = Remotes:WaitForChild("Progress") :: RemoteEvent
 
+local Config = require(Arena:WaitForChild("Config"))
 local Screens = require(script.Parent:WaitForChild("Screens"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
+local Gamepad = require(script.Parent:WaitForChild("Gamepad"))
 
 local player = Players.LocalPlayer
 
@@ -101,6 +103,7 @@ local fit: () -> ()
 
 local serverLine: TextLabel? = nil
 local footerLine: TextLabel? = nil
+local paintKeys: () -> ()
 local noticeLine: TextLabel? = nil
 
 local homeView: Frame? = nil
@@ -640,6 +643,26 @@ end
 -- LA PEINTURE
 --------------------------------------------------------------------------------
 
+-- LE PIED DIT CE QU'ON A DANS LES MAINS : les touches au clavier, les
+-- boutons a la manette. Il se repeint a chaque bascule, pas seulement quand
+-- le serveur parle. Les touches viennent de Config ; la touche du menu, du
+-- serveur, qui l'envoie avec l'etat.
+function paintKeys()
+	local keys = footerLine
+	if keys == nil then
+		return
+	end
+	local pad = Config.gamepad
+	local reopen = if latest ~= nil then latest.reopenKey else nil
+	keys.Text = string.format(
+		"%s pour revenir ici  ·  %s arbre  ·  %s équipement  ·  %s pièces",
+		Gamepad.key(Config, reopen or Config.menu.reopenKey, pad.menu),
+		Gamepad.key(Config, Config.skillTree.panelKey, pad.tree),
+		Gamepad.key(Config, Config.loadout.editKey, pad.loadout),
+		Gamepad.key(Config, Config.economy.panelKey, pad.progress)
+	)
+end
+
 local function redraw()
 	build()
 
@@ -781,13 +804,7 @@ local function redraw()
 		go.Text = "CRÉER LE SALON"
 	end
 
-	local keys = footerLine
-	if keys ~= nil then
-		keys.Text = string.format(
-			"%s pour revenir ici  ·  T arbre  ·  L équipement  ·  P pièces",
-			state.reopenKey or "M"
-		)
-	end
+	paintKeys()
 
 	local mine = profile
 	if mine ~= nil then
@@ -849,6 +866,9 @@ end
 function MenuPanel.start()
 	build()
 	showView("home")
+	Gamepad.onChanged(function()
+		paintKeys()
+	end)
 
 	menuRemote.OnClientEvent:Connect(function(payload: any)
 		if typeof(payload) ~= "table" or payload.kind ~= "menu" then

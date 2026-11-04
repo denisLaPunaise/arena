@@ -46,15 +46,19 @@ local player = Players.LocalPlayer
 local PANEL_WIDTH = 1180
 local PANEL_HEIGHT = 660
 
--- Cinq colonnes, une par categorie. La plus garnie en compte quatre, donc
--- quatre rangees suffisent et rien ne defile : un ecran qui defile cache la
--- moitie du catalogue a quelqu'un qui decouvre le jeu.
+-- Cinq colonnes, une par categorie.
 local COLUMNS = { "primary", "secondary", "armor", "heal", "utility" }
 local COLUMN_WIDTH = 216
 local COLUMN_GAP = 12
--- Quatre cartes par colonne au maximum, et 4 * 104 + 3 * 8 fait exactement
--- les 440 du plateau : la hauteur de carte se deduit de la colonne la plus
--- garnie, jamais l'inverse.
+-- LE PLATEAU DEFILE, et ce n'etait pas le cas. Il avait ete dessine pour treize
+-- objets, quatre par colonne au plus, « et rien ne defile ». Depuis les
+-- soixante-deux, une colonne en compte jusqu'a treize : les cartes debordaient
+-- du panneau par le bas, par-dessus le pied et le bandeau, et celles du bas ne
+-- s'atteignaient plus. Vu le 4 novembre 2026 en branchant la manette, qui ne
+-- peut pas viser une carte hors de l'ecran. La hauteur visible reste 440 ; la
+-- hauteur defilee se DEDUIT de la colonne la plus garnie.
+local BOARD_HEIGHT = 440
+local HEADING_HEIGHT = 26
 local CARD_HEIGHT = 104
 local CARD_GAP = 8
 
@@ -74,7 +78,7 @@ local panelFrame: Frame? = nil
 local fit: () -> ()
 local pointsLabel: TextLabel? = nil
 local footer: TextLabel? = nil
-local board: Frame? = nil
+local board: ScrollingFrame? = nil
 
 local strip: ScreenGui? = nil
 local slotButtons: { TextButton } = {}
@@ -248,11 +252,20 @@ local function build()
 	points.TextColor3 = ACCENT
 	points.Parent = frame
 
-	local area = Instance.new("Frame")
+	local area = Instance.new("ScrollingFrame")
 	area.Name = "Board"
-	area.Size = UDim2.fromOffset(PANEL_WIDTH - 60, 440)
+	area.Size = UDim2.fromOffset(PANEL_WIDTH - 60, BOARD_HEIGHT)
 	area.Position = UDim2.fromOffset(30, 112)
 	area.BackgroundTransparency = 1
+	area.BorderSizePixel = 0
+	area.ClipsDescendants = true
+	area.ScrollingDirection = Enum.ScrollingDirection.Y
+	area.ScrollBarThickness = 6
+	area.ScrollBarImageColor3 = MUTED
+	area.CanvasSize = UDim2.fromOffset(0, BOARD_HEIGHT)
+	-- La barre de defilement est un bouton pour la manette : elle volerait la
+	-- selection. Le plateau suit tout seul la carte selectionnee.
+	area.Selectable = false
 	area.Parent = frame
 
 	local foot =
@@ -411,18 +424,30 @@ local function redraw(view: any)
 		table.insert(list, item)
 	end
 
+	local tallest = 0
+	for _, categoryId in COLUMNS do
+		tallest = math.max(tallest, #(byCategory[categoryId] or {}))
+	end
+	local columnHeight = tallest * (CARD_HEIGHT + CARD_GAP)
+	area.CanvasSize = UDim2.fromOffset(0, math.max(BOARD_HEIGHT, HEADING_HEIGHT + columnHeight))
+
 	for index, categoryId in COLUMNS do
 		local column = Instance.new("Frame")
 		column.Name = categoryId
-		column.Size = UDim2.fromOffset(COLUMN_WIDTH, 440)
-		column.Position = UDim2.fromOffset((index - 1) * (COLUMN_WIDTH + COLUMN_GAP), 26)
+		column.Size = UDim2.fromOffset(COLUMN_WIDTH, columnHeight)
+		column.Position =
+			UDim2.fromOffset((index - 1) * (COLUMN_WIDTH + COLUMN_GAP), HEADING_HEIGHT)
 		column.BackgroundTransparency = 1
 		column.Parent = area
 
 		local items = byCategory[categoryId] or {}
 
-		local heading =
-			label("Heading", UDim2.fromOffset(COLUMN_WIDTH, 22), UDim2.fromOffset(0, -26), 15)
+		local heading = label(
+			"Heading",
+			UDim2.fromOffset(COLUMN_WIDTH, 22),
+			UDim2.fromOffset(0, -HEADING_HEIGHT),
+			15
+		)
 		heading.Font = Enum.Font.GothamBold
 		heading.TextXAlignment = Enum.TextXAlignment.Left
 		heading.TextColor3 = MUTED
@@ -467,7 +492,7 @@ local function redraw(view: any)
 		table.insert(
 			lines,
 			string.format(
-				"Au moins une arme principale  ·  %d objets au maximum  ·  L pour fermer",
+				"Au moins une arme principale  ·  %d objets au maximum  ·  L ou B (manette) pour fermer",
 				view.maxItems
 			)
 		)

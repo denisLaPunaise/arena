@@ -193,7 +193,7 @@ local function build()
 		label("Hint", UDim2.fromOffset(PANEL_WIDTH - 60, 24), UDim2.fromOffset(30, 606), 15)
 	hint.TextColor3 = MUTED
 	hint.TextXAlignment = Enum.TextXAlignment.Center
-	hint.Text = "P pour fermer"
+	hint.Text = "P ou B (manette) pour fermer"
 	hint.Parent = frame
 
 	gui = screen

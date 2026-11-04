@@ -22,6 +22,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
@@ -35,6 +36,7 @@ local Config = require(Arena:WaitForChild("Config"))
 local DraftPanel = require(script.Parent:WaitForChild("DraftPanel"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
+local Gamepad = require(script.Parent:WaitForChild("Gamepad"))
 local LoadoutPanel = require(script.Parent:WaitForChild("LoadoutPanel"))
 local LobbyPanel = require(script.Parent:WaitForChild("LobbyPanel"))
 local MenuPanel = require(script.Parent:WaitForChild("MenuPanel"))
@@ -165,6 +167,29 @@ local MENU_KEY = (Enum.KeyCode :: any)[Config.menu.reopenKey]
 -- touche dans Config ne changeait rien. Trouve au controle du 4 novembre 2026.
 local ABILITY_KEY = (Enum.KeyCode :: any)[Config.abilities.inputKey]
 local PROGRESS_KEY = (Enum.KeyCode :: any)[Config.economy.panelKey]
+local TREE_KEY = (Enum.KeyCode :: any)[Config.skillTree.panelKey]
+
+-- LA MANETTE. Les boutons sont dans `Config.gamepad`, et `Gamepad.code`
+-- previent dans la console si l'un d'eux n'existe pas.
+local PAD = Config.gamepad
+local PAD_ATTACK = Gamepad.code(PAD.attack)
+local PAD_ABILITY = Gamepad.code(PAD.ability)
+local PAD_USE: { Enum.KeyCode } = {}
+for index, name in PAD.useButtons do
+	PAD_USE[index] = Gamepad.code(name) :: Enum.KeyCode
+end
+local PAD_TREE = Gamepad.code(PAD.tree)
+local PAD_LOADOUT = Gamepad.code(PAD.loadout)
+local PAD_PROGRESS = Gamepad.code(PAD.progress)
+local PAD_MENU = Gamepad.code(PAD.menu)
+local PAD_SANDBOX_OR_LOBBY = Gamepad.code(PAD.sandboxOrLobby)
+
+-- Le sac a dos de Roblox prend LB et RB a la manette pour changer d'outil. Le
+-- jeu n'a aucun `Tool` — les armes sont soudees a la main — donc il ne sert a
+-- rien, et il volerait les deux boutons de tranche.
+pcall(function()
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+end)
 
 local hint = makeLabel("Hint", UDim2.fromScale(1, 0.05), UDim2.fromScale(0.5, 0.94), 16)
 -- Chaque touche du bandeau se lit dans Config : un bandeau ecrit a la main
@@ -179,14 +204,43 @@ local HINT = string.format(
 	Config.sandbox.toggleKey,
 	Config.menu.reopenKey
 )
-hint.Text = HINT
+-- Le bandeau a la manette. Le salon et le bac a sable partagent un bouton :
+-- voir `Config.gamepad.sandboxOrLobby`.
+local function label(button: string): string
+	return Gamepad.label(Config, button)
+end
+local PAD_HINT = string.format(
+	"%s frapper  ·  %s pouvoir  ·  Croix objets  ·  %s arbre  ·  %s équipement  ·  %s pièces"
+		.. "  ·  %s menu  ·  %s salon / bac à sable  ·  %s fermer",
+	label(PAD.attack),
+	label(PAD.ability),
+	label(PAD.tree),
+	label(PAD.loadout),
+	label(PAD.progress),
+	label(PAD.menu),
+	label(PAD.sandboxOrLobby),
+	label(PAD.close)
+)
 
 -- La touche du salon n'apparait que la ou elle sert. C'est le serveur qui
 -- tranche, donc la ligne s'allonge a sa reponse et pas au demarrage.
+local lobbyAllowed = false
+local function paintHint()
+	if Gamepad.active() then
+		hint.Text = PAD_HINT
+	elseif lobbyAllowed then
+		hint.Text = string.format("%s  ·  %s salon", HINT, Config.seating.lobbyKey)
+	else
+		hint.Text = HINT
+	end
+end
+paintHint()
 LobbyPanel.onAllowed(function(allowed: boolean)
-	hint.Text = if allowed
-		then string.format("%s  ·  %s salon", HINT, Config.seating.lobbyKey)
-		else HINT
+	lobbyAllowed = allowed
+	paintHint()
+end)
+Gamepad.onChanged(function()
+	paintHint()
 end)
 hint.TextTransparency = 0.35
 -- Le bandeau des touches DEBORDAIT des deux cotes sur une fenetre etroite :
@@ -352,7 +406,11 @@ abilityRemote.OnClientEvent:Connect(function(payload: any)
 			ability.Text = string.format("%s  ·  %.1fs", payload.ability, left)
 			ability.TextColor3 = CHARGING_COLOR
 		else
-			ability.Text = string.format("%s  ·  E", payload.ability)
+			ability.Text = string.format(
+				"%s  ·  %s",
+				payload.ability,
+				Gamepad.key(Config, Config.abilities.inputKey, PAD.ability)
+			)
 			ability.TextColor3 = READY_COLOR
 		end
 
@@ -374,8 +432,45 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
+-- La manette. Quand un panneau a la main, la croix et les gachettes servent a
+-- l'interface : aucun coup ni aucun objet ne part derriere un ecran ouvert.
+local function onPad(code: Enum.KeyCode)
+	if code == PAD_TREE then
+		TreePanel.toggle()
+	elseif code == PAD_LOADOUT then
+		LoadoutPanel.toggle()
+	elseif code == PAD_PROGRESS then
+		ProgressPanel.toggle()
+	elseif code == PAD_MENU then
+		MenuPanel.toggle()
+	elseif code == PAD_SANDBOX_OR_LOBBY then
+		if SandboxPanel.available() then
+			SandboxPanel.toggle()
+		else
+			LobbyPanel.toggle()
+		end
+	elseif Gamepad.panelHasFocus() then
+		return
+	elseif code == PAD_ATTACK then
+		attackRemote:FireServer()
+	elseif code == PAD_ABILITY then
+		abilityRemote:FireServer()
+	else
+		local slot = table.find(PAD_USE, code)
+		if slot ~= nil then
+			LoadoutPanel.use(slot)
+		end
+	end
+end
+
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 	if processed then
+		return
+	end
+
+	-- Au NOM du bouton, pas a l'origine de l'entree : voir `Gamepad.isPadCode`.
+	if Gamepad.isPadCode(input.KeyCode) then
+		onPad(input.KeyCode)
 		return
 	end
 
@@ -400,6 +495,8 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		LoadoutPanel.use(4)
 	elseif input.KeyCode == EDIT_KEY then
 		LoadoutPanel.toggle()
+	elseif input.KeyCode == TREE_KEY then
+		TreePanel.toggle()
 	elseif input.KeyCode == PROGRESS_KEY then
 		ProgressPanel.toggle()
 	elseif input.KeyCode == LOBBY_KEY then
@@ -422,5 +519,17 @@ MenuPanel.start()
 ProgressPanel.start()
 SandboxPanel.start()
 TreePanel.start()
+
+-- B ferme le panneau du dessus ; le choix de classe ne se ferme pas, c'est un
+-- choix. Les noms sont ceux des ScreenGui de chaque panneau.
+Gamepad.start(Config, {
+	ArenaTree = TreePanel.toggle,
+	ArenaLoadout = LoadoutPanel.toggle,
+	ArenaProgress = ProgressPanel.toggle,
+	ArenaLobby = LobbyPanel.toggle,
+	ArenaSandbox = SandboxPanel.toggle,
+	ArenaMenu = MenuPanel.toggle,
+	ArenaDraft = false,
+})
 
 print(string.format("[Arena] Client démarré pour %s", player.Name))

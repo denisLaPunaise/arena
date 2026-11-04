@@ -257,6 +257,85 @@ return function(t: harness.Harness)
 
 	t.equal(if #collisions > 0 then collisions[1] else "aucune collision", #collisions, 0)
 
+	t.section("La manette : un bouton par action, et des boutons qui existent")
+
+	-- Meme panne que les touches, plus une : un nom qui n'est pas un
+	-- `Enum.KeyCode` donne un bouton MORT, sans erreur. Lune n'a pas `Enum`,
+	-- donc la liste des noms valides est ecrite ici — releve dans Studio.
+	local KNOWN = {
+		ButtonA = true,
+		ButtonB = true,
+		ButtonX = true,
+		ButtonY = true,
+		ButtonL1 = true,
+		ButtonR1 = true,
+		ButtonL2 = true,
+		ButtonR2 = true,
+		ButtonL3 = true,
+		ButtonR3 = true,
+		DPadUp = true,
+		DPadDown = true,
+		DPadLeft = true,
+		DPadRight = true,
+	}
+	-- Ce que Roblox garde pour lui : sauter, le zoom de la camera, la
+	-- navigation dans l'interface et son menu.
+	local RESERVED = { ButtonA = "sauter", ButtonR3 = "le zoom de la caméra" }
+
+	local pad = Config.gamepad
+	local padTaken: { [string]: string } = {}
+	local padProblems: { string } = {}
+	local function claimPad(button: string?, who: string)
+		if button == nil then
+			table.insert(padProblems, string.format("%s n'a aucun bouton", who))
+			return
+		end
+		if KNOWN[button] ~= true then
+			table.insert(
+				padProblems,
+				string.format("%s : « %s » n'est pas un bouton", who, button)
+			)
+			return
+		end
+		if RESERVED[button] ~= nil then
+			table.insert(
+				padProblems,
+				string.format("%s prend %s, gardé pour %s", who, button, RESERVED[button])
+			)
+			return
+		end
+		if padTaken[button] ~= nil then
+			table.insert(
+				padProblems,
+				string.format("%s et %s veulent %s", padTaken[button], who, button)
+			)
+			return
+		end
+		if pad.labels[button] == nil then
+			table.insert(padProblems, string.format("%s : %s n'a pas de libellé", who, button))
+		end
+		padTaken[button] = who
+	end
+
+	claimPad(pad.attack, "frapper")
+	claimPad(pad.ability, "le pouvoir")
+	for index = 1, #Config.loadout.useKeys do
+		claimPad(pad.useButtons[index], string.format("l'objet %d", index))
+	end
+	claimPad(pad.tree, "l'arbre")
+	claimPad(pad.loadout, "l'équipement")
+	claimPad(pad.progress, "les pièces")
+	claimPad(pad.menu, "le menu")
+	claimPad(pad.sandboxOrLobby, "le salon et le bac à sable")
+	claimPad(pad.close, "fermer")
+
+	t.equal(if #padProblems > 0 then padProblems[1] else "aucun problème", #padProblems, 0)
+	t.equal(
+		"autant de boutons d'objet que de touches d'objet",
+		#pad.useButtons,
+		#Config.loadout.useKeys
+	)
+
 	t.section("Ce qui compte en partie privee")
 
 	-- Les deux interrupteurs se changent ENSEMBLE : payer sans classer

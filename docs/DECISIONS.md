@@ -2266,3 +2266,11 @@ est notée ici, avec sa raison, pour pouvoir être défaite le lendemain.
   parties**, jamais pendant. Les maps attendent dans `ServerStorage.ArenaMaps`,
   rangées par `tools/StashMap.luau` avec leur éclairage et leurs matières.
   `Config.maps.rotate = false` rend l'ancien comportement.
+- **La manette : les gâchettes pour se battre, la croix pour les objets.** RT
+  frappe et LT lance le pouvoir, parce qu'on les presse sans lâcher les sticks.
+  Y l'arbre, X l'équipement, RB les pièces, LB le menu, B ferme. Il ne restait
+  plus un bouton libre pour le salon et le bac à sable — R3 est le zoom de la
+  caméra de Roblox — donc **ils partagent L3** : le bac à sable n'existe que
+  seul, le salon qu'à plusieurs. Et **le sac à dos de Roblox est coupé** : il
+  prend LB et RB à la manette, et le jeu n'a aucun `Tool`.
+

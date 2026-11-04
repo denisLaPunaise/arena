@@ -1366,6 +1366,31 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   doublons de Rojo une fois de plus. **Le bon geste reste recette puis
   `StashMap`.**
 
+- **L'OUTIL DE STUDIO ENVOIE LES BOUTONS DE MANETTE COMME DU CLAVIER.**
+  `user_keyboard_input` sait presser « ButtonL1 », mais l'entrée arrive avec
+  `UserInputType.Keyboard`. Un jeu qui reconnaît la manette à l'ORIGINE de
+  l'entrée ne la voit donc jamais en test, et on conclut que rien ne marche.
+  `Gamepad.isPadCode` la reconnaît au NOM du bouton, ce qui est juste aussi
+  avec une vraie manette. Conséquence à connaître : **la navigation de Roblox
+  dans les interfaces ne tourne pas** avec ces boutons simulés (elle exige une
+  vraie manette), donc la croix qui déplace la sélection et A qui valide ne se
+  vérifient qu'avec Josh. Et `VirtualInputManager` est fermé au pont.
+
+- **ROBLOX DÉPLACE LA SÉLECTION TOUT SEUL QUAND LE BOUTON SÉLECTIONNÉ MEURT.**
+  Il saute au voisin le plus proche, dans n'importe quel `ScreenGui` — vu
+  `Slot1` de la barre d'objets, puis « Assemblage par défaut ». Or nos
+  panneaux se reconstruisent à chaque message du serveur. `Gamepad` retient
+  donc le CHEMIN du bouton choisi (noms et rangs depuis le panneau) et le
+  remet en place quand la sélection a bougé sans que la croix ou le stick
+  aient bougé. En écrivant un panneau : garder des noms stables à ses boutons,
+  c'est ce qui permet de les retrouver.
+
+- **ROJO PEUT NE PAS TOURNER DU TOUT, et la place suit quand même à moitié.**
+  Vu le 4 novembre 2026 : aucun processus Rojo, et pourtant des fichiers neufs
+  étaient arrivés dans la place — mais pas une ligne ajoutée par `sed -i`. La
+  comparaison des tailles l'a dit en un appel. La parade est celle d'en
+  dessous : `python -m http.server` et `HttpService:GetAsync`.
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier
@@ -1483,7 +1508,14 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    `Workspace` ne contient plus aucune map, et c'est voulu** : le serveur en
    sort une au démarrage. Vérifié dans la machine virtuelle du jeu, jamais
    joué à deux
-21. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+21. **La manette** — faite le 4 novembre 2026, demandée par Josh : chaque
+   action a son bouton dans `Config.gamepad`, les panneaux prennent la
+   sélection en s'ouvrant et la rendent en se fermant, B ferme, et
+   l'affichage parle de la manette dès qu'on la touche. Au passage, le plateau
+   d'équipement défile enfin : il avait été dessiné pour treize objets et
+   débordait du panneau depuis les soixante-deux. **La navigation de Roblox
+   dans les panneaux n'a pas pu être vue** : section 37 d'`A-TESTER.md`
+22. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), **l'allure des armes**, les skins, et l'achat
    de pièces en Robux

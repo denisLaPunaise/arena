@@ -35,7 +35,6 @@ local TreePanel = {}
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Remotes = Arena:WaitForChild("Remotes")
@@ -45,6 +44,7 @@ local Config = require(Arena:WaitForChild("Config"))
 local Screens = require(script.Parent:WaitForChild("Screens"))
 
 local Audio = require(script.Parent:WaitForChild("Audio"))
+local Gamepad = require(script.Parent:WaitForChild("Gamepad"))
 
 local player = Players.LocalPlayer
 
@@ -338,11 +338,11 @@ local function build(parent: Instance)
 	hint.Size = UDim2.new(1, 0, 0, HINT_HEIGHT)
 	hint.TextXAlignment = Enum.TextXAlignment.Center
 
-	advanceButton.MouseButton1Click:Connect(function()
+	advanceButton.Activated:Connect(function()
 		treeRemote:FireServer({ action = "advance" })
 	end)
 
-	readyButton.MouseButton1Click:Connect(function()
+	readyButton.Activated:Connect(function()
 		treeRemote:FireServer({ action = "ready" })
 	end)
 end
@@ -408,7 +408,7 @@ local function makeCard(branch: any, order: number, interactive: boolean, stacke
 		choose.AnchorPoint = Vector2.new(0, 1)
 		choose.Position = UDim2.fromScale(0, 1)
 		choose.Size = UDim2.new(1, 0, 0, 38)
-		choose.MouseButton1Click:Connect(function()
+		choose.Activated:Connect(function()
 			treeRemote:FireServer({ action = "choose", branchId = branch.id })
 		end)
 	end
@@ -594,7 +594,10 @@ local function render()
 	header.TextColor3 = if current.points > 0 then POINTS else TEXT
 
 	if current.open and current.pinned ~= true then
-		subheader.Text = "Bac à sable — dépense ouverte en permanence. T pour fermer."
+		subheader.Text = string.format(
+			"Bac à sable — dépense ouverte en permanence. %s pour fermer.",
+			Gamepad.key(Config, Config.skillTree.panelKey, Config.gamepad.close)
+		)
 	elseif current.open then
 		local seconds = current.seconds
 		subheader.Text = if seconds ~= nil
@@ -651,7 +654,7 @@ local function render()
 			spareButton.AutoButtonColor = upgrade.canBuy
 			spareButton.TextWrapped = true
 			local id = upgrade.id
-			spareButton.MouseButton1Click:Connect(function()
+			spareButton.Activated:Connect(function()
 				if upgrade.canBuy then
 					treeRemote:FireServer({ action = "spare", id = id })
 				end
@@ -680,7 +683,10 @@ local function render()
 
 	hint.Text = if current.open
 		then "Le choix de branche est définitif pour la partie."
-		else "T pour fermer"
+		else string.format(
+			"%s pour fermer",
+			Gamepad.key(Config, Config.skillTree.panelKey, Config.gamepad.close)
+		)
 end
 
 --------------------------------------------------------------------------------
@@ -698,26 +704,20 @@ function TreePanel.start()
 		view = payload
 		render()
 	end)
+end
 
-	local panelKey = (Enum.KeyCode :: any)[Config.skillTree.panelKey]
-	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-		if processed then
-			return
-		end
-		if input.KeyCode ~= panelKey then
-			return
-		end
+-- La touche (T) et le bouton (Y) passent tous les deux par ici, depuis
+-- Bootstrap, comme les autres panneaux.
+function TreePanel.toggle()
+	-- Pendant la phase de depense, l'ecran ne se ferme pas : la manche
+	-- suivante part avec ou sans le choix, et le rater par inadvertance
+	-- serait une manche jouee avec une classe nue.
+	if view ~= nil and view.pinned == true then
+		return
+	end
 
-		-- Pendant la phase de depense, l'ecran ne se ferme pas : la manche
-		-- suivante part avec ou sans le choix, et le rater par inadvertance
-		-- serait une manche jouee avec une classe nue.
-		if view ~= nil and view.pinned == true then
-			return
-		end
-
-		manuallyOpen = not manuallyOpen
-		render()
-	end)
+	manuallyOpen = not manuallyOpen
+	render()
 end
 
 return TreePanel
