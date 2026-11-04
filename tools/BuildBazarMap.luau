@@ -632,6 +632,10 @@ end
 -- lanternes qui font le chaud et le contraste. Une nuit ou l'on ne voit pas
 -- l'adversaire n'est pas une ambiance, c'est une injustice envers celui qui
 -- ne connait pas la map.
+-- Le brouillard court du Bois brumeux est un reglage de PLACE : sans cette
+-- remise a zero il resterait pose sur la map suivante.
+Lighting.FogStart = 0
+Lighting.FogEnd = 100000
 Lighting.ClockTime = 21.2
 Lighting.GeographicLatitude = 30
 -- LE FROID FAIT LE CHAUD. Premier essai : une ambiance tiede et une

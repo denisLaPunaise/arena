@@ -8,7 +8,7 @@ Ce fichier sert à deux choses : reprendre le travail si la session s'arrête, e
 
 ## Battement
 
-Dernière activité : 2026-11-04 01:47 (mettre à jour à chaque étape — une reprise
+Dernière activité : 2026-11-04 01:52 (mettre à jour à chaque étape — une reprise
 automatique ne démarre pas si ce battement a moins de 40 minutes)
 
 ## Mandat, dans l'ordre
@@ -26,7 +26,7 @@ automatique ne démarre pas si ce battement a moins de 40 minutes)
 | --- | --- | --- |
 | 1-2 Checkup + corrections | fait | voir journal |
 | 3 Couvre-chefs | fait | 14 maillages générés, regardés, posés en jeu |
-| 4 Trois maps | à faire | |
+| 4 Trois maps | fait | Bazar, Serre, Bois brumeux |
 | 5 Test + objets | à faire | |
 
 ## Journal
@@ -49,3 +49,4 @@ automatique ne démarre pas si ce battement a moins de 40 minutes)
 - **BUG MAJEUR trouvé : les attaques traversaient les murs.** Le ciblage prenait l'ennemi le plus proche dans la portée, sans ligne de vue. Corrigé : le plus proche ennemi EN VUE. Mannequins du bac à sable soumis à la même règle — vérifié en jeu : 3 coups derrière un mur = 0 dégât, 3 coups sans mur = 29 dégâts.
 - **Map 5 — Le Bazar** (`tools/BuildBazarMap.luau`) : marché de nuit, trois allées parallèles, ruelles de traverse décalées. Mesures : 0/25 lignes, cercle 8/16, enfilade max 54 studs, diagonale max 89 (dit tel quel). Trois défauts trouvés par la mesure (ruelles alignées → 115 studs ; ligne médiane des allées du bord → 114 ; lampadaires amincis → 2 lignes rouvertes) et deux à l'écran (tout orange ; fûts laiton).
 - **Map 6 — La Serre** (`tools/BuildSerreMap.luau`) : jardin d'hiver sous verre, labyrinthe rayonnant ; on voit le centre de partout (10/10 départs, mesuré), on ne passe pas. Repose sur la nouvelle règle de ligne de vue. Mesures : 0/25 lignes, cercle 4/16 (le plancher), ombre 0/0, soleil 18,5° trouvé par balayage.
+- **Map 7 — Le Bois brumeux** (`tools/BuildBoisMap.luau`) : forêt d'automne dans le brouillard, chapelle en ruine au centre, arbres tirés au sort par graine fixe et jumeaux par rotation. Mesures : 0/25 lignes, cercle 12/16, vue médiane 30 studs. Trouvé : densité trop faible (vue médiane 160 → calculée et triplée), brèches de chapelle sur l'axe des camps (5 lignes ouvertes), `Atmosphere` incapable de faire un brouillard court (→ ancien brouillard `FogEnd`, et remise à zéro ajoutée à trois autres recettes).

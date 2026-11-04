@@ -1225,6 +1225,10 @@ clouds.Parent = Workspace.Terrain
 -- 0,88 avaient mange les ombres qu'on venait d'acheter. La parade est de
 -- remonter la clarte ET l'ambiance exterieure : on veut un gris LUMINEUX, pas
 -- une nuit.
+-- Le brouillard court du Bois brumeux est un reglage de PLACE : sans cette
+-- remise a zero il resterait pose sur la map suivante.
+Lighting.FogStart = 0
+Lighting.FogEnd = 100000
 Lighting.ClockTime = 7.2
 Lighting.GeographicLatitude = 62
 Lighting.Brightness = 2.6

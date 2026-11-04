@@ -498,6 +498,10 @@ end
 -- d'elevation et un azimut exactement perpendiculaire aux camps. Le premier
 -- reglage (9 h 24, latitude 58) logeait un camp entier au soleil et l'autre
 -- entier a l'ombre, cinq departs sur cinq.
+-- Le brouillard court du Bois brumeux est un reglage de PLACE : sans cette
+-- remise a zero il resterait pose sur la map suivante.
+Lighting.FogStart = 0
+Lighting.FogEnd = 100000
 Lighting.ClockTime = 12
 Lighting.GeographicLatitude = -48
 Lighting.Brightness = 2.4
