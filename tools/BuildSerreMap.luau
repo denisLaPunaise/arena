@@ -56,7 +56,8 @@ local LEAF_LIGHT = Color3.fromRGB(108, 156, 70)
 local BARK = Color3.fromRGB(122, 98, 70)
 local TERRACOTTA = Color3.fromRGB(176, 96, 64)
 local WATER = Color3.fromRGB(60, 118, 120)
-local BLOOM = { Color3.fromRGB(214, 70, 82), Color3.fromRGB(240, 190, 70), Color3.fromRGB(236, 236, 226) }
+local BLOOM =
+	{ Color3.fromRGB(214, 70, 82), Color3.fromRGB(240, 190, 70), Color3.fromRGB(236, 236, 226) }
 local COLOR_A = Color3.fromRGB(70, 130, 230)
 local COLOR_B = Color3.fromRGB(230, 80, 70)
 
@@ -168,8 +169,22 @@ local function pane(name, a, b, height)
 	glass.Transparency = 0.5
 	glass.Reflectance = 0.05
 	glass.CastShadow = false
-	part(name .. "Muret", cover, Vector3.new(0.9, 1.4, length), cf * CFrame.new(0, 0.7, 0) - Vector3.new(0, mid.Y, 0), STONE_DARK, Enum.Material.Limestone)
-	part(name .. "Lisse", decor, Vector3.new(0.5, 0.4, length), cf * CFrame.new(0, height, 0) - Vector3.new(0, mid.Y, 0), IRON, Enum.Material.Metal)
+	part(
+		name .. "Muret",
+		cover,
+		Vector3.new(0.9, 1.4, length),
+		cf * CFrame.new(0, 0.7, 0) - Vector3.new(0, mid.Y, 0),
+		STONE_DARK,
+		Enum.Material.Limestone
+	)
+	part(
+		name .. "Lisse",
+		decor,
+		Vector3.new(0.5, 0.4, length),
+		cf * CFrame.new(0, height, 0) - Vector3.new(0, mid.Y, 0),
+		IRON,
+		Enum.Material.Metal
+	)
 	-- Les montants : un a chaque bout et un tous les quatre studs.
 	local n = math.max(1, math.floor(length / 4))
 	for i = 0, n do
@@ -178,7 +193,16 @@ local function pane(name, a, b, height)
 		-- Sans collision : le verre arrete deja tout, et des montants solides
 		-- tous les quatre studs coupaient la vue qu'on voulait garder (la
 		-- mesure du centre est tombee a zero sur dix a la premiere construction).
-		ghost(part(name .. "Montant", decor, Vector3.new(0.4, height, 0.4), CFrame.new(p.X, height / 2, p.Z) * (cf - cf.Position), IRON, Enum.Material.Metal))
+		ghost(
+			part(
+				name .. "Montant",
+				decor,
+				Vector3.new(0.4, height, 0.4),
+				CFrame.new(p.X, height / 2, p.Z) * (cf - cf.Position),
+				IRON,
+				Enum.Material.Metal
+			)
+		)
 	end
 end
 
@@ -207,7 +231,8 @@ local function ring(name, radius, height, skip)
 			cover,
 			height + 1,
 			1.1,
-			CFrame.new(math.cos(a) * radius, (height + 1) / 2, math.sin(a) * radius) * CFrame.Angles(0, 0, math.pi / 2),
+			CFrame.new(math.cos(a) * radius, (height + 1) / 2, math.sin(a) * radius)
+				* CFrame.Angles(0, 0, math.pi / 2),
 			IRON,
 			Enum.Material.Metal
 		)
@@ -218,23 +243,67 @@ end
 -- LE SOL
 --------------------------------------------------------------------------------
 
-part("Sol", decor, Vector3.new(BOUNDS, 2, BOUNDS), CFrame.new(0, -1, 0), STONE, Enum.Material.Limestone)
+part(
+	"Sol",
+	decor,
+	Vector3.new(BOUNDS, 2, BOUNDS),
+	CFrame.new(0, -1, 0),
+	STONE,
+	Enum.Material.Limestone
+)
 -- Les massifs : de la terre et de l'herbe entre les allees, dans les quatre
 -- coins de l'anneau exterieur et dans l'anneau interieur. Plus bas que les
 -- allees de cinq centimetres : un massif se marche, il ne se contourne pas.
 for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
-	part("Massif", decor, Vector3.new(36, 0.2, 36), CFrame.new(c[1] * 52, 0.02, c[2] * 52), LEAF_DARK, Enum.Material.LeafyGrass)
+	part(
+		"Massif",
+		decor,
+		Vector3.new(36, 0.2, 36),
+		CFrame.new(c[1] * 52, 0.02, c[2] * 52),
+		LEAF_DARK,
+		Enum.Material.LeafyGrass
+	)
 end
 do
-	local lawn = cylinder("Pelouse", decor, 0.16, 2 * RING - 4, CFrame.new(0, 0.04, 0) * CFrame.Angles(0, 0, math.pi / 2), LEAF, Enum.Material.Grass)
-	local path = cylinder("Promenoir", decor, 0.2, 2 * ROTUNDA + 6, CFrame.new(0, 0.08, 0) * CFrame.Angles(0, 0, math.pi / 2), STONE, Enum.Material.Limestone)
+	local lawn = cylinder(
+		"Pelouse",
+		decor,
+		0.16,
+		2 * RING - 4,
+		CFrame.new(0, 0.04, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		LEAF,
+		Enum.Material.Grass
+	)
+	local path = cylinder(
+		"Promenoir",
+		decor,
+		0.2,
+		2 * ROTUNDA + 6,
+		CFrame.new(0, 0.08, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		STONE,
+		Enum.Material.Limestone
+	)
 	local _ = lawn and path
 end
 -- Les allees de pierre qui menent des camps aux ouvertures : on lit le chemin
 -- par terre, ce qui compte dans une map ou les murs se voient a peine.
 twice(function(s)
-	part("AlleeCamp", decor, Vector3.new(26, 0.22, 6), rotated(s, CFrame.new(57, 0.1, 0)), STONE, Enum.Material.Limestone)
-	part("AlleeTour", decor, Vector3.new(6, 0.22, 60), rotated(s, CFrame.new(57, 0.1, 30)), STONE, Enum.Material.Limestone)
+	part(
+		"AlleeCamp",
+		decor,
+		Vector3.new(26, 0.22, 6),
+		rotated(s, CFrame.new(57, 0.1, 0)),
+		STONE,
+		Enum.Material.Limestone
+	)
+	part(
+		"AlleeTour",
+		decor,
+		Vector3.new(6, 0.22, 60),
+		rotated(s, CFrame.new(57, 0.1, 30)),
+		STONE,
+		Enum.Material.Limestone
+	)
 end)
 
 --------------------------------------------------------------------------------
@@ -257,7 +326,12 @@ ring("Rotonde", ROTUNDA, WALL_H + 2, { [2] = true, [6] = true, [10] = true, [14]
 -- coupent l'anneau interieur en deux moities : entre par le nord, on ne
 -- rejoint le sud qu'en passant par la rotonde.
 twice(function(s)
-	pane("Refend" .. s, Vector3.new(s * (ROTUNDA + 0.6), 0, 0), Vector3.new(s * (RING - 0.6), 0, 0), WALL_H)
+	pane(
+		"Refend" .. s,
+		Vector3.new(s * (ROTUNDA + 0.6), 0, 0),
+		Vector3.new(s * (RING - 0.6), 0, 0),
+		WALL_H
+	)
 end)
 
 -- LE POURTOUR : du verre aussi, sur un muret plus haut, avec une charpente.
@@ -301,13 +375,25 @@ local function palm(name, base, height, lean, turn)
 				name .. "Palme",
 				decor,
 				Vector3.new(1.2, 0.6, 7),
-				CFrame.new(top) * CFrame.Angles(0, a, 0) * CFrame.new(0, -0.6, -3.4) * CFrame.Angles(math.rad(-24 - (k % 2) * 10), 0, 0),
+				CFrame.new(top)
+					* CFrame.Angles(0, a, 0)
+					* CFrame.new(0, -0.6, -3.4)
+					* CFrame.Angles(math.rad(-24 - (k % 2) * 10), 0, 0),
 				if k % 2 == 0 then LEAF else LEAF_LIGHT,
 				Enum.Material.Grass
 			)
 		)
 	end
-	ghost(part(name .. "Coeur", decor, Vector3.new(1.4, 1.4, 1.4), CFrame.new(top), LEAF_DARK, Enum.Material.Grass)).Shape =
+	ghost(
+		part(
+			name .. "Coeur",
+			decor,
+			Vector3.new(1.4, 1.4, 1.4),
+			CFrame.new(top),
+			LEAF_DARK,
+			Enum.Material.Grass
+		)
+	).Shape =
 		Enum.PartType.Ball
 end
 
@@ -315,8 +401,22 @@ end
 -- et une touffe qui depasse a hauteur d'homme. C'est le couvert principal :
 -- on tire par-dessus le bac, on se cache derriere la touffe.
 local function planter(name, cf, w, d, tall, bloom)
-	part(name, cover, Vector3.new(w, 3, d), cf * CFrame.new(0, 1.5, 0), STONE_DARK, Enum.Material.Limestone)
-	part(name .. "Terre", decor, Vector3.new(w - 0.8, 0.2, d - 0.8), cf * CFrame.new(0, 3.05, 0), SOIL, Enum.Material.Ground)
+	part(
+		name,
+		cover,
+		Vector3.new(w, 3, d),
+		cf * CFrame.new(0, 1.5, 0),
+		STONE_DARK,
+		Enum.Material.Limestone
+	)
+	part(
+		name .. "Terre",
+		decor,
+		Vector3.new(w - 0.8, 0.2, d - 0.8),
+		cf * CFrame.new(0, 3.05, 0),
+		SOIL,
+		Enum.Material.Ground
+	)
 	if tall then
 		-- La touffe : trois boules de vert decalees, jamais une seule (le
 		-- piege des couronnes du Sanctuaire : une boule sur un baton est une
@@ -335,7 +435,16 @@ local function planter(name, cf, w, d, tall, bloom)
 	end
 	if bloom then
 		for k = 0, 4 do
-			local f = ghost(part(name .. "Fleur", decor, Vector3.new(0.6, 0.6, 0.6), cf * CFrame.new((k - 2) * (w / 5.5), 3.5, (k % 2 - 0.5) * (d / 3)), BLOOM[(k % #BLOOM) + 1], Enum.Material.SmoothPlastic))
+			local f = ghost(
+				part(
+					name .. "Fleur",
+					decor,
+					Vector3.new(0.6, 0.6, 0.6),
+					cf * CFrame.new((k - 2) * (w / 5.5), 3.5, (k % 2 - 0.5) * (d / 3)),
+					BLOOM[(k % #BLOOM) + 1],
+					Enum.Material.SmoothPlastic
+				)
+			)
 			f.Shape = Enum.PartType.Ball
 		end
 	end
@@ -345,23 +454,33 @@ twice(function(s)
 	-- L'anneau exterieur : des palmiers aux quatre coins et le long des
 	-- cotes, des bacs en quinconce. Les palmiers montent jusqu'a la charpente
 	-- et donnent a la serre sa hauteur.
-	for i, p in {
-		{ 52, 52, 26, 5, 0.3 },
-		{ 30, 60, 22, 6, 2.1 },
-		{ 60, 28, 20, 4, 4.0 },
-		{ -24, 60, 24, 5, 1.2 },
-		{ -52, 54, 22, 6, 5.1 },
-	} do
+	for i, p in
+		{
+			{ 52, 52, 26, 5, 0.3 },
+			{ 30, 60, 22, 6, 2.1 },
+			{ 60, 28, 20, 4, 4.0 },
+			{ -24, 60, 24, 5, 1.2 },
+			{ -52, 54, 22, 6, 5.1 },
+		}
+	do
 		local base = rotated(s, CFrame.new(p[1], 0, p[2])).Position
-		palm(string.format("Palmier%d_%d", s, i), base, p[3], p[4], p[5] + (if s < 0 then math.pi else 0))
+		palm(
+			string.format("Palmier%d_%d", s, i),
+			base,
+			p[3],
+			p[4],
+			p[5] + (if s < 0 then math.pi else 0)
+		)
 	end
-	for i, b in {
-		{ 30, 0, 44, 6, 10, false, true },
-		{ 60, 46, 0, 8, 5, true, false },
-		{ 10, 58, 0, 10, 5, true, true },
-		{ -40, 60, 0, 9, 5, true, false },
-		{ 46, 18, 0.5, 6, 5, false, true },
-	} do
+	for i, b in
+		{
+			{ 30, 0, 44, 6, 10, false, true },
+			{ 60, 46, 0, 8, 5, true, false },
+			{ 10, 58, 0, 10, 5, true, true },
+			{ -40, 60, 0, 9, 5, true, false },
+			{ 46, 18, 0.5, 6, 5, false, true },
+		}
+	do
 		local cf = rotated(s, CFrame.new(b[1], 0, b[2]) * CFrame.Angles(0, b[3] * 0.01, 0))
 		planter(string.format("Bac%d_%d", s, i), cf, b[4], b[5], b[6], b[7])
 	end
@@ -369,11 +488,39 @@ twice(function(s)
 	-- L'anneau interieur : deux grands bacs par moitie, et un banc de
 	-- rempotage. Pas de palmier : on doit voir la rotonde au travers.
 	for i, b in { { 30, 14, 8, 4, true }, { 14, 32, 4, 8, true }, { 28, 30, 5, 5, false } } do
-		planter(string.format("BacInt%d_%d", s, i), rotated(s, CFrame.new(b[1], 0, b[2])), b[3], b[4], b[5], true)
+		planter(
+			string.format("BacInt%d_%d", s, i),
+			rotated(s, CFrame.new(b[1], 0, b[2])),
+			b[3],
+			b[4],
+			b[5],
+			true
+		)
 	end
-	part("Etabli" .. s, cover, Vector3.new(7, 3.2, 2.4), rotated(s, CFrame.new(-30, 1.6, 16) * CFrame.Angles(0, 0.4, 0)), Color3.fromRGB(112, 86, 60), Enum.Material.WoodPlanks)
+	part(
+		"Etabli" .. s,
+		cover,
+		Vector3.new(7, 3.2, 2.4),
+		rotated(s, CFrame.new(-30, 1.6, 16) * CFrame.Angles(0, 0.4, 0)),
+		Color3.fromRGB(112, 86, 60),
+		Enum.Material.WoodPlanks
+	)
 	for k = -1, 1 do
-		local pot = cylinder("Pot", decor, 1.2, 1.2, rotated(s, CFrame.new(-30, 0, 16) * CFrame.Angles(0, 0.4, 0) * CFrame.new(k * 2, 3.8, 0) * CFrame.Angles(0, 0, math.pi / 2)), TERRACOTTA, Enum.Material.Slate)
+		local pot = cylinder(
+			"Pot",
+			decor,
+			1.2,
+			1.2,
+			rotated(
+				s,
+				CFrame.new(-30, 0, 16)
+					* CFrame.Angles(0, 0.4, 0)
+					* CFrame.new(k * 2, 3.8, 0)
+					* CFrame.Angles(0, 0, math.pi / 2)
+			),
+			TERRACOTTA,
+			Enum.Material.Slate
+		)
 		ghost(pot)
 	end
 end)
@@ -383,18 +530,59 @@ end)
 --------------------------------------------------------------------------------
 
 do
-	local basin = cylinder("Vasque", cover, 1.8, 9, CFrame.new(0, 0.9, 0) * CFrame.Angles(0, 0, math.pi / 2), STONE_DARK, Enum.Material.Limestone)
-	local water = ghost(cylinder("Eau", decor, 0.2, 7.8, CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0, math.pi / 2), WATER, Enum.Material.SmoothPlastic))
+	local basin = cylinder(
+		"Vasque",
+		cover,
+		1.8,
+		9,
+		CFrame.new(0, 0.9, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		STONE_DARK,
+		Enum.Material.Limestone
+	)
+	local water = ghost(
+		cylinder(
+			"Eau",
+			decor,
+			0.2,
+			7.8,
+			CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0, math.pi / 2),
+			WATER,
+			Enum.Material.SmoothPlastic
+		)
+	)
 	water.Reflectance = 0.15
 	local _ = basin
-	cylinder("Fut", cover, 6, 1.6, CFrame.new(0, 3, 0) * CFrame.Angles(0, 0, math.pi / 2), STONE, Enum.Material.Limestone)
-	cylinder("Coupe", decor, 0.6, 4, CFrame.new(0, 6.2, 0) * CFrame.Angles(0, 0, math.pi / 2), STONE, Enum.Material.Limestone)
+	cylinder(
+		"Fut",
+		cover,
+		6,
+		1.6,
+		CFrame.new(0, 3, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		STONE,
+		Enum.Material.Limestone
+	)
+	cylinder(
+		"Coupe",
+		decor,
+		0.6,
+		4,
+		CFrame.new(0, 6.2, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		STONE,
+		Enum.Material.Limestone
+	)
 	-- Quatre bacs hauts dans la rotonde, entre les portes. PAS SUR LES AXES :
 	-- poses a 0 et 180 degres, ils cachaient le centre a tous les departs, et
 	-- la map perdait la seule chose qu'elle promet. Decales de 22,5 degres.
 	for i = 0, 3 do
 		local a = i / 4 * math.pi * 2 + math.rad(22.5)
-		planter("BacRotonde" .. i, CFrame.new(math.cos(a) * 10, 0, math.sin(a) * 10) * CFrame.Angles(0, -a, 0), 3, 5, true, true)
+		planter(
+			"BacRotonde" .. i,
+			CFrame.new(math.cos(a) * 10, 0, math.sin(a) * 10) * CFrame.Angles(0, -a, 0),
+			3,
+			5,
+			true,
+			true
+		)
 	end
 end
 
@@ -414,13 +602,31 @@ for i = -3, 3 do
 		local p0 = Vector3.new(x, 18 + math.sin(a0) * 14, -HALF + (1 - math.cos(a0)) * HALF)
 		local p1 = Vector3.new(x, 18 + math.sin(a1) * 14, -HALF + (1 - math.cos(a1)) * HALF)
 		local mid = (p0 + p1) / 2
-		local rib = ghost(part("Arc", decor, Vector3.new(0.5, 0.5, (p1 - p0).Magnitude + 0.2), CFrame.lookAt(mid, p1), IRON, Enum.Material.Metal))
+		local rib = ghost(
+			part(
+				"Arc",
+				decor,
+				Vector3.new(0.5, 0.5, (p1 - p0).Magnitude + 0.2),
+				CFrame.lookAt(mid, p1),
+				IRON,
+				Enum.Material.Metal
+			)
+		)
 		rib.CastShadow = false
 	end
 end
 for _, z in { -50, -25, 0, 25, 50 } do
 	local y = 18 + math.sin(math.acos(1 - (z + HALF) / HALF)) * 14
-	local purlin = ghost(part("Panne", decor, Vector3.new(2 * HALF, 0.4, 0.4), CFrame.new(0, y, z), IRON, Enum.Material.Metal))
+	local purlin = ghost(
+		part(
+			"Panne",
+			decor,
+			Vector3.new(2 * HALF, 0.4, 0.4),
+			CFrame.new(0, y, z),
+			IRON,
+			Enum.Material.Metal
+		)
+	)
 	purlin.CastShadow = false
 end
 
@@ -446,8 +652,26 @@ twice(function(s)
 	end
 	-- Le vestibule : un auvent de toile a la couleur du camp, haut, contre le
 	-- pourtour. Hors du champ de tir et hors de la vue de depart.
-	ghost(part("Auvent" .. team, decor, Vector3.new(10, 0.4, 26), rotated(s, CFrame.new(70, 16, 0)), tint, Enum.Material.Fabric))
-	ghost(part("Tapis" .. team, decor, Vector3.new(10, 0.1, 22), rotated(s, CFrame.new(64, 0.15, 0)), tint, Enum.Material.Fabric))
+	ghost(
+		part(
+			"Auvent" .. team,
+			decor,
+			Vector3.new(10, 0.4, 26),
+			rotated(s, CFrame.new(70, 16, 0)),
+			tint,
+			Enum.Material.Fabric
+		)
+	)
+	ghost(
+		part(
+			"Tapis" .. team,
+			decor,
+			Vector3.new(10, 0.1, 22),
+			rotated(s, CFrame.new(64, 0.15, 0)),
+			tint,
+			Enum.Material.Fabric
+		)
+	)
 end)
 
 --------------------------------------------------------------------------------
@@ -483,7 +707,16 @@ for _, old in Workspace.Terrain:GetChildren() do
 		old:Destroy()
 	end
 end
-for _, class in { "Atmosphere", "Sky", "BloomEffect", "ColorCorrectionEffect", "SunRaysEffect", "DepthOfFieldEffect" } do
+for _, class in
+	{
+		"Atmosphere",
+		"Sky",
+		"BloomEffect",
+		"ColorCorrectionEffect",
+		"SunRaysEffect",
+		"DepthOfFieldEffect",
+	}
+do
 	for _, old in Lighting:GetChildren() do
 		if old:IsA(class) then
 			old:Destroy()
@@ -573,7 +806,9 @@ do
 	if module then
 		ok, conf = pcall(require, module)
 	end
-	local found = if ok and type(conf) == "table" and type(conf.round) == "table"
+	local found = if ok
+			and type(conf) == "table"
+			and type(conf.round) == "table"
 		then tonumber(conf.round.zoneFinalRadiusStuds)
 		else nil
 	if found then
@@ -602,7 +837,14 @@ do
 		print(string.format("  Departs : aucune des %d lignes n'est degagee. Bon.", couples))
 	else
 		alarms += 1
-		warn(string.format("[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs.", open, couples, longest))
+		warn(
+			string.format(
+				"[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs.",
+				open,
+				couples,
+				longest
+			)
+		)
 	end
 	local floating = 0
 	for _, folder in { map.SpawnsA, map.SpawnsB } do
@@ -625,11 +867,23 @@ do
 	local covered = 0
 	for step = 0, 15 do
 		local angle = step / 16 * math.pi * 2
-		if Workspace:Raycast(origin, Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS, probe) then
+		if
+			Workspace:Raycast(
+				origin,
+				Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS,
+				probe
+			)
+		then
 			covered += 1
 		end
 	end
-	print(string.format("  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs.", covered, FINAL_RADIUS))
+	print(
+		string.format(
+			"  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs.",
+			covered,
+			FINAL_RADIUS
+		)
+	)
 	if covered < 4 or covered > 12 then
 		alarms += 1
 		warn("[Arena]   Le cercle final est trop nu ou trop encombre.")
@@ -667,7 +921,13 @@ do
 			end
 		end
 	end
-	print(string.format("  Le centre se voit au travers du verre depuis %d departs sur %d.", seen, total))
+	print(
+		string.format(
+			"  Le centre se voit au travers du verre depuis %d departs sur %d.",
+			seen,
+			total
+		)
+	)
 	if seen < total / 2 then
 		alarms += 1
 		warn("[Arena]   Le decor opaque cache le centre : la map ne tient plus sa promesse.")
@@ -688,7 +948,14 @@ do
 		table.insert(counts, shaded)
 	end
 	local elevation = math.deg(math.asin(sun.Y))
-	print(string.format("  Soleil a %.1f degres ; ombre aux departs : %d et %d sur 5.", elevation, counts[1], counts[2]))
+	print(
+		string.format(
+			"  Soleil a %.1f degres ; ombre aux departs : %d et %d sur 5.",
+			elevation,
+			counts[1],
+			counts[2]
+		)
+	)
 	if math.abs(counts[1] - counts[2]) >= 2 then
 		alarms += 1
 		warn("[Arena]   L'ombre est inegale entre les deux camps.")
@@ -701,4 +968,10 @@ for _, d in map:GetDescendants() do
 		count += 1
 	end
 end
-print(string.format("[Arena] Serre construite : %d parts. %s", count, if alarms == 0 then "Rien a signaler." else alarms .. " point(s) a regarder."))
+print(
+	string.format(
+		"[Arena] Serre construite : %d parts. %s",
+		count,
+		if alarms == 0 then "Rien a signaler." else alarms .. " point(s) a regarder."
+	)
+)

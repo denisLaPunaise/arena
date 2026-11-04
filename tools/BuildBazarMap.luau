@@ -167,9 +167,24 @@ end
 
 local function lantern(parent, pos, withLight)
 	local glass = ghost(
-		part("Lanterne", parent, Vector3.new(0.9, 1.2, 0.9), CFrame.new(pos), LANTERN, Enum.Material.Neon)
+		part(
+			"Lanterne",
+			parent,
+			Vector3.new(0.9, 1.2, 0.9),
+			CFrame.new(pos),
+			LANTERN,
+			Enum.Material.Neon
+		)
 	)
-	ghost(part("LanterneChapeau", parent, Vector3.new(1.2, 0.3, 1.2), CFrame.new(pos + Vector3.new(0, 0.75, 0)), TIMBER))
+	ghost(
+		part(
+			"LanterneChapeau",
+			parent,
+			Vector3.new(1.2, 0.3, 1.2),
+			CFrame.new(pos + Vector3.new(0, 0.75, 0)),
+			TIMBER
+		)
+	)
 	if withLight then
 		local light = Instance.new("PointLight")
 		light.Color = LANTERN
@@ -185,7 +200,14 @@ end
 -- LE SOL ET LE POURTOUR
 --------------------------------------------------------------------------------
 
-part("Pave", decor, Vector3.new(BOUNDS, 2, BOUNDS), CFrame.new(0, -1, 0), COBBLE, Enum.Material.Cobblestone)
+part(
+	"Pave",
+	decor,
+	Vector3.new(BOUNDS, 2, BOUNDS),
+	CFrame.new(0, -1, 0),
+	COBBLE,
+	Enum.Material.Cobblestone
+)
 -- Une bande de pave plus sombre au milieu de chaque allee : le chemin qu'on
 -- prend, use par les pas. Elle dit a l'oeil OU sont les trois allees.
 for _, z in { 0, 41, -41 } do
@@ -212,10 +234,26 @@ for _, side in { 1, -1 } do
 		part("Facade", decor, size, CFrame.new(pos), PLASTER, Enum.Material.Brick)
 		-- Un soubassement plus sombre et une corniche : la facade a un bas et
 		-- un haut, donc une echelle.
-		local base = if axis == "x" then Vector3.new(size.X, 3, 4.6) else Vector3.new(4.6, 3, size.Z)
-		part("Soubassement", decor, base, CFrame.new(pos.X, 1.5, pos.Z), PLASTER_DARK, Enum.Material.Brick)
+		local base = if axis == "x"
+			then Vector3.new(size.X, 3, 4.6)
+			else Vector3.new(4.6, 3, size.Z)
+		part(
+			"Soubassement",
+			decor,
+			base,
+			CFrame.new(pos.X, 1.5, pos.Z),
+			PLASTER_DARK,
+			Enum.Material.Brick
+		)
 		local top = if axis == "x" then Vector3.new(size.X, 1, 5.4) else Vector3.new(5.4, 1, size.Z)
-		part("Corniche", decor, top, CFrame.new(pos.X, 16.2, pos.Z), PLASTER_DARK, Enum.Material.Concrete)
+		part(
+			"Corniche",
+			decor,
+			top,
+			CFrame.new(pos.X, 16.2, pos.Z),
+			PLASTER_DARK,
+			Enum.Material.Concrete
+		)
 		-- Les fenetres eclairees, a l'etage : une sur trois seulement, sinon
 		-- c'est une guirlande et plus une rue.
 		for i = -6, 6 do
@@ -226,8 +264,19 @@ for _, side in { 1, -1 } do
 			local wpos = if axis == "x"
 				then Vector3.new(along, 11, side * HALF)
 				else Vector3.new(side * HALF, 11, along)
-			local wsize = if axis == "x" then Vector3.new(2.4, 3.4, 0.4) else Vector3.new(0.4, 3.4, 2.4)
-			ghost(part("Fenetre", decor, wsize, CFrame.new(wpos), Color3.fromRGB(255, 196, 120), Enum.Material.Neon))
+			local wsize = if axis == "x"
+				then Vector3.new(2.4, 3.4, 0.4)
+				else Vector3.new(0.4, 3.4, 2.4)
+			ghost(
+				part(
+					"Fenetre",
+					decor,
+					wsize,
+					CFrame.new(wpos),
+					Color3.fromRGB(255, 196, 120),
+					Enum.Material.Neon
+				)
+			)
 		end
 	end
 end
@@ -350,7 +399,15 @@ twice(function(s)
 	local tag = if s == 1 then "N" else "S"
 	-- Trois troncons par rangee, separes par les deux ruelles de traverse.
 	stallBlock("Rangee" .. tag .. "1", -ROW_END, ALLEY_A - ALLEY_WIDE / 2, ROW_IN, ROW_OUT, s, 0)
-	stallBlock("Rangee" .. tag .. "2", ALLEY_A + ALLEY_WIDE / 2, ALLEY_B - ALLEY_WIDE / 2, ROW_IN, ROW_OUT, s, 1)
+	stallBlock(
+		"Rangee" .. tag .. "2",
+		ALLEY_A + ALLEY_WIDE / 2,
+		ALLEY_B - ALLEY_WIDE / 2,
+		ROW_IN,
+		ROW_OUT,
+		s,
+		1
+	)
 	stallBlock("Rangee" .. tag .. "3", ALLEY_B + ALLEY_WIDE / 2, ROW_END, ROW_IN, ROW_OUT, s, 2)
 
 	-- Les ruelles de traverse ont un porche : deux piliers et un linteau, plus
@@ -361,7 +418,10 @@ twice(function(s)
 				"Pilier",
 				cover,
 				Vector3.new(1.2, ROW_HEIGHT + 2, 1.2),
-				rotated(s, CFrame.new(ax + dx * (ALLEY_WIDE / 2 + 0.6), (ROW_HEIGHT + 2) / 2, ROW_IN + 0.6)),
+				rotated(
+					s,
+					CFrame.new(ax + dx * (ALLEY_WIDE / 2 + 0.6), (ROW_HEIGHT + 2) / 2, ROW_IN + 0.6)
+				),
 				BRICK,
 				Enum.Material.Brick
 			)
@@ -402,11 +462,47 @@ twice(function(s)
 		-- L'echoppe : trois cotes en planches, ouverte vers l'allee, haute
 		-- comme un homme et demi. Assez pour couvrir, pas assez pour aveugler
 		-- au-dessus.
-		part("Echoppe", cover, Vector3.new(7, 8.6, 0.8), cf * CFrame.new(0, 4.3, 2.8), TIMBER, Enum.Material.WoodPlanks)
-		part("Echoppe", cover, Vector3.new(0.8, 8.6, 6.4), cf * CFrame.new(-3.1, 4.3, 0), TIMBER, Enum.Material.WoodPlanks)
-		part("Echoppe", cover, Vector3.new(0.8, 8.6, 6.4), cf * CFrame.new(3.1, 4.3, 0), TIMBER, Enum.Material.WoodPlanks)
-		part("EchoppeComptoir", cover, Vector3.new(5.4, 3.2, 1.6), cf * CFrame.new(0, 1.6, -2.2), TIMBER_LIGHT, Enum.Material.Wood)
-		ghost(wedge("EchoppeToit", decor, Vector3.new(8, 1.8, 7.6), cf * CFrame.new(0, 9.5, 0) * CFrame.Angles(0, math.pi, 0), c))
+		part(
+			"Echoppe",
+			cover,
+			Vector3.new(7, 8.6, 0.8),
+			cf * CFrame.new(0, 4.3, 2.8),
+			TIMBER,
+			Enum.Material.WoodPlanks
+		)
+		part(
+			"Echoppe",
+			cover,
+			Vector3.new(0.8, 8.6, 6.4),
+			cf * CFrame.new(-3.1, 4.3, 0),
+			TIMBER,
+			Enum.Material.WoodPlanks
+		)
+		part(
+			"Echoppe",
+			cover,
+			Vector3.new(0.8, 8.6, 6.4),
+			cf * CFrame.new(3.1, 4.3, 0),
+			TIMBER,
+			Enum.Material.WoodPlanks
+		)
+		part(
+			"EchoppeComptoir",
+			cover,
+			Vector3.new(5.4, 3.2, 1.6),
+			cf * CFrame.new(0, 1.6, -2.2),
+			TIMBER_LIGHT,
+			Enum.Material.Wood
+		)
+		ghost(
+			wedge(
+				"EchoppeToit",
+				decor,
+				Vector3.new(8, 1.8, 7.6),
+				cf * CFrame.new(0, 9.5, 0) * CFrame.Angles(0, math.pi, 0),
+				c
+			)
+		)
 		lantern(decor, (cf * CFrame.new(0, 7.4, -3.4)).Position, i % 2 == 1)
 	end
 
@@ -417,7 +513,14 @@ twice(function(s)
 	-- coupe la ligne.
 	for i, x in { -23, 19 } do
 		local cf = rotated(s, CFrame.new(x, 0, 41))
-		part("Ilot", cover, Vector3.new(6, 3.4, 10), cf * CFrame.new(0, 1.7, 0), TIMBER_LIGHT, Enum.Material.WoodPlanks)
+		part(
+			"Ilot",
+			cover,
+			Vector3.new(6, 3.4, 10),
+			cf * CFrame.new(0, 1.7, 0),
+			TIMBER_LIGHT,
+			Enum.Material.WoodPlanks
+		)
 		for k = -1, 1 do
 			part(
 				"Ballot",
@@ -444,7 +547,14 @@ twice(function(s)
 			Enum.Material.Wood
 		)
 		barrel.Shape = Enum.PartType.Cylinder
-		part("Caisse", cover, Vector3.new(3, 3, 3), rotated(s, CFrame.new(x + 3.2, 1.5, z + 0.6) * CFrame.Angles(0, 0.3, 0)), TIMBER, Enum.Material.WoodPlanks)
+		part(
+			"Caisse",
+			cover,
+			Vector3.new(3, 3, 3),
+			rotated(s, CFrame.new(x + 3.2, 1.5, z + 0.6) * CFrame.Angles(0, 0.3, 0)),
+			TIMBER,
+			Enum.Material.WoodPlanks
+		)
 	end
 end)
 
@@ -456,16 +566,55 @@ end)
 -- d'un camp a l'autre ; quatre bornes a lanterne autour donnent de quoi se
 -- disputer la place sans qu'elle devienne aveugle.
 do
-	local basin = part("Bassin", cover, Vector3.new(2.4, 11, 11), CFrame.new(0, 1.2, 0) * CFrame.Angles(0, 0, math.pi / 2), PLASTER_DARK, Enum.Material.Concrete)
+	local basin = part(
+		"Bassin",
+		cover,
+		Vector3.new(2.4, 11, 11),
+		CFrame.new(0, 1.2, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		PLASTER_DARK,
+		Enum.Material.Concrete
+	)
 	basin.Shape = Enum.PartType.Cylinder
-	local water = ghost(part("Eau", decor, Vector3.new(0.3, 9.6, 9.6), CFrame.new(0, 2.3, 0) * CFrame.Angles(0, 0, math.pi / 2), WATER, Enum.Material.SmoothPlastic))
+	local water = ghost(
+		part(
+			"Eau",
+			decor,
+			Vector3.new(0.3, 9.6, 9.6),
+			CFrame.new(0, 2.3, 0) * CFrame.Angles(0, 0, math.pi / 2),
+			WATER,
+			Enum.Material.SmoothPlastic
+		)
+	)
 	water.Shape = Enum.PartType.Cylinder
 	water.Reflectance = 0.2
-	local column = part("Colonne", cover, Vector3.new(12, 2.4, 2.4), CFrame.new(0, 6, 0) * CFrame.Angles(0, 0, math.pi / 2), PLASTER, Enum.Material.Concrete)
+	local column = part(
+		"Colonne",
+		cover,
+		Vector3.new(12, 2.4, 2.4),
+		CFrame.new(0, 6, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		PLASTER,
+		Enum.Material.Concrete
+	)
 	column.Shape = Enum.PartType.Cylinder
-	local bowl = part("Vasque", decor, Vector3.new(1, 5, 5), CFrame.new(0, 9, 0) * CFrame.Angles(0, 0, math.pi / 2), BRASS, Enum.Material.Metal)
+	local bowl = part(
+		"Vasque",
+		decor,
+		Vector3.new(1, 5, 5),
+		CFrame.new(0, 9, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		BRASS,
+		Enum.Material.Metal
+	)
 	bowl.Shape = Enum.PartType.Cylinder
-	local crown = ghost(part("Flamme", decor, Vector3.new(1.4, 1.4, 1.4), CFrame.new(0, 12.6, 0), LANTERN, Enum.Material.Neon))
+	local crown = ghost(
+		part(
+			"Flamme",
+			decor,
+			Vector3.new(1.4, 1.4, 1.4),
+			CFrame.new(0, 12.6, 0),
+			LANTERN,
+			Enum.Material.Neon
+		)
+	)
 	crown.Shape = Enum.PartType.Ball
 	local light = Instance.new("PointLight")
 	light.Color = LANTERN
@@ -475,7 +624,14 @@ do
 	light.Parent = crown
 
 	-- Le dallage de la place, plus clair que les allees : on sait qu'on y est.
-	local floor = part("Dallage", decor, Vector3.new(0.12, 2 * PLAZA, 2 * PLAZA), CFrame.new(0, 0.06, 0) * CFrame.Angles(0, 0, math.pi / 2), Color3.fromRGB(128, 116, 104), Enum.Material.Pavement)
+	local floor = part(
+		"Dallage",
+		decor,
+		Vector3.new(0.12, 2 * PLAZA, 2 * PLAZA),
+		CFrame.new(0, 0.06, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		Color3.fromRGB(128, 116, 104),
+		Enum.Material.Pavement
+	)
 	floor.Shape = Enum.PartType.Cylinder
 
 	-- Quatre lampadaires sur les axes, plus hauts que l'oeil : ce sont eux qui
@@ -488,13 +644,27 @@ do
 		-- futs sortaient jaune vif et se lisaient comme des piliers geants. Et pas
 		-- plus minces que 1,6 : a 1,2, deux diagonales d'un camp a l'autre se
 		-- sont rouvertes, la mesure l'a dit a la construction suivante.
-		part("Lampadaire", cover, Vector3.new(1.6, 9, 1.6), CFrame.new(x, 4.5, z), Color3.fromRGB(46, 46, 52), Enum.Material.Metal)
+		part(
+			"Lampadaire",
+			cover,
+			Vector3.new(1.6, 9, 1.6),
+			CFrame.new(x, 4.5, z),
+			Color3.fromRGB(46, 46, 52),
+			Enum.Material.Metal
+		)
 		lantern(decor, Vector3.new(x, 10, z), i % 2 == 0)
 	end
 	for i = 0, 3 do
 		local a = i / 4 * math.pi * 2 + math.pi / 4
 		local x, z = math.cos(a) * 10, math.sin(a) * 10
-		part("Borne", cover, Vector3.new(2.2, 5.6, 2.2), CFrame.new(x, 2.8, z) * CFrame.Angles(0, a, 0), PLASTER_DARK, Enum.Material.Concrete)
+		part(
+			"Borne",
+			cover,
+			Vector3.new(2.2, 5.6, 2.2),
+			CFrame.new(x, 2.8, z) * CFrame.Angles(0, a, 0),
+			PLASTER_DARK,
+			Enum.Material.Concrete
+		)
 		lantern(decor, Vector3.new(x, 6.4, z), false)
 	end
 end
@@ -505,14 +675,49 @@ end
 -- neuf studs a cause de leur bache : l'oeil d'un joueur est a sept et demi.
 twice(function(s)
 	local cf = rotated(s, CFrame.new(-32, 0, -4))
-	part("Charrette", cover, Vector3.new(8, 3, 9), cf * CFrame.new(0, 2.5, 0), TIMBER_LIGHT, Enum.Material.WoodPlanks)
-	part("Bache", cover, Vector3.new(7.4, 5, 8.6), cf * CFrame.new(0, 6.5, 0), CANVAS[2], Enum.Material.Fabric)
+	part(
+		"Charrette",
+		cover,
+		Vector3.new(8, 3, 9),
+		cf * CFrame.new(0, 2.5, 0),
+		TIMBER_LIGHT,
+		Enum.Material.WoodPlanks
+	)
+	part(
+		"Bache",
+		cover,
+		Vector3.new(7.4, 5, 8.6),
+		cf * CFrame.new(0, 6.5, 0),
+		CANVAS[2],
+		Enum.Material.Fabric
+	)
 	for _, dz in { -3.2, 3.2 } do
-		local wheel = part("Roue", decor, Vector3.new(0.6, 3.2, 3.2), cf * CFrame.new(4.3, 1.6, dz), TIMBER, Enum.Material.Wood)
+		local wheel = part(
+			"Roue",
+			decor,
+			Vector3.new(0.6, 3.2, 3.2),
+			cf * CFrame.new(4.3, 1.6, dz),
+			TIMBER,
+			Enum.Material.Wood
+		)
 		wheel.Shape = Enum.PartType.Cylinder
 	end
-	part("Brancard", decor, Vector3.new(6, 0.4, 0.4), cf * CFrame.new(-6.8, 1.4, -1.6), TIMBER, Enum.Material.Wood)
-	part("Brancard", decor, Vector3.new(6, 0.4, 0.4), cf * CFrame.new(-6.8, 1.4, 1.6), TIMBER, Enum.Material.Wood)
+	part(
+		"Brancard",
+		decor,
+		Vector3.new(6, 0.4, 0.4),
+		cf * CFrame.new(-6.8, 1.4, -1.6),
+		TIMBER,
+		Enum.Material.Wood
+	)
+	part(
+		"Brancard",
+		decor,
+		Vector3.new(6, 0.4, 0.4),
+		cf * CFrame.new(-6.8, 1.4, 1.6),
+		TIMBER,
+		Enum.Material.Wood
+	)
 end)
 
 --------------------------------------------------------------------------------
@@ -578,10 +783,42 @@ twice(function(s)
 		marker.Parent = folder
 	end
 	local cf = rotated(s, CFrame.new(SPAWN_X + 8, 0, 0))
-	ghost(part("Tapis" .. team, decor, Vector3.new(8, 0.1, 22), cf * CFrame.new(-8, 0.05, 0), tint, Enum.Material.Fabric))
-	part("PortailG" .. team, decor, Vector3.new(3, 18, 3), cf * CFrame.new(3, 9, -13), BRICK, Enum.Material.Brick)
-	part("PortailD" .. team, decor, Vector3.new(3, 18, 3), cf * CFrame.new(3, 9, 13), BRICK, Enum.Material.Brick)
-	ghost(part("Fronton" .. team, decor, Vector3.new(3, 3, 29), cf * CFrame.new(3, 17.5, 0), tint, Enum.Material.Fabric))
+	ghost(
+		part(
+			"Tapis" .. team,
+			decor,
+			Vector3.new(8, 0.1, 22),
+			cf * CFrame.new(-8, 0.05, 0),
+			tint,
+			Enum.Material.Fabric
+		)
+	)
+	part(
+		"PortailG" .. team,
+		decor,
+		Vector3.new(3, 18, 3),
+		cf * CFrame.new(3, 9, -13),
+		BRICK,
+		Enum.Material.Brick
+	)
+	part(
+		"PortailD" .. team,
+		decor,
+		Vector3.new(3, 18, 3),
+		cf * CFrame.new(3, 9, 13),
+		BRICK,
+		Enum.Material.Brick
+	)
+	ghost(
+		part(
+			"Fronton" .. team,
+			decor,
+			Vector3.new(3, 3, 29),
+			cf * CFrame.new(3, 17.5, 0),
+			tint,
+			Enum.Material.Fabric
+		)
+	)
 	lantern(decor, (cf * CFrame.new(1, 14, -13)).Position, true)
 	lantern(decor, (cf * CFrame.new(1, 14, 13)).Position, false)
 end)
@@ -619,7 +856,16 @@ for _, old in Workspace.Terrain:GetChildren() do
 		old:Destroy()
 	end
 end
-for _, class in { "Atmosphere", "Sky", "BloomEffect", "ColorCorrectionEffect", "SunRaysEffect", "DepthOfFieldEffect" } do
+for _, class in
+	{
+		"Atmosphere",
+		"Sky",
+		"BloomEffect",
+		"ColorCorrectionEffect",
+		"SunRaysEffect",
+		"DepthOfFieldEffect",
+	}
+do
 	for _, old in Lighting:GetChildren() do
 		if old:IsA(class) then
 			old:Destroy()
@@ -702,7 +948,9 @@ do
 	if module then
 		ok, conf = pcall(require, module)
 	end
-	local found = if ok and type(conf) == "table" and type(conf.round) == "table"
+	local found = if ok
+			and type(conf) == "table"
+			and type(conf.round) == "table"
 		then tonumber(conf.round.zoneFinalRadiusStuds)
 		else nil
 	if found then
@@ -731,7 +979,14 @@ do
 		print(string.format("  Departs : aucune des %d lignes n'est degagee. Bon.", couples))
 	else
 		alarms += 1
-		warn(string.format("[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs.", open, couples, longest))
+		warn(
+			string.format(
+				"[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs.",
+				open,
+				couples,
+				longest
+			)
+		)
 	end
 
 	local floating = 0
@@ -755,11 +1010,23 @@ do
 	local covered = 0
 	for step = 0, 15 do
 		local angle = step / 16 * math.pi * 2
-		if Workspace:Raycast(origin, Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS, probe) then
+		if
+			Workspace:Raycast(
+				origin,
+				Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS,
+				probe
+			)
+		then
 			covered += 1
 		end
 	end
-	print(string.format("  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs.", covered, FINAL_RADIUS))
+	print(
+		string.format(
+			"  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs.",
+			covered,
+			FINAL_RADIUS
+		)
+	)
 	if covered < 4 or covered > 12 then
 		alarms += 1
 		warn("[Arena]   Le cercle final est trop nu ou trop encombre.")
@@ -794,11 +1061,27 @@ do
 	end
 	if axis > 60 then
 		alarms += 1
-		warn(string.format("[Arena]   Une allee se tient en enfilade : %.0f studs depuis %s.", axis, where))
+		warn(
+			string.format(
+				"[Arena]   Une allee se tient en enfilade : %.0f studs depuis %s.",
+				axis,
+				where
+			)
+		)
 	else
-		print(string.format("  Enfilade la plus longue dans l'axe des allees : %.0f studs. Bon.", axis))
+		print(
+			string.format(
+				"  Enfilade la plus longue dans l'axe des allees : %.0f studs. Bon.",
+				axis
+			)
+		)
 	end
-	print(string.format("  Diagonale la plus longue, a travers les carrefours : %.0f studs.", diagonal))
+	print(
+		string.format(
+			"  Diagonale la plus longue, a travers les carrefours : %.0f studs.",
+			diagonal
+		)
+	)
 end
 
 local count = 0
@@ -807,4 +1090,10 @@ for _, d in map:GetDescendants() do
 		count += 1
 	end
 end
-print(string.format("[Arena] Bazar construit : %d parts. %s", count, if alarms == 0 then "Rien a signaler." else alarms .. " point(s) a regarder."))
+print(
+	string.format(
+		"[Arena] Bazar construit : %d parts. %s",
+		count,
+		if alarms == 0 then "Rien a signaler." else alarms .. " point(s) a regarder."
+	)
+)

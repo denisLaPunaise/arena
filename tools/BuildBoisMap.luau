@@ -48,7 +48,8 @@ local CHAPEL = 11 -- demi-cote interieur de la chapelle
 
 local GROUND = Color3.fromRGB(84, 74, 52)
 local MOSS = Color3.fromRGB(78, 96, 58)
-local LEAVES_FLOOR = { Color3.fromRGB(150, 84, 40), Color3.fromRGB(122, 64, 36), Color3.fromRGB(170, 120, 48) }
+local LEAVES_FLOOR =
+	{ Color3.fromRGB(150, 84, 40), Color3.fromRGB(122, 64, 36), Color3.fromRGB(170, 120, 48) }
 local BARK = Color3.fromRGB(92, 86, 80)
 local BARK_DARK = Color3.fromRGB(62, 56, 52)
 local CROWN = {
@@ -119,7 +120,14 @@ local function cylinder(name, parent, length, diameter, cf, color, material)
 end
 
 local function ball(name, parent, diameter, pos, color, material)
-	local p = part(name, parent, Vector3.new(diameter, diameter, diameter), CFrame.new(pos), color, material)
+	local p = part(
+		name,
+		parent,
+		Vector3.new(diameter, diameter, diameter),
+		CFrame.new(pos),
+		color,
+		material
+	)
 	p.Shape = Enum.PartType.Ball
 	return p
 end
@@ -130,7 +138,14 @@ local rng = Random.new(SEED)
 -- LE SOL
 --------------------------------------------------------------------------------
 
-part("Sol", decor, Vector3.new(BOUNDS, 2, BOUNDS), CFrame.new(0, -1, 0), GROUND, Enum.Material.Ground)
+part(
+	"Sol",
+	decor,
+	Vector3.new(BOUNDS, 2, BOUNDS),
+	CFrame.new(0, -1, 0),
+	GROUND,
+	Enum.Material.Ground
+)
 -- Des nappes de feuilles mortes et de mousse : un sol de foret n'est jamais
 -- d'une seule couleur, et ces taches sont ce qui donne l'echelle quand le
 -- brouillard a mange le reste.
@@ -140,14 +155,17 @@ for i = 1, 70 do
 	local isMoss = i % 4 == 0
 	local color = if isMoss then MOSS else LEAVES_FLOOR[(i % #LEAVES_FLOOR) + 1]
 	for _, s in { 1, -1 } do
-		ghost(part(
-			"Feuilles",
-			decor,
-			Vector3.new(w, 0.1, d),
-			CFrame.new(s * x, 0.02 + (i % 5) * 0.01, s * z) * CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
-			color,
-			if isMoss then Enum.Material.Grass else Enum.Material.LeafyGrass
-		))
+		ghost(
+			part(
+				"Feuilles",
+				decor,
+				Vector3.new(w, 0.1, d),
+				CFrame.new(s * x, 0.02 + (i % 5) * 0.01, s * z)
+					* CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
+				color,
+				if isMoss then Enum.Material.Grass else Enum.Material.LeafyGrass
+			)
+		)
 	end
 end
 
@@ -202,8 +220,17 @@ local function tree(name, x, z, s)
 	local r = rng:NextNumber(5, 8)
 	for _, sign in { 1, -1 } do
 		local px, pz = sign * x, sign * z
-		local base = CFrame.new(px, 0, pz) * CFrame.Angles(lean, turn + (if sign < 0 then math.pi else 0), 0)
-		cylinder(name .. "Tronc", cover, height, girth, base * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.pi / 2), BARK, Enum.Material.Wood)
+		local base = CFrame.new(px, 0, pz)
+			* CFrame.Angles(lean, turn + (if sign < 0 then math.pi else 0), 0)
+		cylinder(
+			name .. "Tronc",
+			cover,
+			height,
+			girth,
+			base * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.pi / 2),
+			BARK,
+			Enum.Material.Wood
+		)
 		-- Pas de racines : trois coins au pied se lisaient comme des briques
 		-- noires semees autour du tronc. Vu a l'ecran, retire.
 		local top = (base * CFrame.new(0, height, 0)).Position
@@ -212,27 +239,35 @@ local function tree(name, x, z, s)
 			local dx = math.cos(k * 2.4) * r * 0.55
 			local dz = math.sin(k * 2.4) * r * 0.55
 			local dy = (k % 3) * 1.2 - 1
-			ghost(ball(
-				name .. "Feuillage",
-				decor,
-				r * (0.65 + (k % 4) * 0.08),
-				top + Vector3.new(sign * dx, dy, sign * dz),
-				if k % 3 == 0 then CROWN[((k + math.floor(x)) % #CROWN) + 1] else tint,
-				Enum.Material.LeafyGrass
-			)).CastShadow = true
+			ghost(
+				ball(
+					name .. "Feuillage",
+					decor,
+					r * (0.65 + (k % 4) * 0.08),
+					top + Vector3.new(sign * dx, dy, sign * dz),
+					if k % 3 == 0 then CROWN[((k + math.floor(x)) % #CROWN) + 1] else tint,
+					Enum.Material.LeafyGrass
+				)
+			).CastShadow =
+				true
 		end
 		-- Deux branches nues, qui sortent sous la couronne.
 		for k = 0, 1 do
 			local a = turn + k * math.pi * 0.9
-			ghost(cylinder(
-				name .. "Branche",
-				decor,
-				r * 0.9,
-				girth * 0.3,
-				CFrame.new(top - Vector3.new(0, 3 + k * 2, 0)) * CFrame.Angles(0, a, 0) * CFrame.Angles(0, 0, math.rad(25)) * CFrame.new(r * 0.4, 0, 0),
-				BARK_DARK,
-				Enum.Material.Wood
-			))
+			ghost(
+				cylinder(
+					name .. "Branche",
+					decor,
+					r * 0.9,
+					girth * 0.3,
+					CFrame.new(top - Vector3.new(0, 3 + k * 2, 0))
+						* CFrame.Angles(0, a, 0)
+						* CFrame.Angles(0, 0, math.rad(25))
+						* CFrame.new(r * 0.4, 0, 0),
+					BARK_DARK,
+					Enum.Material.Wood
+				)
+			)
 		end
 	end
 end
@@ -248,7 +283,12 @@ local attempts = 0
 while trees < 64 and attempts < 6000 do
 	attempts += 1
 	local x, z = rng:NextNumber(-70, 70), rng:NextNumber(-70, 70)
-	if forbidden(x, z) or not farEnough(x, z, 8) or not farEnough(-x, -z, 8) or (x * x + z * z) < 64 then
+	if
+		forbidden(x, z)
+		or not farEnough(x, z, 8)
+		or not farEnough(-x, -z, 8)
+		or (x * x + z * z) < 64
+	then
 		continue
 	end
 	table.insert(placed, Vector3.new(x, 0, z))
@@ -275,9 +315,30 @@ while saplings < 60 and attempts < 6000 do
 	local tint = CROWN[(saplings % #CROWN) + 1]
 	for _, sign in { 1, -1 } do
 		local px, pz = sign * x, sign * z
-		cylinder("JeuneTronc", cover, height, 0.9, CFrame.new(px, height / 2, pz) * CFrame.Angles(0, 0, math.pi / 2), Color3.fromRGB(176, 170, 156), Enum.Material.Wood)
+		cylinder(
+			"JeuneTronc",
+			cover,
+			height,
+			0.9,
+			CFrame.new(px, height / 2, pz) * CFrame.Angles(0, 0, math.pi / 2),
+			Color3.fromRGB(176, 170, 156),
+			Enum.Material.Wood
+		)
 		for k = 1, 3 do
-			ghost(ball("JeuneFeuillage", decor, 3.4 - k * 0.4, Vector3.new(px + sign * math.cos(k * 2.1) * 1.2, height - 1 + k * 0.9, pz + sign * math.sin(k * 2.1) * 1.2), tint, Enum.Material.LeafyGrass))
+			ghost(
+				ball(
+					"JeuneFeuillage",
+					decor,
+					3.4 - k * 0.4,
+					Vector3.new(
+						px + sign * math.cos(k * 2.1) * 1.2,
+						height - 1 + k * 0.9,
+						pz + sign * math.sin(k * 2.1) * 1.2
+					),
+					tint,
+					Enum.Material.LeafyGrass
+				)
+			)
 		end
 	end
 end
@@ -305,15 +366,58 @@ while rocks < 14 and attempts < 2000 do
 	local spin = rng:NextNumber(0, math.pi)
 	local isLog = rocks % 3 == 0
 	for _, sign in { 1, -1 } do
-		local cf = CFrame.new(sign * x, 0, sign * z) * CFrame.Angles(0, spin + (if sign < 0 then math.pi else 0), 0)
+		local cf = CFrame.new(sign * x, 0, sign * z)
+			* CFrame.Angles(0, spin + (if sign < 0 then math.pi else 0), 0)
 		if isLog then
-			local log = cylinder("Grume", cover, size.X * 2, 2.4, cf * CFrame.new(0, 1.1, 0), BARK, Enum.Material.Wood)
+			local log = cylinder(
+				"Grume",
+				cover,
+				size.X * 2,
+				2.4,
+				cf * CFrame.new(0, 1.1, 0),
+				BARK,
+				Enum.Material.Wood
+			)
 			local _ = log
-			ghost(part("GrumeMousse", decor, Vector3.new(size.X * 1.6, 0.3, 1.6), cf * CFrame.new(0, 2.3, 0), MOSS, Enum.Material.Grass))
+			ghost(
+				part(
+					"GrumeMousse",
+					decor,
+					Vector3.new(size.X * 1.6, 0.3, 1.6),
+					cf * CFrame.new(0, 2.3, 0),
+					MOSS,
+					Enum.Material.Grass
+				)
+			)
 		else
-			part("Rocher", cover, size, cf * CFrame.new(0, size.Y / 2 - 0.3, 0) * CFrame.Angles(0.1, 0, 0.12), ROCK, Enum.Material.Rock)
-			part("RocherBis", cover, size * 0.6, cf * CFrame.new(size.X * 0.4, size.Y * 0.3 - 0.3, size.Z * 0.2) * CFrame.Angles(-0.2, 0.5, 0.1), ROCK, Enum.Material.Rock)
-			ghost(part("RocherMousse", decor, Vector3.new(size.X * 0.8, 0.3, size.Z * 0.7), cf * CFrame.new(0, size.Y - 0.25, 0) * CFrame.Angles(0.1, 0, 0.12), MOSS, Enum.Material.Grass))
+			part(
+				"Rocher",
+				cover,
+				size,
+				cf * CFrame.new(0, size.Y / 2 - 0.3, 0) * CFrame.Angles(0.1, 0, 0.12),
+				ROCK,
+				Enum.Material.Rock
+			)
+			part(
+				"RocherBis",
+				cover,
+				size * 0.6,
+				cf
+					* CFrame.new(size.X * 0.4, size.Y * 0.3 - 0.3, size.Z * 0.2)
+					* CFrame.Angles(-0.2, 0.5, 0.1),
+				ROCK,
+				Enum.Material.Rock
+			)
+			ghost(
+				part(
+					"RocherMousse",
+					decor,
+					Vector3.new(size.X * 0.8, 0.3, size.Z * 0.7),
+					cf * CFrame.new(0, size.Y - 0.25, 0) * CFrame.Angles(0.1, 0, 0.12),
+					MOSS,
+					Enum.Material.Grass
+				)
+			)
 		end
 	end
 end
@@ -344,22 +448,75 @@ do
 			local far = dir * CHAPEL -- coin du mur
 			local seg = math.abs(far - edge)
 			local center = (edge + far) / 2
-			part("Mur", cover, Vector3.new(seg, h, thick), rot * CFrame.new(center, h / 2, CHAPEL + thick / 2), STONE, Enum.Material.Cobblestone)
+			part(
+				"Mur",
+				cover,
+				Vector3.new(seg, h, thick),
+				rot * CFrame.new(center, h / 2, CHAPEL + thick / 2),
+				STONE,
+				Enum.Material.Cobblestone
+			)
 			-- Le sommet casse : un bloc de travers.
-			part("MurCasse", decor, Vector3.new(seg * 0.5, 1.2, thick + 0.2), rot * CFrame.new(center + dir * seg * 0.2, h + 0.4, CHAPEL + thick / 2) * CFrame.Angles(0, 0, dir * 0.25), STONE_DARK, Enum.Material.Cobblestone)
+			part(
+				"MurCasse",
+				decor,
+				Vector3.new(seg * 0.5, 1.2, thick + 0.2),
+				rot
+					* CFrame.new(center + dir * seg * 0.2, h + 0.4, CHAPEL + thick / 2)
+					* CFrame.Angles(0, 0, dir * 0.25),
+				STONE_DARK,
+				Enum.Material.Cobblestone
+			)
 			-- Des pierres tombees au pied, dehors.
-			part("Eboulis", cover, Vector3.new(2.4, 1.6, 2), rot * CFrame.new(center + dir * 2, 0.8, CHAPEL + 3.2) * CFrame.Angles(0.2, dir * 0.6, 0.1), STONE_DARK, Enum.Material.Cobblestone)
+			part(
+				"Eboulis",
+				cover,
+				Vector3.new(2.4, 1.6, 2),
+				rot
+					* CFrame.new(center + dir * 2, 0.8, CHAPEL + 3.2)
+					* CFrame.Angles(0.2, dir * 0.6, 0.1),
+				STONE_DARK,
+				Enum.Material.Cobblestone
+			)
 		end
 		-- Les contreforts aux angles.
-		part("Contrefort", cover, Vector3.new(2.6, 12, 2.6), rot * CFrame.new(CHAPEL + 0.8, 6, CHAPEL + 0.8), STONE_DARK, Enum.Material.Cobblestone)
+		part(
+			"Contrefort",
+			cover,
+			Vector3.new(2.6, 12, 2.6),
+			rot * CFrame.new(CHAPEL + 0.8, 6, CHAPEL + 0.8),
+			STONE_DARK,
+			Enum.Material.Cobblestone
+		)
 	end
 	-- Le dallage de la nef, mange de mousse.
-	part("Dallage", decor, Vector3.new(2 * CHAPEL, 0.2, 2 * CHAPEL), CFrame.new(0, 0.1, 0), STONE_DARK, Enum.Material.Slate)
+	part(
+		"Dallage",
+		decor,
+		Vector3.new(2 * CHAPEL, 0.2, 2 * CHAPEL),
+		CFrame.new(0, 0.1, 0),
+		STONE_DARK,
+		Enum.Material.Slate
+	)
 	-- L'autel renverse et deux bancs de pierre : de quoi se couvrir a
 	-- l'interieur, sans boucher les breches.
-	part("Autel", cover, Vector3.new(4, 3.4, 2.2), CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0.3, 0.06), STONE, Enum.Material.Limestone)
+	part(
+		"Autel",
+		cover,
+		Vector3.new(4, 3.4, 2.2),
+		CFrame.new(0, 1.7, 0) * CFrame.Angles(0, 0.3, 0.06),
+		STONE,
+		Enum.Material.Limestone
+	)
 	for _, s in { 1, -1 } do
-		part("Banc", cover, Vector3.new(1.6, 2.6, 5), CFrame.new(s * 6, 1.3, s * 5) * CFrame.Angles(0, s * 0.2, 0), STONE_DARK, Enum.Material.Cobblestone)
+		part(
+			"Banc",
+			cover,
+			Vector3.new(1.6, 2.6, 5),
+			CFrame.new(s * 6, 1.3, s * 5) * CFrame.Angles(0, s * 0.2, 0),
+			STONE_DARK,
+			Enum.Material.Cobblestone
+		)
 	end
 	-- Une lumiere chaude dans la nef, la seule de la foret avec les feux de
 	-- camp : elle dit ou est le centre quand le brouillard cache tout.
@@ -371,7 +528,15 @@ do
 	light.Shadows = true
 	light.Parent = glow
 	-- Un cierge sur l'autel pour porter cette lueur.
-	cylinder("Cierge", decor, 1.2, 0.5, CFrame.new(0, 3.9, 0) * CFrame.Angles(0, 0, math.pi / 2), Color3.fromRGB(232, 224, 200), Enum.Material.SmoothPlastic)
+	cylinder(
+		"Cierge",
+		decor,
+		1.2,
+		0.5,
+		CFrame.new(0, 3.9, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		Color3.fromRGB(232, 224, 200),
+		Enum.Material.SmoothPlastic
+	)
 end
 
 --------------------------------------------------------------------------------
@@ -399,9 +564,27 @@ for _, s in { 1, -1 } do
 	local fx = s * (SPAWN_X + 6)
 	for k = 0, 5 do
 		local a = k / 6 * math.pi * 2
-		cylinder("Pierre", decor, 0.6, 0.9, CFrame.new(fx + math.cos(a) * 1.6, 0.3, math.sin(a) * 1.6) * CFrame.Angles(0, 0, math.pi / 2), ROCK, Enum.Material.Rock)
+		cylinder(
+			"Pierre",
+			decor,
+			0.6,
+			0.9,
+			CFrame.new(fx + math.cos(a) * 1.6, 0.3, math.sin(a) * 1.6)
+				* CFrame.Angles(0, 0, math.pi / 2),
+			ROCK,
+			Enum.Material.Rock
+		)
 	end
-	local flame = ghost(part("Feu", decor, Vector3.new(1.2, 1.6, 1.2), CFrame.new(fx, 0.9, 0) * CFrame.Angles(0, 0.6, 0), FIRE, Enum.Material.Neon))
+	local flame = ghost(
+		part(
+			"Feu",
+			decor,
+			Vector3.new(1.2, 1.6, 1.2),
+			CFrame.new(fx, 0.9, 0) * CFrame.Angles(0, 0.6, 0),
+			FIRE,
+			Enum.Material.Neon
+		)
+	)
 	local light = Instance.new("PointLight")
 	light.Color = FIRE
 	light.Range = 24
@@ -413,12 +596,47 @@ for _, s in { 1, -1 } do
 	-- arrivant chez B (et, par la symetrie, a +7 chez A). Un menhir plus haut
 	-- que l'oeil les coupe, et une foret avec une pierre levee a sa lisiere
 	-- se lit comme un lieu.
-	part("Menhir" .. team, cover, Vector3.new(2.8, 9.5, 2.2), CFrame.new(s * 48, 4.4, -s * 7) * CFrame.Angles(0.05, s * 0.4, -0.04), ROCK, Enum.Material.Rock)
-	ghost(part("MenhirMousse" .. team, decor, Vector3.new(2.9, 1.4, 2.3), CFrame.new(s * 48, 0.6, -s * 7) * CFrame.Angles(0, s * 0.4, 0), MOSS, Enum.Material.Grass))
+	part(
+		"Menhir" .. team,
+		cover,
+		Vector3.new(2.8, 9.5, 2.2),
+		CFrame.new(s * 48, 4.4, -s * 7) * CFrame.Angles(0.05, s * 0.4, -0.04),
+		ROCK,
+		Enum.Material.Rock
+	)
+	ghost(
+		part(
+			"MenhirMousse" .. team,
+			decor,
+			Vector3.new(2.9, 1.4, 2.3),
+			CFrame.new(s * 48, 0.6, -s * 7) * CFrame.Angles(0, s * 0.4, 0),
+			MOSS,
+			Enum.Material.Grass
+		)
+	)
 
 	-- Une banniere sur un piquet, haute, dans la couleur du camp.
-	ghost(cylinder("Piquet", decor, 14, 0.4, CFrame.new(fx + s * 3, 7, 9) * CFrame.Angles(0, 0, math.pi / 2), BARK_DARK, Enum.Material.Wood))
-	ghost(part("Banniere" .. team, decor, Vector3.new(0.2, 4, 3), CFrame.new(fx + s * 3, 12, 10.6), tint, Enum.Material.Fabric))
+	ghost(
+		cylinder(
+			"Piquet",
+			decor,
+			14,
+			0.4,
+			CFrame.new(fx + s * 3, 7, 9) * CFrame.Angles(0, 0, math.pi / 2),
+			BARK_DARK,
+			Enum.Material.Wood
+		)
+	)
+	ghost(
+		part(
+			"Banniere" .. team,
+			decor,
+			Vector3.new(0.2, 4, 3),
+			CFrame.new(fx + s * 3, 12, 10.6),
+			tint,
+			Enum.Material.Fabric
+		)
+	)
 end
 
 --------------------------------------------------------------------------------
@@ -454,7 +672,16 @@ for _, old in Workspace.Terrain:GetChildren() do
 		old:Destroy()
 	end
 end
-for _, class in { "Atmosphere", "Sky", "BloomEffect", "ColorCorrectionEffect", "SunRaysEffect", "DepthOfFieldEffect" } do
+for _, class in
+	{
+		"Atmosphere",
+		"Sky",
+		"BloomEffect",
+		"ColorCorrectionEffect",
+		"SunRaysEffect",
+		"DepthOfFieldEffect",
+	}
+do
 	for _, old in Lighting:GetChildren() do
 		if old:IsA(class) then
 			old:Destroy()
@@ -523,7 +750,9 @@ do
 	if module then
 		ok, conf = pcall(require, module)
 	end
-	local found = if ok and type(conf) == "table" and type(conf.round) == "table"
+	local found = if ok
+			and type(conf) == "table"
+			and type(conf.round) == "table"
 		then tonumber(conf.round.zoneFinalRadiusStuds)
 		else nil
 	if found then
@@ -534,7 +763,14 @@ local EYE = 3.5
 
 print("")
 print(string.format("[Arena] ===== %s se mesure =====", map.Name))
-print(string.format("  %d paires d'arbres, %d paires de rochers et de grumes (graine %d).", trees, rocks, SEED))
+print(
+	string.format(
+		"  %d paires d'arbres, %d paires de rochers et de grumes (graine %d).",
+		trees,
+		rocks,
+		SEED
+	)
+)
 
 do
 	local open, longest, couples = 0, 0, 0
@@ -553,7 +789,14 @@ do
 		print(string.format("  Departs : aucune des %d lignes n'est degagee. Bon.", couples))
 	else
 		alarms += 1
-		warn(string.format("[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs.", open, couples, longest))
+		warn(
+			string.format(
+				"[Arena]   Departs : %d lignes degagees sur %d, la plus longue %.0f studs.",
+				open,
+				couples,
+				longest
+			)
+		)
 	end
 	local floating = 0
 	for _, folder in { map.SpawnsA, map.SpawnsB } do
@@ -576,11 +819,23 @@ do
 	local covered = 0
 	for step = 0, 15 do
 		local angle = step / 16 * math.pi * 2
-		if Workspace:Raycast(origin, Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS, probe) then
+		if
+			Workspace:Raycast(
+				origin,
+				Vector3.new(math.cos(angle), 0, math.sin(angle)) * FINAL_RADIUS,
+				probe
+			)
+		then
 			covered += 1
 		end
 	end
-	print(string.format("  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs.", covered, FINAL_RADIUS))
+	print(
+		string.format(
+			"  Cercle final : %d directions sur 16 trouvent un couvert dans les %d studs.",
+			covered,
+			FINAL_RADIUS
+		)
+	)
 	if covered < 4 or covered > 12 then
 		alarms += 1
 		warn("[Arena]   Le cercle final est trop nu ou trop encombre.")
@@ -602,7 +857,11 @@ do
 			local origin = Vector3.new(gx, 0.5 + EYE, gz)
 			for step = 0, 7 do
 				local angle = step / 8 * math.pi * 2
-				local hit = Workspace:Raycast(origin, Vector3.new(math.cos(angle), 0, math.sin(angle)) * 160, probe)
+				local hit = Workspace:Raycast(
+					origin,
+					Vector3.new(math.cos(angle), 0, math.sin(angle)) * 160,
+					probe
+				)
 				table.insert(lengths, if hit then hit.Distance else 160)
 			end
 		end
@@ -615,7 +874,14 @@ do
 			long += 1
 		end
 	end
-	print(string.format("  Vue mediane avant un obstacle : %.0f studs ; %d visees sur %d portent au-dela de 80.", median, long, #lengths))
+	print(
+		string.format(
+			"  Vue mediane avant un obstacle : %.0f studs ; %d visees sur %d portent au-dela de 80.",
+			median,
+			long,
+			#lengths
+		)
+	)
 	if median > 45 then
 		alarms += 1
 		warn("[Arena]   La foret est trop claire : sans le brouillard, on y verrait loin.")
@@ -634,7 +900,14 @@ do
 		end
 		table.insert(counts, shaded)
 	end
-	print(string.format("  Soleil a %.1f degres ; ombre aux departs : %d et %d sur 5.", math.deg(math.asin(sun.Y)), counts[1], counts[2]))
+	print(
+		string.format(
+			"  Soleil a %.1f degres ; ombre aux departs : %d et %d sur 5.",
+			math.deg(math.asin(sun.Y)),
+			counts[1],
+			counts[2]
+		)
+	)
 	if math.abs(counts[1] - counts[2]) >= 2 then
 		alarms += 1
 		warn("[Arena]   L'ombre est inegale entre les deux camps.")
@@ -647,4 +920,10 @@ for _, d in map:GetDescendants() do
 		count += 1
 	end
 end
-print(string.format("[Arena] Bois construit : %d parts. %s", count, if alarms == 0 then "Rien a signaler." else alarms .. " point(s) a regarder."))
+print(
+	string.format(
+		"[Arena] Bois construit : %d parts. %s",
+		count,
+		if alarms == 0 then "Rien a signaler." else alarms .. " point(s) a regarder."
+	)
+)
