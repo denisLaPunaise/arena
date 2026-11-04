@@ -8,7 +8,7 @@ Ce fichier sert à deux choses : reprendre le travail si la session s'arrête, e
 
 ## Battement
 
-Dernière activité : 2026-11-04 01:37 (mettre à jour à chaque étape — une reprise
+Dernière activité : 2026-11-04 01:44 (mettre à jour à chaque étape — une reprise
 automatique ne démarre pas si ce battement a moins de 40 minutes)
 
 ## Mandat, dans l'ordre
@@ -47,3 +47,4 @@ automatique ne démarre pas si ce battement a moins de 40 minutes)
 - **Couvre-chefs** : 1re version en pièces (boîtes) écrite, regardée, jetée — flottait sur la tête ronde. Remplacée par 15 maillages `generate_mesh` (14 classes + cheveux du Vampire), réglés un par un sur un corps R15 standard, de face et de trois quarts. Chargés par `CreateMeshPartAsync` au démarrage : console « Couvre-chefs : 15 maillages chargés ». Vérifié en jeu : joueur + 3 mannequins coiffés, changement de classe suivi.
 - Limite rencontrée : `generate_mesh` lancé 13 fois en parallèle → 7 refus « Too Many Requests ». Relancés un par un, tous passés.
 - **BUG MAJEUR trouvé : les attaques traversaient les murs.** Le ciblage prenait l'ennemi le plus proche dans la portée, sans ligne de vue. Corrigé : le plus proche ennemi EN VUE. Mannequins du bac à sable soumis à la même règle — vérifié en jeu : 3 coups derrière un mur = 0 dégât, 3 coups sans mur = 29 dégâts.
+- **Map 5 — Le Bazar** (`tools/BuildBazarMap.luau`) : marché de nuit, trois allées parallèles, ruelles de traverse décalées. Mesures : 0/25 lignes, cercle 8/16, enfilade max 54 studs, diagonale max 89 (dit tel quel). Trois défauts trouvés par la mesure (ruelles alignées → 115 studs ; ligne médiane des allées du bord → 114 ; lampadaires amincis → 2 lignes rouvertes) et deux à l'écran (tout orange ; fûts laiton).
