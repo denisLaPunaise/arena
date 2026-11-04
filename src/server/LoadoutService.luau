@@ -420,6 +420,11 @@ function LoadoutService.refreshStats(entries: { Entry })
 		-- saire doit pouvoir lire le budget sur le corps.
 		WeaponService.wear(entry.player, Loadout.wornOf(Config, items))
 
+		-- Et la classe se lit sur la tete : chacune a son couvre-chef, decide
+		-- par Josh le 4 novembre 2026 pour qu'on reconnaisse un adversaire
+		-- avant le premier echange.
+		WeaponService.crown(entry.player, entry.classId)
+
 		-- entry.stats porte l'arme PRINCIPALE : c'est le profil par defaut, et
 		-- c'est lui que tout le reste du jeu lit (PV maximum, vitesse,
 		-- regeneration). La secondaire ne sort qu'au moment d'un coup trop

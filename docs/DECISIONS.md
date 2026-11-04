@@ -2233,3 +2233,17 @@ est notée ici, avec sa raison, pour pouvoir être défaite le lendemain.
 - **Le garde-fou contre l'inondation est un seau de 12 jetons, 8 par seconde**,
   sur les sept remotes d'interface. Un humain qui martèle plafonne vers six
   clics par seconde.
+- **Les couvre-chefs de classe sont des maillages générés, pas des pièces.**
+  Une première version en boîtes, comme les armes, a été écrite puis jetée
+  après l'avoir regardée : sur une tête ronde, des plaques droites flottent.
+  `generate_mesh` rend des maillages texturés publiés comme assets ; leurs
+  identifiants vivent dans `src/shared/ClassLooks.luau`. Deux écarts au
+  brief : le Caméléon porte une **casquette de camouflage** (le générateur n'a
+  pas rendu la cagoule demandée, et le camouflage dit la même chose), et le
+  Lien une **couronne d'argent à cristaux turquoise** (le fin bandeau à deux
+  anneaux était juste et invisible à vingt studs).
+- **`ClassLooks` est un module à part, pas une table de `Config`** : `Config`
+  dépasse la limite de 200 000 caractères du pont MCP, donc ne se recharge pas
+  dans Studio, et un couvre-chef ne se règle qu'en le regardant.
+- **Le couvre-chef s'affiche aussi sur les mannequins du bac à sable** : c'est
+  le seul endroit où l'on peut voir les quatorze sans quatorze joueurs.

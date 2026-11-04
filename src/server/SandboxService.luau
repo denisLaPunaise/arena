@@ -46,6 +46,7 @@ local Workspace = game:GetService("Workspace")
 local Arena = ReplicatedStorage:WaitForChild("Arena")
 local Classes = require(Arena:WaitForChild("Classes"))
 local Combat = require(Arena:WaitForChild("Combat"))
+local ClassLooks = require(Arena:WaitForChild("ClassLooks"))
 local Config = require(Arena:WaitForChild("Config"))
 local RemoteGuard = require(script.Parent:WaitForChild("RemoteGuard"))
 
@@ -59,6 +60,7 @@ local LoadoutService = require(script.Parent:WaitForChild("LoadoutService"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local SkillTreeService = require(script.Parent:WaitForChild("SkillTreeService"))
 local Venue = require(script.Parent:WaitForChild("Venue"))
+local WeaponService = require(script.Parent:WaitForChild("WeaponService"))
 local ZoneService = require(script.Parent:WaitForChild("ZoneService"))
 
 local FOLDER_NAME = "ArenaSandbox"
@@ -248,6 +250,10 @@ local function buildDummy(at: CFrame): Dummy?
 	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
 
 	model.Parent = folder()
+
+	-- Le mannequin porte le couvre-chef de sa classe : c'est le seul endroit
+	-- du jeu ou l'on peut voir les quatorze sans quatorze joueurs.
+	task.spawn(WeaponService.attachHeadgear, model, (ClassLooks :: any)[dummyClassId])
 
 	return {
 		model = model,

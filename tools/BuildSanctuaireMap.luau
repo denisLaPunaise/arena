@@ -430,9 +430,21 @@ do
 		local x, z = c[1] * corner, c[2] * corner
 		local id = string.format("%d_%d", c[1], c[2])
 		local turn = CFrame.Angles(0, math.rad(45), 0)
-		part("LanterneSocle" .. id, cover, Vector3.new(2.4, 0.7, 2.4), CFrame.new(x, tierTop + 0.35, z) * turn, LIME_DARK)
+		part(
+			"LanterneSocle" .. id,
+			cover,
+			Vector3.new(2.4, 0.7, 2.4),
+			CFrame.new(x, tierTop + 0.35, z) * turn,
+			LIME_DARK
+		)
 		pillar("LanterneFut" .. id, cover, 0.55, 2.2, x, z, tierTop + 0.7, LIME)
-		part("LanterneTablette" .. id, cover, Vector3.new(2.2, 0.4, 2.2), CFrame.new(x, tierTop + 3.1, z) * turn, LIME_DARK)
+		part(
+			"LanterneTablette" .. id,
+			cover,
+			Vector3.new(2.2, 0.4, 2.2),
+			CFrame.new(x, tierTop + 3.1, z) * turn,
+			LIME_DARK
+		)
 		-- La loge du feu : quatre montants plutot qu'un cube plein, pour qu'on
 		-- voie la lumiere au travers.
 		for _, m in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
@@ -444,7 +456,14 @@ do
 				LIME
 			)
 		end
-		local flame = part("LanterneFeu" .. id, cover, Vector3.new(0.9, 0.9, 0.9), CFrame.new(x, tierTop + 3.95, z) * turn, Color3.fromRGB(255, 214, 150), Enum.Material.Neon)
+		local flame = part(
+			"LanterneFeu" .. id,
+			cover,
+			Vector3.new(0.9, 0.9, 0.9),
+			CFrame.new(x, tierTop + 3.95, z) * turn,
+			Color3.fromRGB(255, 214, 150),
+			Enum.Material.Neon
+		)
 		flame.Transparency = 0.15
 		local light = Instance.new("PointLight")
 		light.Color = Color3.fromRGB(255, 200, 140)
@@ -453,8 +472,20 @@ do
 		light.Parent = flame
 		-- Le toit : une dalle large et un chapeau etroit, la silhouette qui fait
 		-- lire « lanterne » et pas « poteau ».
-		part("LanterneToit" .. id, cover, Vector3.new(2.9, 0.45, 2.9), CFrame.new(x, tierTop + 4.85, z) * turn, LIME_DARK)
-		part("LanterneChapeau" .. id, cover, Vector3.new(1.3, 0.5, 1.3), CFrame.new(x, tierTop + 5.3, z) * turn, LIME_DARK)
+		part(
+			"LanterneToit" .. id,
+			cover,
+			Vector3.new(2.9, 0.45, 2.9),
+			CFrame.new(x, tierTop + 4.85, z) * turn,
+			LIME_DARK
+		)
+		part(
+			"LanterneChapeau" .. id,
+			cover,
+			Vector3.new(1.3, 0.5, 1.3),
+			CFrame.new(x, tierTop + 5.3, z) * turn,
+			LIME_DARK
+		)
 	end
 end
 

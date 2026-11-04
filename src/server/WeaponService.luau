@@ -59,11 +59,13 @@
 
 local WeaponService = {}
 
+local AssetService = game:GetService("AssetService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Arena = ReplicatedStorage:WaitForChild("Arena")
+local ClassLooks = require(Arena:WaitForChild("ClassLooks"))
 local Config = require(Arena:WaitForChild("Config"))
 
 local MODEL_NAME = "ArenaWeapon"
@@ -72,6 +74,11 @@ local WORN_MODEL = "ArenaWorn"
 local WORN_NAME = "ArenaWornJoint"
 local OFFHAND_MODEL = "ArenaOffhand"
 local OFFHAND_NAME = "ArenaOffhandJoint"
+-- Le couvre-chef de classe. Un emplacement a lui, pas celui des armures :
+-- `dressWorn` vide les armures a chaque changement d'equipement, et le
+-- couvre-chef ne doit pas partir avec elles.
+local HEADGEAR_MODEL = "ArenaHeadgear"
+local HEADGEAR_NAME = "ArenaHeadgearJoint"
 local ARM_NAME = "ArenaArm"
 local TARGET_NAME = "ArenaHandTarget"
 local LEAN_NAME = "ArenaLean"
@@ -93,6 +100,17 @@ local restC0: { [Player]: CFrame } = {}
 -- meme facon : une armure se porte en permanence, alors qu'un joueur qui a
 -- quatre utilitaires ne peut pas les tenir tous les quatre en meme temps.
 local wornItems: { [Player]: { any } } = {}
+local crowns: { [Player]: any } = {}
+-- Un maillage par identifiant, charge une fois et clone ensuite. `false` veut
+-- dire « a echoue » : on ne redemande pas un maillage modere ou supprime a
+-- chaque reapparition, on l'a deja dit une fois dans la console.
+local meshTemplates: { [string]: MeshPart | false } = {}
+-- Deux appels pour le meme personnage pendant le premier chargement (la
+-- manche qui commence et la reapparition) poseraient DEUX couvre-chefs. Le
+-- jeton dit lequel est le dernier demande ; l'autre abandonne au reveil.
+-- Cles faibles : un personnage detruit a chaque reapparition ne doit pas
+-- rester dans la table pour toujours.
+local headgearToken: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 local offhandToken: { [Player]: number } = {}
 
 -- Un jeton par joueur pour le retour du geste. Sans lui, le retour d'un coup
@@ -814,6 +832,160 @@ local function dressWorn(character: Model, items: { any })
 	end
 end
 
+-- UN MAILLAGE NE S'ECRIT PAS EN JEU. `MeshPart.MeshId` n'est modifiable que
+-- par un plugin : un script de jeu doit faire creer la piece par
+-- `AssetService:CreateMeshPartAsync`, qui attend le reseau. D'ou le cache, et
+-- le `pcall` : un maillage modere ou supprime echoue, et l'echec doit se dire
+-- au lieu de laisser une tete nue sans explication.
+local function meshTemplate(mesh: any): MeshPart?
+	local key = tostring(mesh.meshId) .. "|" .. tostring(mesh.textureId)
+	local cached = meshTemplates[key]
+	if cached == false then
+		return nil
+	elseif cached ~= nil then
+		return cached
+	end
+	local ok, created = pcall(function()
+		return AssetService:CreateMeshPartAsync(mesh.meshId)
+	end)
+	if not ok or created == nil then
+		meshTemplates[key] = false
+		warn(
+			string.format(
+				"[Arena] Maillage « %s » (%s) introuvable : %s",
+				tostring(mesh.name),
+				tostring(mesh.meshId),
+				tostring(created)
+			)
+		)
+		return nil
+	end
+	local part = created :: MeshPart
+	if mesh.textureId ~= nil then
+		part.TextureID = mesh.textureId
+	end
+	meshTemplates[key] = part
+	return part
+end
+
+-- Pose un maillage sur son membre. La taille garde les proportions du
+-- maillage et se regle par UNE fraction, la largeur rapportee a celle du
+-- membre : un chapeau etire sur un axe se verrait tout de suite.
+local function attachMesh(character: Model, model: Model, mesh: any, defaultLimb: string): boolean
+	local limb = limbOf(character, mesh.limb or defaultLimb)
+	local template = meshTemplate(mesh)
+	if limb == nil or template == nil then
+		return false
+	end
+	local part = template:Clone()
+	part.Name = mesh.name
+	part.Anchored = false
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Massless = true
+	part.Size = template.Size * ((mesh.width * limb.Size.X) / template.Size.X)
+	part.Parent = model
+
+	local joint = Instance.new("Motor6D")
+	joint.Name = HEADGEAR_NAME
+	joint.Part0 = limb
+	joint.Part1 = part
+	joint.C0 = CFrame.new(triple(mesh.at) * limb.Size) * anglesOf(mesh)
+	joint.Parent = limb
+	return true
+end
+
+-- LE COUVRE-CHEF DE CLASSE, sur n'importe quel personnage : un joueur, un
+-- mannequin du bac a sable, ou un corps d'examen en mode edition. Une seule
+-- fonction pour les trois, pour que ce qu'on regarde soit exactement ce que
+-- le jeu pose. Meme moteur que les armures — fractions du membre, une
+-- articulation par membre, detruite avec ce qu'elle tient. Nil retire.
+--
+-- Elle peut ATTENDRE le reseau (premier chargement d'un maillage) : appelee
+-- depuis une boucle de jeu, l'envelopper dans `task.spawn`.
+function WeaponService.attachHeadgear(character: Model, look: any?): boolean
+	local token = (headgearToken[character] or 0) + 1
+	headgearToken[character] = token
+	stripSlot(character, HEADGEAR_MODEL, HEADGEAR_NAME)
+	if look == nil or look.worn == nil then
+		return false
+	end
+
+	-- Les maillages d'abord charges, ensuite poses : le chargement attend, et
+	-- un personnage peut avoir ete remplace ou re-coiffe pendant l'attente.
+	for _, mesh in look.meshes or {} do
+		meshTemplate(mesh)
+	end
+	if headgearToken[character] ~= token or character.Parent == nil then
+		return false
+	end
+	stripSlot(character, HEADGEAR_MODEL, HEADGEAR_NAME)
+
+	local placed = false
+	if look.meshes ~= nil and #look.meshes > 0 then
+		local model = Instance.new("Model")
+		model.Name = HEADGEAR_MODEL
+		for _, mesh in look.meshes do
+			if attachMesh(character, model, mesh, look.worn.limb) then
+				placed = true
+			end
+		end
+		model.Parent = character
+	end
+
+	if look.pieces ~= nil and #look.pieces > 0 then
+		local origin = triple(look.worn.at)
+		local fit = look.worn.fit == true
+		for limbName, group in groupByLimb(look) do
+			if
+				attachAt(
+					character,
+					look,
+					HEADGEAR_MODEL,
+					HEADGEAR_NAME,
+					limbName,
+					origin,
+					fit,
+					group
+				)
+			then
+				placed = true
+			end
+		end
+	end
+	return placed
+end
+
+-- Charge tous les maillages des couvre-chefs, et nomme ceux qui manquent. La
+-- meme regle que `Audio.verify` : un asset modere ou prive echoue EN SILENCE,
+-- et une classe sans couvre-chef ne se reconnaitrait plus, sans que personne
+-- sache pourquoi.
+function WeaponService.preloadHeadgear(): (number, { string })
+	local loaded, missing = 0, {}
+	for classId, look in ClassLooks :: any do
+		for _, mesh in look.meshes or {} do
+			if meshTemplate(mesh) ~= nil then
+				loaded += 1
+			else
+				table.insert(missing, classId .. "/" .. tostring(mesh.name))
+			end
+		end
+	end
+	return loaded, missing
+end
+
+-- Le couvre-chef de la classe de ce joueur, rejoue a chaque reapparition comme
+-- l'armure. Une classe sans allure, ou nil, retire le couvre-chef.
+function WeaponService.crown(player: Player, classId: string?)
+	local look = if classId ~= nil then (ClassLooks :: any)[classId] else nil
+	crowns[player] = look
+	local character = player.Character
+	if character ~= nil then
+		task.spawn(WeaponService.attachHeadgear, character, look)
+	end
+end
+
 -- L'armure qu'on porte. Rejouee a chaque reapparition, comme l'arme : sinon
 -- elle disparaitrait a la premiere manche perdue.
 function WeaponService.wear(player: Player, items: { any })
@@ -981,6 +1153,10 @@ function WeaponService.init()
 				if character ~= nil and dressed ~= nil then
 					dressWorn(character, dressed)
 				end
+				local crown = crowns[player]
+				if character ~= nil and crown ~= nil then
+					task.spawn(WeaponService.attachHeadgear, character, crown)
+				end
 
 				local item = wanted[player]
 				if item == nil then
@@ -997,6 +1173,22 @@ function WeaponService.init()
 	end
 	Players.PlayerAdded:Connect(watch)
 
+	task.spawn(function()
+		local loaded, missing = WeaponService.preloadHeadgear()
+		if #missing == 0 then
+			print(string.format("[Arena] Couvre-chefs : %d maillages charges.", loaded))
+		else
+			warn(
+				string.format(
+					"[Arena] Couvre-chefs : %d maillages charges, %d MANQUENT : %s",
+					loaded,
+					#missing,
+					table.concat(missing, ", ")
+				)
+			)
+		end
+	end)
+
 	Players.PlayerRemoving:Connect(function(player)
 		forgetBody(player)
 		wanted[player] = nil
@@ -1004,6 +1196,7 @@ function WeaponService.init()
 		restC0[player] = nil
 		swingToken[player] = nil
 		wornItems[player] = nil
+		crowns[player] = nil
 		offhandToken[player] = nil
 	end)
 end
