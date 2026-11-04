@@ -1297,6 +1297,61 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
   n'arrive pas a enoncer la regle sans nommer le cas, il ne faut pas
   l'automatiser.
 
+- **UNE ATTAQUE NE REGARDAIT PAS LES MURS.** Jusqu'au 4 novembre 2026,
+  `findTarget` prenait l'ennemi le plus proche dans la portée, sans ligne de
+  vue : un fusil à soixante studs tirait à travers le décor, et toutes les
+  mesures de couverture des maps parlaient d'un jeu qui n'existait pas. Les
+  sondes des recettes mesuraient des lignes de tir que le combat ignorait. La
+  règle vit maintenant dans `CombatService.inSight` (rayon de poitrine à
+  poitrine, personnages exclus, collisions respectées), et le bac à sable
+  l'emploie aussi — c'est ce qui permet de la vérifier seul. Leçon : **quand
+  deux parties du jeu parlent de la même chose (ici : « couvert »), vérifier
+  qu'elles en parlent de la même façon.**
+
+- **LA PARTIE EN COURS NE VOIT PAS ROJO.** Rojo écrit dans la place
+  d'édition ; une partie lancée avant la modification garde l'ancien code.
+  Vu le 4 novembre 2026 : trois achats de points en réserve « qui ne marchaient
+  pas », sur un serveur démarré avant leur écriture. Après une modification,
+  **arrêter et relancer la partie**, puis comparer les tailles.
+
+- **`generate_mesh` SE LIMITE, ET IL MODÉLISE CE QU'ON NE DEMANDE PAS.** Treize
+  appels en parallèle : sept refusés (« Too Many Requests », « Rate limit
+  exceeded »). Un par un, tous passent. Ensuite, un maillage de cheveux est
+  livré **avec un crâne pâle dessous**, qui couvre les yeux d'un masque blanc :
+  reculé de 0,2 tête, il passe dans la vraie tête et seuls les cheveux
+  dépassent. Et le générateur interprète : une « cagoule de ninja » est sortie
+  en casquette de camouflage. Comme pour les matières : **quatre propositions,
+  pas quatre réussites**, et on regarde avant de garder.
+
+- **UN MAILLAGE NE S'ÉCRIT PAS EN JEU.** `MeshPart.MeshId` n'est modifiable
+  que par un plugin. Le jeu crée donc ses pièces par
+  `AssetService:CreateMeshPartAsync`, une fois par maillage, puis les clone.
+  L'appel attend le réseau : il est sous `pcall`, il tourne dans un
+  `task.spawn`, et `WeaponService.preloadHeadgear` nomme au démarrage tout
+  maillage qui ne se charge pas — un asset modéré rendrait sinon une tête nue
+  sans un mot. Les identifiants vivent dans `src/shared/ClassLooks.luau`, qui
+  est un module à part et pas une table de `Config` : `Config` dépasse les
+  200 000 caractères du pont et ne se recharge plus dans Studio.
+
+- **L'`ATMOSPHERE` DE ROBLOX NE FAIT PAS DE BROUILLARD COURT.** À densité 0,62,
+  une chapelle restait nette à quarante studs : elle épaissit sur des
+  centaines de studs, c'est un voile d'horizon. Un brouillard qui ferme la vue
+  est l'ancien `Lighting.FogStart` / `FogEnd`, qui **ne s'applique que s'il n'y
+  a aucune `Atmosphere`**. C'est un réglage de place : chaque recette remet
+  `FogEnd` à 100 000, sauf le Bois brumeux qui le pose.
+
+- **LA DENSITÉ D'UNE FORÊT SE CALCULE.** Un rayon à hauteur d'yeux parcourt en
+  moyenne `1 / (densité × diamètre)` avant de toucher un tronc. Soixante-huit
+  troncs de deux studs sur 140 × 140 donnent 130 studs — la première forêt
+  avait une vue médiane de 160, c'est-à-dire aucune forêt du tout. Ça ne se
+  voit pas sur une capture, où les couronnes remplissent l'image.
+
+- **UNE MESURE QUI DIT « BON » APRÈS UNE RETOUCHE EST À REFAIRE APRÈS LA
+  SUIVANTE.** Les lampadaires du Bazar ont été amincis de 1,6 à 1,2 pour une
+  raison purement visuelle, et deux lignes de tir d'un camp à l'autre se sont
+  rouvertes. La recette l'a dit à la construction suivante, et c'est
+  exactement pour ça qu'elle se mesure toute seule.
+
 ## L'ordre des étapes
 
 1. Squelette du repo : Rojo, Rokit, Wally, StyLua, Selene, `CLAUDE.md`, fichier
@@ -1400,7 +1455,16 @@ GitHub Actions relance formatage, analyse, tests et build à chaque push.
    miroir, pour que les deux camps aient le même chemin. Et c'est la première
    recette qui **se mesure elle-même** à la construction. Section 32
    d'`A-TESTER.md`
-19. Ce qui reste : les jambes si Josh en veut malgré le coût, la tête qui
+19. **La nuit du 4 novembre 2026**, en autonomie : les attaques demandent une
+   ligne de vue (elles traversaient les murs), un couvre-chef par classe
+   (maillages générés), les points en réserve et l'accélération des nouveaux
+   enfin appliqués, un garde-fou d'inondation sur les remotes, les lignes de tir
+   du Colisée et du Sanctuaire coupées, et trois maps de plus — le Bazar, la
+   Serre, le Bois brumeux. Journal : `docs/NUIT.md` ; à vérifier en jouant :
+   section 36 d'`A-TESTER.md`
+20. Ce qui reste : **une rotation des maps** (une seule map existe à la fois,
+   et `MapService` prend la première ; sept recettes pour une seule map jouée),
+   les jambes si Josh en veut malgré le coût, la tête qui
    regarderait sa cible (une information de plus donnée à l'adversaire, donc
    une décision de conception), **l'allure des armes**, les skins, et l'achat
    de pièces en Robux

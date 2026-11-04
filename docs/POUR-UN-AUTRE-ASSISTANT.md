@@ -148,7 +148,7 @@ suivrait sa cible donnerait une information de plus à l'adversaire).
 
 ---
 
-## 6. Ce qui se passe en ce moment (3 novembre 2026)
+## 6. Ce qui se passe en ce moment (4 novembre 2026)
 
 Travail en cours sur **l'allure des quatre maps**, avec deux outils du pont MCP
 de Studio :
@@ -158,7 +158,7 @@ de Studio :
   **inscrits dans les recettes de `tools/`** — c'est ça la sauvegarde, puisque
   `MaterialService` n'est ni dans Git ni dans Rojo.
 - `generate_mesh` rend un maillage texturé publié comme asset (~90 s).
-  **Pas encore employé.**
+  Employé pour les couvre-chefs ; **un appel à la fois**, sinon il refuse.
 
 Deux pannes trouvées en regardant l'écran le 3 novembre, et aucune par les
 1 578 tests :
@@ -182,20 +182,26 @@ Deux pannes trouvées en regardant l'écran le 3 novembre, et aucune par les
    sombres a donné quatre fois le même résultat : ce qui tue le camo est la
    **structure** — des joints, des assises — pas une autre tache.
 
-### Si tu reprends ce chantier
+### Ce qui a changé la nuit du 4 novembre 2026
 
-Ce qui reste de visuel, dans l'ordre où ça rapporte :
+Josh a confié une nuit entière en autonomie. Le journal est `docs/NUIT.md`,
+les décisions sont à la fin de `docs/DECISIONS.md`, et ce que Josh doit
+vérifier en jouant est la section 36 d'`A-TESTER.md`. En bref :
 
-- **`generate_mesh` n'a jamais servi.** Zéro `MeshPart` dans le projet. C'est
-  le seul outil du pont qui n'a pas été essayé sur les maps.
-- **La bannière de camp du Sanctuaire** occupe la moitié haute de l'écran
-  depuis le point de départ (`FrontonA`, 22 studs de large à 11,4 studs de
-  l'oeil). Mesuré, pas corrigé.
-- **Trois défauts de jeu mesurés au rayon** et laissés tels quels, parce qu'ils
-  déplacent l'équilibre d'une map et que ça se tranche avec Josh : lignes de tir
-  dégagées entre les départs au Sanctuaire (147 studs) et au Colisée (121), et
-  couverture du cercle final du Colisée à 4 directions sur 16.
-- **56,6 % de la surface du Cargo** ne porte aucune matière générée.
+- **Les attaques demandent une ligne de vue** (`CombatService.inSight`). Avant,
+  elles traversaient les murs. C'est le changement qui touche le plus le jeu.
+- **Chaque classe a un couvre-chef** : quatorze maillages `generate_mesh`,
+  identifiants dans `src/shared/ClassLooks.luau`, posés par
+  `WeaponService.attachHeadgear` (joueurs, mannequins, corps d'examen).
+- **Trois maps de plus** : `BuildBazarMap`, `BuildSerreMap`, `BuildBoisMap`.
+  Sept recettes, et **toujours une seule map à la fois** : la rotation des maps
+  n'existe pas, c'est le prochain chantier évident.
+- Les deux défauts de tir du Colisée et du Sanctuaire sont corrigés, la
+  bannière aussi. Il reste **56,6 % de la surface du Cargo** sans matière
+  générée.
+- Un nouveau test, `tests/specs/wiring.luau`, refuse toute fonction pure
+  exportée que le jeu n'appelle pas, sauf excuse écrite. C'est la parade
+  automatique au réflexe n° 1 ci-dessous.
 
 ---
 

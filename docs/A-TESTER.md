@@ -1855,3 +1855,84 @@ portique est pile dans l'axe du centre. Mesurée, laissée : une colonne fait
 3,2 studs de large à 14 studs, on la contourne d'un pas, et c'est du couvert —
 contrairement à une bannière de 22 studs. À confirmer en jouant que ça ne gêne
 pas au moment où la manche démarre.
+
+## 36. La nuit du 4 novembre — ce que Josh doit regarder, dans l'ordre
+
+Tout ce qui suit a été vérifié par les tests, par les mesures des recettes, et
+**en jeu dans Studio, seul**. Rien n'a été joué à deux. L'ordre est celui où ça
+change le plus le jeu.
+
+### 1. Les attaques ne traversent plus les murs — **le changement le plus lourd**
+
+Avant, le ciblage prenait l'ennemi le plus proche dans la portée **sans ligne de
+vue** : un fusil tirait à travers un mur. Maintenant la cible est le plus proche
+ennemi **en vue** (rayon de poitrine à poitrine ; un couvert à hauteur de taille
+laisse tirer par-dessus). Vérifié seul sur un mannequin : trois coups derrière
+un mur, zéro dégât ; sans le mur, 29.
+
+**À regarder à deux :**
+- un coup qu'on croit donner et qui ne part pas, parce que la cible est cachée
+  par un bout de décor qu'on ne remarque pas (un poteau, un rebord) ;
+- les armes de tir : elles perdent beaucoup, et c'est voulu, mais c'est à
+  juger. Si c'est trop sévère, `Config.combat.lineOfSightHeightStuds` (1,5) se
+  monte, et `requireLineOfSight = false` rend l'ancien comportement.
+- **Non touchés** : zones, explosions, lancers et pouvoirs de zone passent
+  toujours les murs. C'est un choix, à confirmer.
+
+### 2. Les couvre-chefs de classe
+
+Quatorze maillages générés, un par classe, réglés sur un corps standard.
+**À regarder :** de face et de dos, à vingt studs, en mouvement — est-ce qu'on
+reconnaît la classe d'un adversaire **avant** le premier échange ? Les plus
+sûrs : Colosse, Duelliste, Artificier, Spectre, Infirmier, Pyromane, Leurre,
+Sismique. Les plus fragiles : **Lien** (une couronne, moins parlante que les
+autres), **Caméléon** (une casquette de camouflage, pas la cagoule demandée) et
+**Vampire** (cheveux et cape : très bien de dos, discret de face).
+**À vérifier aussi :** qu'un grand bord (le feutre du Duelliste, 2,3 studs) ne
+gêne pas la caméra quand on zoome contre son propre personnage.
+
+### 3. Les points en réserve
+
+Une fois la branche finie, les points restants achètent `+10 PV`, `+1 vitesse`
+ou `-0,5 s de recharge` (cette dernière n'est proposée qu'aux classes qui ont un
+pouvoir actif). Ça ne s'atteint que dans une partie longue (sept manches) ou
+avec le point de revanche. **À regarder :** si ça vaut la peine, ou si c'est un
+écran qu'on ne regarde jamais.
+
+### 4. Les nouveaux joueurs
+
+Les vingt premières parties paient au moins 500 pièces (une caisse toutes les
+deux parties), même en perdant. C'était dans `Config` et jamais appliqué.
+
+### 5. Trois nouvelles maps — **une seule map existe à la fois dans la place**
+
+Elles se construisent en collant leur recette (`tools/BuildBazarMap.luau`,
+`BuildSerreMap.luau`, `BuildBoisMap.luau`), qui détruit la map précédente. La
+place est restée sur **le Sanctuaire**.
+
+- **Le Bazar** — marché de nuit, trois allées parallèles. Question : quelle
+  allée prendre, et quand traverser. À regarder : si la nuit est assez claire
+  pour voir un adversaire à trente studs ; si les deux ruelles de traverse se
+  trouvent sans les chercher.
+- **La Serre** — sous verre, on voit le centre de partout et on ne passe pas.
+  Question : la lecture. À regarder : **si le verre se voit assez** pour qu'on
+  ne s'y cogne pas (transparence 0,5) ; si le labyrinthe est amusant ou
+  frustrant.
+- **Le Bois brumeux** — forêt d'automne dans le brouillard, chapelle au centre.
+  Question : l'embuscade. À regarder : **`Lighting.FogEnd` (85)**, le chiffre qui
+  décide de toute la map — trop court c'est aveugle, trop long c'est une forêt
+  ordinaire. Et les performances : 2 300 parts, 60 images par seconde dans
+  Studio, à vérifier sur une machine plus faible.
+
+### 6. Les deux défauts de tir corrigés
+
+- **Colisée** : trois lignes dégagées de 121 studs entre les départs → zéro
+  (deux tronçons de colonne flanquent chaque stèle). Cercle final 4/16 → 8/16.
+- **Sanctuaire** : deux lignes de 147 studs → zéro (quatre lanternes de pierre
+  sur les angles du gradin).
+
+### 7. Le reste, invisible en jouant
+
+Garde-fou contre l'inondation sur les sept remotes d'interface ; dix-neuf
+chiffres de paliers 6 et quatre de lancers sortis vers `Config` ; touches E, T
+et P lues dans `Config` ; bandeau des touches qui ne déborde plus.
